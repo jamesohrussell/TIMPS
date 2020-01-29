@@ -1,5 +1,5 @@
 # Tracked IMERG Precipitation Systems (TIPS) development codes
-Documentation on a set of C++ and Python codes for the development of a set of tracked features derived from gridded precipitation fields
+C++ and Python codes for the development of a set of tracked features derived from gridded precipitation fields
 
 ## C++ codes
 Forward in Time (FiT) tracking algorithm codes developed by Gregor Skok. Initially developed for NASA TRMM TMPA data. Has been used to track features in NASA IMERG data. Can be used to track features in any generic gridded variable.
