@@ -1,0 +1,74 @@
+# --------------------------------------------------------------------------------------------
+# Sample namelist for FiT object analysis package 
+# Gregor Skok, Faculty of Mathematics and Physics, University of Ljubljana, Slovenia, 2012
+#
+# More information about FiT object based analysis at 
+# "Skok et. al, 2013: Analysis of tropical cyclone precipitation using an 
+# object-based algorithm. Journal of Climate."
+# --------------------------------------------------------------------------------------------
+
+# Input file type. 1=fortran binary file, 2=netcdf file, 3=CSV ASCII file 
+# To able to use the NetCDF files the software has to be compiled with the NetCDF support
+# Netcdf file has to have the same structure (dimension names, variable name, ..)
+# as the sample netcdf files in "sample_files" folder.
+# In the CSV files the newline characters as well as well as empty lines are ignored. For the structure  
+# of the CSV file you can look at the sample CSV files in the "sample_files" folder.
+# The sequence of values in CSV files changes fastest with x dimension, then y dimension and then z dimension.
+input_file_type=2
+
+# Ouput file type. 1=fortran binary file, 2=netcdf file, 3=CSV ascii file  
+# To able to use NetCDF the software has to be compiled with the NetCDF support
+output_file_type=2
+
+# The location with file prefix for input files. The files should have the 
+# filenames input_file_prefixCCCC.dat (Fortran file) or input_file_prefixCCCCC.nc 
+# (netcdf file) or input_file_prefixCCCCC.csv (CSV ascii file). CCCCC is the counter with 5 digits witch starts at 00000.
+# On Linux system using the bash shell the following command can usually be used to create CCCCC.dat  
+# links to a sequence of files with different filenames located in the same folder:
+# a=0;for i in $(ls); do new=$(printf "%05d.dat" ${a});  ln -sf ${i} ${new};   let a=a+1; done
+input_file_prefix = /uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_102519/FiT_input_files_2017/IMERG_FiT_tholds_CapVer_
+
+# The location with file prefix for output files. 
+output_file_prefix = /uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_102519/FiT_output_files_2017/IMERG_tracked_
+
+# The dimensions of 3D field in input files
+dimx = 700
+dimy = 400
+dimz = 1
+
+# Number of timesteps to analyze
+number_of_timesteps = 5856
+	
+# The number of cascading thresholds to be used. The regions with values below the lowest 
+# threshold should have value 0 in the input field. The regions with values between 
+# the lowest threshold and the next higher threshold should have the value 1, and so on 
+# to the highest threshold. The areas with values higher than the highest threshold should 
+# have the value equal to number_of_thresholds
+# If number_of_thresholds=1 only one threshold is used (no cascading thresholds). 
+# If a value greater than number_of_thresholds is found in the input field, the software 
+# stops with an error message. 
+number_of_thresholds = 4
+
+# The horizontal distance limit for merging of 3D objects into 4D objects. Value of -1 disables the limit. 
+# If a positive value is used the merging of each individual 3D object into a multi-piece 4D object 
+# is only performed if the distance between the centers of the 4D object and the 3D object 
+# is smaller than the prescribed value. The value represents the horizontal Euclidian 
+# distance in x and y dimensions (distance in z dimension is ignored) which is expressed with the number of 
+# grid points (e.g. value of 200 represents the distance of 200 gridpoints). 
+horizontal_distance_limit_for_merging = 30
+
+# Should the software write output files related to 3D objects (object not matched in time)?
+# 0=no, 1=yes
+output_3D_objects=0;
+
+# Should the software write output files related to 4D objects (object matched in time according to FiT)?
+# 0=no, 1=yes
+output_4D_objects=1;
+
+# Should the software write any PNG output files?
+# 0=no, 1=yes
+output_png_files=1;
+
+
+
+
