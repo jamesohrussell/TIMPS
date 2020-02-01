@@ -36,7 +36,7 @@ endtime   = "20180610" # Actual last day is day before
 tholds  = [0.5,1.5,4.5,13.5]
 
 # Directory and filename for output FiT input data
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_012220/FiT_input_2018/"
+datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/FiT_input_2018/"
 fileidout  = "IMERG_FiT_tholds_"
 
 # Subset regions (ranges have no affect if ssreg=False)
@@ -54,8 +54,9 @@ stddev   = 1.5  # Standard deviation for gaussian smoothing
 uniform  = True
 width    = 3    # Number of points to spread running average
 
-# Number of cores for parallel code
-njobs = 8
+# Parallelization
+serialorparallel = 1 # serial=1 parallel=2
+njobs = 8 # Number of cores for parallelization
 
 #==========================================================
 # Write namelist to a dictionary
@@ -141,13 +142,16 @@ ffn.close()
 #========================================================== 
 
 # Begins loop
-#for i in range(len(filenames)):
-#  dc.driver_createinfiles(i)
+if serialorparallel==1:
+  print("Begin serial loop over objects")
+  for i in range(len(filenames)):
+    dc.driver_createinfiles(i)
 
 # Parallel loop over PFs
-print("Begin parallel loop over objects")
-Parallel(n_jobs=njobs)(delayed(dc.driver_createinfiles)(i) for \
-  i in range(len(filenames)))
+if serialorparallel==2:
+  print("Begin parallel loop over objects")
+  Parallel(n_jobs=njobs)(delayed(dc.driver_createinfiles)(i) for \
+    i in range(len(filenames)))
 
 #==========================================================
 # Final clean up tasks
