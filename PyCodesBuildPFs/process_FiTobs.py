@@ -35,17 +35,17 @@ datanc4    = False
 
 # Directory and filename for FiT input files
 # Should obtain from create_FiT_input_files.py
-datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_012220/FiT_input_2018/"
+datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/FiT_input_2018/"
 fileidFin  = "IMERG_FiT_tholds_CapVer_"
 
 # Directory and filename for FiT output data files
-datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_012220/FiT_output_2018/"
+datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/FiT_output_2018/"
 fileidFi1  = "IMERG_tracked_"
 fileidFi2  = "_4Dobjects.nc"
 fileidtxt  = "4Dobject_tree.txt"
 
 # Directory and filename for output PF nc files
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_012220/IMERGPFs_2018/"
+datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/IMERGPFs_2018/"
 fileidout1 = "IPF_"
 
 # Only process a set of objects
@@ -63,6 +63,7 @@ mergedist = 30
 reftime = "1900-01-01 00:00:00"
 
 # Number of processes for parallelization
+serialorparallel = 2
 njobs = 8
 
 #============================================================
@@ -190,13 +191,16 @@ pifileout.close()
 # Parallel loop over object
 #============================================================ 
 
-#for o in range(len(objs)):
-#  dp.driver_processFiTobs(o)
+if serialorparallel==1:
+  print("Begin serial loop over objects")
+  for o in range(len(objs)):
+    dp.driver_processFiTobs(o)
 
 # Parrallel loop over PFs
-print("Begin parrallel loop over objects")
-Parallel(n_jobs=njobs)(delayed(dp.driver_processFiTobs)(o) \
-  for o in range(len(objs)))
+if serialorparallel==2:
+  print("Begin parrallel loop over objects")
+  Parallel(n_jobs=njobs)(delayed(dp.driver_processFiTobs)(o) \
+    for o in range(len(objs)))
 
 #============================================================
 # Final clean up tasks

@@ -26,10 +26,10 @@ output_file_type=2
 # On Linux system using the bash shell the following command can usually be used to create CCCCC.dat  
 # links to a sequence of files with different filenames located in the same folder:
 # a=0;for i in $(ls); do new=$(printf "%05d.dat" ${a});  ln -sf ${i} ${new};   let a=a+1; done
-input_file_prefix = /uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_102519/FiT_input_files_2017/IMERG_FiT_tholds_CapVer_
+input_file_prefix = /uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/FiT_input_2018/IMERG_FiT_tholds_CapVer_
 
 # The location with file prefix for output files. 
-output_file_prefix = /uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_102519/FiT_output_files_2017/IMERG_tracked_
+output_file_prefix = /uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/FiT_output_2018/IMERG_tracked_
 
 # The dimensions of 3D field in input files
 dimx = 700
@@ -37,7 +37,7 @@ dimy = 400
 dimz = 1
 
 # Number of timesteps to analyze
-number_of_timesteps = 5856
+number_of_timesteps = 432
 	
 # The number of cascading thresholds to be used. The regions with values below the lowest 
 # threshold should have value 0 in the input field. The regions with values between 
@@ -68,7 +68,4 @@ output_4D_objects=1;
 # Should the software write any PNG output files?
 # 0=no, 1=yes
 output_png_files=1;
-
-
-
 
