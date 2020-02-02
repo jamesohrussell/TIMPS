@@ -30,18 +30,19 @@ import os
 #==========================================================
 
 # Directory and filename for PF files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_012220/IMERGPFs_2018/"
+datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/IMERGPFs_2018/"
 fileid  = "IPF_"
 
 # Subset (for certain range of dates) 
 ssdat = False
-date1 = "20140601"
-date2 = "20140602"
+date1 = "20180601"
+date2 = "20180602"
 ssobs = False
 obid1 = "100000"
 obid2 = "100010"
 
 # Number of processes for parrallelization
+serialorparallel = 2
 njobs = 8
 
 # Variables desired
@@ -193,10 +194,16 @@ ffn.close()
 # Loop over IPF files in parrallel
 #==========================================================
 
+if serialorparallel==1:
+  print("Begin serial loop over objects")
+  for fn in range(len(filenamesrun)):
+    da.driver_addvars(fn)
+
 # Parrallel loop over PFs
-print("Begin parrallel loop over IPFs")
-Parallel(n_jobs=njobs)(delayed(da.driver_addvars)(fn) for \
-  fn in range(len(filenamesrun)))
+if serialorparallel==2:
+  print("Begin parrallel loop over IPFs")
+  Parallel(n_jobs=njobs)(delayed(da.driver_addvars)(fn) \
+    for fn in range(len(filenamesrun)))
 
 #==========================================================
 # Final clean up tasks
