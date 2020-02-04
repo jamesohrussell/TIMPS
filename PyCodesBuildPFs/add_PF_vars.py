@@ -182,7 +182,7 @@ if ssdat:
   print("Getting directory and filenames")
   filenamesrun = []
   for f in filen:
-      filenamesrun = filenamesrun+glob.glob(f)
+      filenamesrun = filenamesrun+sorted(glob.glob(f))
 
 elif ssobs:
 
@@ -199,7 +199,7 @@ elif ssobs:
   filenamesrun = []
   for f in filen:
     print("Adding "+str(f))
-    filenamesrun = filenamesrun+glob.glob(f)
+    filenamesrun = filenamesrun+sorted(glob.glob(f))
 
   #import os
   #for f in filen:
@@ -211,7 +211,7 @@ else:
 
   # Find all files in directory
   print("Generating list of files")
-  filenamesrun = glob.glob(datadir+fileid+'*')
+  filenamesrun = sorted(glob.glob(datadir+fileid+'*'))
 
 
 # Write file names to a text file for reading during 

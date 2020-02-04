@@ -903,6 +903,39 @@ def calc_mjrmnrax(lons,lats):
   # Return
   return(center,mjrax_len,mjrax_ang,mnrax_len,mnrax_ang)
 
+#==================================================================
+# Find indices of k closest values in list
+#==================================================================
+
+def k_closest(lst,value,k):
+  """
+  Find the indices of the k closest values in list to a given value
+
+  Input: 
+   1,2) Lists of longitude and latitude coordinates to fit the 
+    major and minor axes too
+
+  Output 
+
+  Requires numpy 1.16.3 (conda install -c anaconda numpy; 
+   https://pypi.org/project/numpy/)
+  """
+
+  import numpy as np
+
+  # Find the absolute differences between the value and all values
+  #  in the list
+  diff  = [abs(l-value) for l in lst]
+
+  # Sort these differences
+  diffs = sorted(diff)
+
+  # Set the k smallest values in diff equal to zero
+  for d in diffs[0:k]:
+    diff = np.where(diff==d,0,diff)
+
+  # Return indices where diff equals zero
+  return([i for i, x in enumerate(diff) if x==0])
 
 
 #==================================================================

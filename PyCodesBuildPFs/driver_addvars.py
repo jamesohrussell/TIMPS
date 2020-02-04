@@ -10,7 +10,7 @@ def driver_addvars(fn):
 
   # Import libraries
   import PF_functions as PFfunc
-  from netCDF4 import Dataset
+  from netCDF4 import Dataset, MFDataset
   import numpy as np
   import pandas as pd
   from scipy.spatial import ConvexHull
@@ -35,6 +35,8 @@ def driver_addvars(fn):
   dataclon = fd.variables["centrallon"][:]
   datadtim = fd.variables["datetime"][:]
   datatim  = fd.variables["time"][:]
+
+  print(fd.variables["time"].units)
 
   # Get all times 
   datakeys = datalat.__dict__.keys()
@@ -146,58 +148,129 @@ def driver_addvars(fn):
     instrainnzk = instrain[k][instrain[k]>0]
 
 #==================================================================
-# Calculate maximum rain rate
+# Assign ERA5 data
+#==================================================================
+
+#    if nl.addCPE5=="True":
+#      
+#      # Import libraries
+#      import xarray as xr
+#      import glob
+#      import datetime as dt
+# 
+#      # Combine all CAPE files and open multi-file datset
+#      allfiles = glob.glob(nl.dataE5dir+nl.fileCPE5id+"*")
+#      ds = xr.open_mfdataset(allfiles,concat_dim="time",
+#                              combine='by_coords')
+# 
+#      # Flip longitude to 0 to 360
+#      if dataclon[c]<0: clon = dataclon[c]+360
+# 
+#      # Set time
+#      timec = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+ \
+#               "T"+str(k)[8:10]+":"+str(k)[10:12]+":00.000000000"
+#      times = [str(dt) for dt in ds.time.values]
+#      
+#      # Case where at exact time
+#      if timec in times:
+# 
+#        # Get data slices
+#        dsmean = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
+#         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
+#         time=timec).to_array().values
+#
+#      # Case where between times do interpolation
+#      else:
+#        timec1 = dt.datetime(int(str(k)[0:4]),int(str(k)[4:6]),
+#                            int(str(k)[6:8]),int(str(k)[8:10]),
+#                            int(str(k)[10:12]),0)
+#        time0 = dt.datetime(int(times[0][0:4]),int(times[0][5:7]),
+#                         int(times[0][8:10]),int(times[0][11:13]),
+#                         int(times[0][14:16]),int(times[0][17:19]))
+#        time1 = dt.datetime(int(times[1][0:4]),int(times[1][5:7]),
+#                         int(times[1][8:10]),int(times[1][11:13]),
+#                         int(times[1][14:16]),int(times[1][17:19]))
+#        delta = time1-time0
+#        timec0 = str(timec1 - delta)
+#        timec2 = str(timec1 + delta)
+#        dsmean = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
+#         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
+#         time=slice(timec0,timec2)).to_array().values
+#   
+#      print(dsmean)
+
+#==================================================================
+# Assign ERA5 data
 #==================================================================
 
     if nl.addCPE5=="True":
       
       # Import libraries
-      import xarray as xr
       import glob
       import datetime as dt
 
-      # Combine all CAPE files and open multi-file datset
-      allfiles = glob.glob(nl.dataE5dir+nl.fileCPE5id+"*")
-      ds = xr.open_mfdataset(allfiles,concat_dim="time",
-                              combine='by_coords')
-      print(ds)
-      exit()
+      # Convert times to units in ERA5
+      
+
+      # Select which file the time is within
+      allfiles = sorted(glob.glob(nl.dataE5dir+nl.fileCPE5id+"*"))
+      for f in allfiles:
+        ds = Dataset(f)
+        if ds.variables["time"][0] \
+             <=datatim[c]<= \
+           ds.variables["time"][-1]:
+          times = list(ds.variables["time"][:])
+      
+      # Select the index(es) of the relevant time(s) 
+      if datatim[c] in times:
+        tind = times.index(datatim[c])
+      else:
+        tind = PFfunc.k_closest(times,datatim[c],2)
+      
+      # 
 
       # Flip longitude to 0 to 360
-      if dataclon[c]<0: clon = dataclon[c]+360
+      #if dataclon[c]<0: clon = dataclon[c]+360
+#
+#      print(ds)
+#      exit()
+#
+#      # Flip longitude to 0 to 360
+#      if dataclon[c]<0: clon = dataclon[c]+360
+#
+#      # Set time
+#      timec = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+ \
+#               "T"+str(k)[8:10]+":"+str(k)[10:12]+":00.000000000"
+#      times = [str(dt) for dt in ds.time.values]
+#      
+#      # Case where at exact time
+#      if timec in times:
+#
+#        # Get data slices
+#        dsmean = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
+#         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
+#         time=timec).to_array().mean().values
+#
+#      # Case where between times do interpolation
+#      else:
+#        timec1 = dt.datetime(int(str(k)[0:4]),int(str(k)[4:6]),
+#                            int(str(k)[6:8]),int(str(k)[8:10]),
+#                            int(str(k)[10:12]),0)
+#        time0 = dt.datetime(int(times[0][0:4]),int(times[0][5:7]),
+#                         int(times[0][8:10]),int(times[0][11:13]),
+#                         int(times[0][14:16]),int(times[0][17:19]))
+#        time1 = dt.datetime(int(times[1][0:4]),int(times[1][5:7]),
+#                         int(times[1][8:10]),int(times[1][11:13]),
+#                         int(times[1][14:16]),int(times[1][17:19]))
+#        delta = time1-time0
+#        timec0 = str(timec1 - delta)
+#        timec2 = str(timec1 + delta)
+#        dsmean = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
+#         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
+#         time=slice(timec0,timec2)).to_array().mean().values
+#   
+#      print(dsmean)
 
-      # Set time
-      timec = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+ \
-               "T"+str(k)[8:10]+":"+str(k)[10:12]+":00.000000000"
-      times = [str(dt) for dt in ds.time.values]
-      
-      # Case where at exact time
-      if timec in times:
-
-        # Get data slices
-        dsnow = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
-         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
-         time=timec).to_array().mean().values
-
-  
-      # Case where between times do interpolation
-      else:
-        timec1 = dt.datetime(int(str(k)[0:4]),int(str(k)[4:6]),
-                            int(str(k)[6:8]),int(str(k)[8:10]),
-                            int(str(k)[10:12]),0)
-        time0 = dt.datetime(int(times[0][0:4]),int(times[0][5:7]),
-                         int(times[0][8:10]),int(times[0][11:13]),
-                         int(times[0][14:16]),int(times[0][17:19]))
-        time1 = dt.datetime(int(times[1][0:4]),int(times[1][5:7]),
-                         int(times[1][8:10]),int(times[1][11:13]),
-                         int(times[1][14:16]),int(times[1][17:19]))
-        delta = time1-time0
-        timec0 = str(timec1 - delta)
-        timec2 = str(timec1 + delta)
-        dsnow = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
-         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
-         time=slice(timec0,timec2)).to_array().mean().values
-###     
 
 #==================================================================
 # Calculate maximum rain rate
