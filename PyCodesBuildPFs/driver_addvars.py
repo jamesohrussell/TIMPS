@@ -44,22 +44,22 @@ def driver_addvars(fn):
 #==================================================================
 
   # Preallocate arrays
-  if nl.addmaxrainrate=="True":
+  if nl.addmaxrr=="True":
     maxrainrate  = [0.]*len(datakeys)
 
-  if nl.addmeanrainrate=="True":
+  if nl.addmeanrr=="True":
     meanrainrate = [0.]*len(datakeys)
 
-  if nl.addmedianrainrate=="True":
+  if nl.addmedianrr=="True":
     medianrainrate = [0.]*len(datakeys)
 
-  if nl.addstddevrainrate=="True":
+  if nl.addstddevrr=="True":
     stddevrainrate = [0.]*len(datakeys)
 
   if nl.addarea=="True":
     area = [0.]*len(datakeys)
 
-  if nl.addvolrainrate=="True":
+  if nl.addvrr=="True":
     volrainrate = [0.]*len(datakeys)
 
   if nl.addpropagation=="True":
@@ -149,7 +149,61 @@ def driver_addvars(fn):
 # Calculate maximum rain rate
 #==================================================================
 
-    if nl.addmaxrainrate=="True":
+    if nl.addCPE5=="True":
+      
+      # Import libraries
+      import xarray as xr
+      import glob
+      import datetime as dt
+
+      # Combine all CAPE files and open multi-file datset
+      allfiles = glob.glob(nl.dataE5dir+nl.fileCPE5id+"*")
+      ds = xr.open_mfdataset(allfiles,concat_dim="time",
+                              combine='by_coords')
+      print(ds)
+      exit()
+
+      # Flip longitude to 0 to 360
+      if dataclon[c]<0: clon = dataclon[c]+360
+
+      # Set time
+      timec = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+ \
+               "T"+str(k)[8:10]+":"+str(k)[10:12]+":00.000000000"
+      times = [str(dt) for dt in ds.time.values]
+      
+      # Case where at exact time
+      if timec in times:
+
+        # Get data slices
+        dsnow = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
+         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
+         time=timec).to_array().mean().values
+
+  
+      # Case where between times do interpolation
+      else:
+        timec1 = dt.datetime(int(str(k)[0:4]),int(str(k)[4:6]),
+                            int(str(k)[6:8]),int(str(k)[8:10]),
+                            int(str(k)[10:12]),0)
+        time0 = dt.datetime(int(times[0][0:4]),int(times[0][5:7]),
+                         int(times[0][8:10]),int(times[0][11:13]),
+                         int(times[0][14:16]),int(times[0][17:19]))
+        time1 = dt.datetime(int(times[1][0:4]),int(times[1][5:7]),
+                         int(times[1][8:10]),int(times[1][11:13]),
+                         int(times[1][14:16]),int(times[1][17:19]))
+        delta = time1-time0
+        timec0 = str(timec1 - delta)
+        timec2 = str(timec1 + delta)
+        dsnow = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
+         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
+         time=slice(timec0,timec2)).to_array().mean().values
+###     
+
+#==================================================================
+# Calculate maximum rain rate
+#==================================================================
+
+    if nl.addmaxrr=="True":
 
       # Calculate maximum rain rate in PF
       maxrainrate[c] = np.amax(instrainnzk)
@@ -158,7 +212,7 @@ def driver_addvars(fn):
 # Calculate mean rain rate
 #==================================================================
 
-    if nl.addmeanrainrate=="True":
+    if nl.addmeanrr=="True":
 
       # Calculate mean rain rates but exclude pixels with 
       #  no rain
@@ -168,7 +222,7 @@ def driver_addvars(fn):
 # Calculate median rain rate
 #==================================================================
 
-    if nl.addmedianrainrate=="True":
+    if nl.addmedianrr=="True":
 
       # Calculate median rain rates but exclude pixels with 
       #  no rain
@@ -178,7 +232,7 @@ def driver_addvars(fn):
 # Calculate standard deviation of rain rate
 #==================================================================
 
-    if nl.addstddevrainrate=="True":
+    if nl.addstddevrr=="True":
       # Calculate standard deviation of rain rates but 
       #  exclude pixels with no rain
       stddevrainrate[c] = np.std(instrainnzk)
@@ -188,7 +242,7 @@ def driver_addvars(fn):
 #==================================================================
 
     if nl.addarea=="True" and \
-       nl.addvolrainrate=="False":
+       nl.addvrr=="False":
 
       # Calculate area
       ar = PFfunc.calc_area(lonsnzk,latsnzk,
@@ -202,7 +256,7 @@ def driver_addvars(fn):
 #==================================================================
 
     if nl.addarea=="True" and \
-       nl.addvolrainrate=="True":
+       nl.addvrr=="True":
 
       # Calculate area and volumetric rain rate
       ar,vrr = PFfunc.calc_area_and_volrainrate(
@@ -217,7 +271,7 @@ def driver_addvars(fn):
 #==================================================================
 
     if nl.addarea=="False" and \
-       nl.addvolrainrate=="True":
+       nl.addvrr=="True":
 
       # Calculate volumetric rain rate
       vrr = PFfunc.calc_area_and_volrainrate(
@@ -651,7 +705,7 @@ def driver_addvars(fn):
 # Write max rain rate to file
 #==================================================================
 
-  if nl.addmaxrainrate=="True":
+  if nl.addmaxrr=="True":
 
     description = "Maximum rain rate within PF"
     PFfunc.write_var("maxrainrate","Max rain rate",
@@ -662,7 +716,7 @@ def driver_addvars(fn):
 # Write mean rain rate to file
 #==================================================================
 
-  if nl.addmeanrainrate=="True":
+  if nl.addmeanrr=="True":
 
     description = "Mean rain rate within PF excluding pixels with zero rain rate"
     PFfunc.write_var("meanrainrate","Mean rain rate",
@@ -673,7 +727,7 @@ def driver_addvars(fn):
 # Write median rain rate to file
 #==================================================================
 
-  if nl.addmedianrainrate=="True":
+  if nl.addmedianrr=="True":
 
     description = "Median rain rate within PF excluding pixels with zero rain rate"
     PFfunc.write_var("medianrainrate","Median rain rate",
@@ -684,7 +738,7 @@ def driver_addvars(fn):
 # Write standard deviation rate to file
 #==================================================================
 
-  if nl.addstddevrainrate=="True":
+  if nl.addstddevrr=="True":
 
     description = "Standard deviation of rain rate within PF excluding pixels with zero rain rate"
     PFfunc.write_var("stddevrainrate",
@@ -705,7 +759,7 @@ def driver_addvars(fn):
 # Write volumetric rain rate to file
 #==================================================================
 
-  if nl.addvolrainrate=="True":
+  if nl.addvrr=="True":
 
     description = "Volumetric rain rate within PF excluding pixels with zero rain rate"
     PFfunc.write_var("volrainrate","Volumetric rain rate",

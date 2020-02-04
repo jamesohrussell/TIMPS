@@ -42,46 +42,66 @@ obid1 = "100000"
 obid2 = "100010"
 
 # Number of processes for parrallelization
-serialorparallel = 2
+serialorparallel = 1
 njobs = 8
 
 # Variables desired
-addmaxrainrate    = True # Maximum rain rate
-addmeanrainrate   = True # Mean rain rate
-addmedianrainrate = True # Median rain rate
-addstddevrainrate = True # Standard deviation of the rain rates
-addarea           = True # Area of the PF
-addvolrainrate    = True # Volumetric rain rate
-addpropagation    = True # Propagation characteristics
-addnormtime       = True # Add a normalized time variable (0-1 for PF)
-addTCinfo         = True # Flags indicating proximity to TC center
-addlandinfo       = True # Flags indicating locations over land
-addboundaryinfo   = True # Time-series indicating if PF touching domain boundary
-addlocaltime      = True # Local solar time of the PF
-addasymmetry      = True # Asymmetry shape parameter (Zick et al. 2016)
-addfragmentation  = True # Fragmentation shape parameter (Zick et al. 2016)
-addaxesshape      = True # Array of variables based on the major and minor axes from eigenvalue/vectors
-addperimeter      = True # Distance around perimeter of shape (alpha-shape method)
-addconvrain       = True # Flags indicating whether rain is convective
-addconvarea       = True # Area of the convective region (addconvrain must also be True)
-addconvvrr        = True # Volume of convective rainfall (addconvrain must also be True)
-
-#addconvshape      = False # All shape parameters specified but for convective region
+addmaxrr          = False # Maximum rain rate
+addmeanrr         = False # Mean rain rate
+addmedianrr       = False # Median rain rate
+addstddevrr       = False # Standard deviation of the rain
+                          #  rates
+addarea           = False # Area of the PF
+addvrr            = False # Volumetric rain rate
+addpropagation    = False # Propagation characteristics
+addnormtime       = False # Add a normalized time variable 
+                          #  (0-1 for PF)
+addTCinfo         = False # Flags indicating proximity to 
+                          #  TC center
+addlandinfo       = False # Flags indicating locations over 
+                          #  land
+addboundaryinfo   = False # Time-series indicating if PF 
+                          #  touching domain boundary
+addlocaltime      = False # Local solar time of the PF
+addasymmetry      = False # Asymmetry shape parameter 
+                          #  (Zick et al. 2016)
+addfragmentation  = False # Fragmentation shape parameter 
+                          #  (Zick et al. 2016)
+addaxesshape      = False # Array of variables based on 
+                          #  the major and minor axes from 
+                          #  eigenvalue/vectors
+addperimeter      = False # Distance around perimeter of 
+                          #  shape (alpha-shape method)
+addconvrain       = False # Flags indicating whether rain 
+                          #  is convective
+addconvarea       = False # Area of the convective region 
+                          #  (addconvrain must also be True)
+addconvvrr        = False # Volume of convective rainfall 
+                          #  (addconvrain must also be True)
+addCPE5           = True  # ERA5 CAPE
+#addconvshape      = False # All shape parameters specified 
+                           #  but for convective region
 #addmergeinfo      = False # Information on mergers
-#addenvinfoERA5    = False # Various variables including moisture, shear, etc. from ERA5
 
 # Inputs for specific variables
 
-# Grid spacing in degrees lon, lat (only required for area/volrainrate/shape)
+# Grid spacing in degrees lon, lat (only required for 
+#  area/volrainrate/shape)
 dx = 0.1
 dy = 0.1
 
-# Directory and filename of TC data (only required for TC information)
+# Directory and filename of TC data (only required for TC 
+#  information)
 dataTCdir = "/uufs/chpc.utah.edu/common/home/varble-group2/IBTrACS/"
 fileTCid  = "IBTrACS.ALL.v04r00.nc"
 
 # Convective rain rate threshold (mm/hr)
 convrainthold = 10
+
+# Directory and filenames of ERA5 data
+dataE5dir  = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
+fileCPE5id = "ERA5.CAPE."
+hda        = 5 # Half data area in degrees
 
 #==========================================================
 # Initialize timer
@@ -95,12 +115,14 @@ startnow = tm.time()
 
 # Put namelist information in dictionaries
 namelist = {}
-namelist["addmaxrainrate"] = str(addmaxrainrate)
-namelist["addmeanrainrate"] = str(addmeanrainrate)
-namelist["addmedianrainrate"] = str(addmedianrainrate)
-namelist["addstddevrainrate"] = str(addstddevrainrate)
+
+# Add which variables are selected
+namelist["addmaxrr"] = str(addmaxrr)
+namelist["addmeanrr"] = str(addmeanrr)
+namelist["addmedianrr"] = str(addmedianrr)
+namelist["addstddevrr"] = str(addstddevrr)
 namelist["addarea"] = str(addarea)
-namelist["addvolrainrate"] = str(addvolrainrate)
+namelist["addvrr"] = str(addvrr)
 namelist["addpropagation"] = str(addpropagation)
 namelist["addnormtime"] = str(addnormtime)
 namelist["addTCinfo"] = str(addTCinfo)
@@ -114,11 +136,21 @@ namelist["addaxesshape"] = str(addaxesshape)
 namelist["addperimeter"] = str(addperimeter)
 namelist["addasymmetry"] = str(addasymmetry)
 namelist["addfragmentation"] = str(addfragmentation)
-namelist["dx"] = dx
-namelist["dy"] = dy
-namelist["dataTCdir"] = str(dataTCdir)
-namelist["fileTCid"] = str(fileTCid)
-namelist["convrainthold"] = convrainthold
+namelist["addCPE5"] = str(addCPE5)
+if addarea or addvrr or addconvarea or addconvvrr or \
+   addperimeter or addasymmetry or addfragmentation or \
+   addaxesshape or addboundaryinfo:
+  namelist["dx"] = dx
+  namelist["dy"] = dy
+if addTCinfo:
+  namelist["dataTCdir"] = str(dataTCdir)
+  namelist["fileTCid"] = str(fileTCid)
+if addconvrain or addconvarea or addconvvrr:
+  namelist["convrainthold"] = convrainthold
+if addCPE5:
+  namelist["dataE5dir"] = str(dataE5dir)
+  namelist["fileCPE5id"] = str(fileCPE5id)
+  namelist["hda"] = hda
 
 # Write namelist dictionary to netcdf file for reading 
 #  during parallel loop
