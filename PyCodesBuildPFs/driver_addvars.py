@@ -36,8 +36,6 @@ def driver_addvars(fn):
   datadtim = fd.variables["datetime"][:]
   datatim  = fd.variables["time"][:]
 
-  print(fd.variables["time"].units)
-
   # Get all times 
   datakeys = datalat.__dict__.keys()
 
@@ -71,7 +69,8 @@ def driver_addvars(fn):
   if nl.addnormtime=="True":
     # Calculate normalized time variable
     np.seterr(divide='ignore', invalid='ignore')
-    normalizedtime = [i for i in range(len(datakeys))]/np.float32(len(datakeys)-1)
+    normalizedtime = [i for i in range(len(datakeys))]/\
+     np.float32(len(datakeys)-1)
 
   if nl.addlocaltime=="True":
     localsuntime = [""]*len(datakeys)
@@ -151,125 +150,57 @@ def driver_addvars(fn):
 # Assign ERA5 data
 #==================================================================
 
-#    if nl.addCPE5=="True":
-#      
-#      # Import libraries
-#      import xarray as xr
-#      import glob
-#      import datetime as dt
-# 
-#      # Combine all CAPE files and open multi-file datset
-#      allfiles = glob.glob(nl.dataE5dir+nl.fileCPE5id+"*")
-#      ds = xr.open_mfdataset(allfiles,concat_dim="time",
-#                              combine='by_coords')
-# 
-#      # Flip longitude to 0 to 360
-#      if dataclon[c]<0: clon = dataclon[c]+360
-# 
-#      # Set time
-#      timec = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+ \
-#               "T"+str(k)[8:10]+":"+str(k)[10:12]+":00.000000000"
-#      times = [str(dt) for dt in ds.time.values]
-#      
-#      # Case where at exact time
-#      if timec in times:
-# 
-#        # Get data slices
-#        dsmean = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
-#         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
-#         time=timec).to_array().values
-#
-#      # Case where between times do interpolation
-#      else:
-#        timec1 = dt.datetime(int(str(k)[0:4]),int(str(k)[4:6]),
-#                            int(str(k)[6:8]),int(str(k)[8:10]),
-#                            int(str(k)[10:12]),0)
-#        time0 = dt.datetime(int(times[0][0:4]),int(times[0][5:7]),
-#                         int(times[0][8:10]),int(times[0][11:13]),
-#                         int(times[0][14:16]),int(times[0][17:19]))
-#        time1 = dt.datetime(int(times[1][0:4]),int(times[1][5:7]),
-#                         int(times[1][8:10]),int(times[1][11:13]),
-#                         int(times[1][14:16]),int(times[1][17:19]))
-#        delta = time1-time0
-#        timec0 = str(timec1 - delta)
-#        timec2 = str(timec1 + delta)
-#        dsmean = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
-#         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
-#         time=slice(timec0,timec2)).to_array().values
-#   
-#      print(dsmean)
-
-#==================================================================
-# Assign ERA5 data
-#==================================================================
-
     if nl.addCPE5=="True":
       
       # Import libraries
       import glob
       import datetime as dt
+      from scipy.interpolate import interp1d
 
-      # Convert times to units in ERA5
-      
+      # Convert current time to ERA5 time units for comparison
+      timestring = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
+                   " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
+      currtime   = PFfunc.time_since(timestring,
+                    fd.variables["time"].units)
 
       # Select which file the time is within
       allfiles = sorted(glob.glob(nl.dataE5dir+nl.fileCPE5id+"*"))
-      for f in allfiles:
-        ds = Dataset(f)
-        if ds.variables["time"][0] \
-             <=datatim[c]<= \
+      for fE5 in allfiles:
+        ds = Dataset(fE5)
+        if ds.variables["time"][0]<=currtime<= \
            ds.variables["time"][-1]:
           times = list(ds.variables["time"][:])
+          break
       
       # Select the index(es) of the relevant time(s) 
-      if datatim[c] in times:
-        tind = times.index(datatim[c])
+      if currtime in times:
+        timi = times.index(currtime)
       else:
-        tind = PFfunc.k_closest(times,datatim[c],2)
-      
-      # 
+        timi = PFfunc.k_closest(times,currtime,2)   
+            
+      # Find lat and lon indices
+      if dataclon[c]<0: clon = dataclon[c]+360
+      latE5 = ds.variables["latitude"][:]
+      lonE5 = ds.variables["longitude"][:]
+      lati  = np.squeeze([
+               PFfunc.k_closest(latE5,dataclat[c]+nl.hda,1), 
+               PFfunc.k_closest(latE5,dataclat[c]-nl.hda,1)])
+      loni  = np.squeeze([
+               PFfunc.k_closest(lonE5,clon-nl.hda,1),
+               PFfunc.k_closest(lonE5,clon+nl.hda,1)])
 
-      # Flip longitude to 0 to 360
-      #if dataclon[c]<0: clon = dataclon[c]+360
-#
-#      print(ds)
-#      exit()
-#
-#      # Flip longitude to 0 to 360
-#      if dataclon[c]<0: clon = dataclon[c]+360
-#
-#      # Set time
-#      timec = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+ \
-#               "T"+str(k)[8:10]+":"+str(k)[10:12]+":00.000000000"
-#      times = [str(dt) for dt in ds.time.values]
-#      
-#      # Case where at exact time
-#      if timec in times:
-#
-#        # Get data slices
-#        dsmean = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
-#         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
-#         time=timec).to_array().mean().values
-#
-#      # Case where between times do interpolation
-#      else:
-#        timec1 = dt.datetime(int(str(k)[0:4]),int(str(k)[4:6]),
-#                            int(str(k)[6:8]),int(str(k)[8:10]),
-#                            int(str(k)[10:12]),0)
-#        time0 = dt.datetime(int(times[0][0:4]),int(times[0][5:7]),
-#                         int(times[0][8:10]),int(times[0][11:13]),
-#                         int(times[0][14:16]),int(times[0][17:19]))
-#        time1 = dt.datetime(int(times[1][0:4]),int(times[1][5:7]),
-#                         int(times[1][8:10]),int(times[1][11:13]),
-#                         int(times[1][14:16]),int(times[1][17:19]))
-#        delta = time1-time0
-#        timec0 = str(timec1 - delta)
-#        timec2 = str(timec1 + delta)
-#        dsmean = ds.sel(longitude=slice(clon-nl.hda,clon+nl.hda),
-#         latitude=slice(dataclat[c]+nl.hda,dataclat[c]-nl.hda),
-#         time=slice(timec0,timec2)).to_array().mean().values
-#   
-#      print(dsmean)
+      # Read in subset of data (interpolate in time if necessary)
+      if hasattr(timi,"__len__"):
+        CAPEnow = np.array(ds.variables["CAPE"][timi[0]:timi[1]+1,
+                   lati[0]:lati[1]+1,loni[0]:loni[1]+1])
+        intfn = interp1d([times[timi[0]],times[timi[1]]],
+                   CAPEnow,axis=0)
+        CAPEnow = intfn(currtime)
+      else:
+        CAPEnow = np.array(ds.variables["CAPE"][timi,
+                   lati[0]:lati[1]+1,loni[0]:loni[1]+1])
+
+
 
 
 #==================================================================

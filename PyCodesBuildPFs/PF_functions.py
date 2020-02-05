@@ -80,6 +80,13 @@
 # * calc_mjrmnrax
 #   - Finds the major and minor axis of a set of points on earth
 #
+# * k_closest
+#   - Finds the k closest values in a list to a given value
+#
+# * time_since
+#   - From a string indicating the time and date and a units 
+#     since reference time and date, calculate a time number
+#
 # * write_var
 #   - Defines/opens a variable and writes the data to a 
 #      netcdf file.
@@ -912,10 +919,13 @@ def k_closest(lst,value,k):
   Find the indices of the k closest values in list to a given value
 
   Input: 
-   1,2) Lists of longitude and latitude coordinates to fit the 
-    major and minor axes too
+   1) A list of values
+   2) The value you wish to find the closest value to in lst
+   3) The number of closest values you wish to find.
 
-  Output 
+  Output:
+   A list of the indices in lst corresponding to the k closest
+    values to value
 
   Requires numpy 1.16.3 (conda install -c anaconda numpy; 
    https://pypi.org/project/numpy/)
@@ -938,6 +948,67 @@ def k_closest(lst,value,k):
   return([i for i, x in enumerate(diff) if x==0])
 
 
+
+#==================================================================
+# Calculate time since given units
+#==================================================================
+
+def time_since(dateandtime,reftimeandunits):
+  """
+  Calculate the date and time in units since a date
+
+  Input: 
+   1) The date and time in string format: "yyyy-mm-dd HH:MM:SS"
+   2) The units and reference time to convert to in string format:
+       <units> since yyyy-mm-dd HH:MM:SS
+       <units> can be any of the below:
+       * seconds or secs
+       * minutes or mins
+       * hours or hrs
+       * days or dys
+       * weeks or wks
+
+  Output:
+   A float indicating the current time in the units specified
+
+  Requires datetime
+  """
+
+  # Import libraries
+  import datetime as dt
+
+  # Split units string and make date and time object
+  splitrtu = reftimeandunits.split(" ")
+  unit = splitrtu[0]
+  refdtob = dt.datetime(int(splitrtu[2][0:4]),
+                        int(splitrtu[2][5:7]),
+                        int(splitrtu[2][8:10]),
+                        int(splitrtu[3][0:2]),
+                        int(splitrtu[3][3:5]),
+                        int(splitrtu[3][6:8]))
+
+  # Make current date and time object
+  curdtob = dt.datetime(int(dateandtime[0:4]),
+                        int(dateandtime[5:7]),
+                        int(dateandtime[8:10]),
+                        int(dateandtime[11:13]),
+                        int(dateandtime[14:16]),
+                        int(dateandtime[17:19]))
+
+  # Return current time given units
+  if unit=="seconds" or unit=="secs":
+    return((curdtob-refdtob).total_seconds())
+  elif unit=="minutes" or unit=="mins":
+    return((curdtob-refdtob).total_seconds()/60)
+  elif unit=="hours" or unit=="hrs":
+    return((curdtob-refdtob).total_seconds()/3600)
+  elif unit=="days" or unit=="dys":
+    return((curdtob-refdtob).total_seconds()/86400)
+  elif unit=="weeks" or unit=="wks":
+    return((curdtob-refdtob).total_seconds()/604800)
+
+
+
 #==================================================================
 # Write netcdf variable
 #==================================================================
@@ -947,7 +1018,7 @@ def write_var(varname,long_name,description,dimname,dtype,units,
   """
   Generic script for defining/opening a variable in a 
    netcdf file and then writing the associated data to the 
-   variable."
+   variable.
   """
 
   try:
@@ -974,7 +1045,7 @@ def write_group(groupname,long_name,description,units,
     file and then writing a python dictionary to that group
     as attribute:value pairs. Note: value can be a string, 
     integer, float, list, or anything else that can be 
-    taken as an attribute in a netcdf file."
+    taken as an attribute in a netcdf file.
    """
 
    try:
