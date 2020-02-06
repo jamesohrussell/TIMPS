@@ -87,6 +87,23 @@
 #   - From a string indicating the time and date and a units 
 #     since reference time and date, calculate a time number
 #
+# * get_E5_subset_2D
+#   - Gets a 2D subset of ERA5 data given central times, 
+#      lats, and lons, for a specified variable.
+#
+# * get_E5_subset_file
+#   - Given a time, finds the ERA5 file that is relevant, and
+#      outputs the indices corresponding to the closest time 
+#      coordinate within that file
+#
+# * get_E5_subset_2D_coords
+#   - Gets the lat and lon indices and the coordinates within
+#      a certain area surrounding a central lon and lat
+#
+# * get_E5_subset_2D_var
+#   - Gets a subset of a specific ERA5 variable corresponding
+#      to the time, latitude, and longitude coordinates provided
+#
 # * write_var
 #   - Defines/opens a variable and writes the data to a 
 #      netcdf file.
@@ -1043,48 +1060,20 @@ def get_E5_subset_2D(datadir,fileid,varname,timestr,clon,clat,hda):
   from scipy.interpolate import interp1d
   from netCDF4 import Dataset
 
-  # Select which file the time is within
-  allfiles = sorted(glob.glob(datadir+fileid+"*"))
-  ds0 = Dataset(allfiles[0])
-  ctime = time_since(timestr,ds0.variables["time"].units)
-  for fi in allfiles:
-    ds = Dataset(fi)
-    if ds.variables["time"][0]<=ctime<=ds.variables["time"][-1]:
-      times = list(ds.variables["time"][:])
-      break
+  # Get the file handle and time coordinates
+  fh,timi,times,ctime = get_E5_subset_file(
+   datadir,fileid,timestr)
 
-  # Select the index(es) of the relevant time(s) 
-  if ctime in times:
-    timi = times.index(ctime)
-  else:
-    timi = k_closest(times,ctime,2)
+  # Find lat and lon coordinates and incices
+  loni,lati,lonE5,latE5 = get_E5_subset_2D_coords(
+   fh,clon,clat,hda)
 
-  # Find lat and lon indices
-  if clon<0: clon = clon+360
-  lat = ds.variables["latitude"][:]
-  lon = ds.variables["longitude"][:]
-  lati  = np.squeeze([k_closest(lat,clat+hda,1), 
-                      k_closest(lat,clat-hda,1)])
-  loni  = np.squeeze([k_closest(lon,clon-hda,1),
-                      k_closest(lon,clon+hda,1)])
-
-  # Read in subset of data (interpolate in time if necessary)
-  if hasattr(timi,"__len__"):
-    varall = np.array(ds.variables[varname][timi[0]:timi[1]+1,
-              lati[0]:lati[1]+1,loni[0]:loni[1]+1])
-    varss  = interp1d([times[timi[0]],times[timi[1]]],
-              varall,axis=0)(ctime)
-  else:
-    varss  = np.array(ds.variables[varname][timi,
-              lati[0]:lati[1]+1,loni[0]:loni[1]+1])
-     
-  # Get coordinates of that subset
-  coords = np.meshgrid(
-  ds.variables["latitude"][lati[0]:lati[1]+1],
-  ds.variables["longitude"][loni[0]:loni[1]+1])
+  # Read in subset of specific variable
+  varE5 = get_E5_subset_2D_var(
+   fh,varname,timi,loni,lati,times,ctime)
 
   # Return data
-  return(varss.flatten(),coords[1].flatten(),coords[0].flatten())
+  return(varE5,lonE5,latE5)
 
 
 
@@ -1092,9 +1081,9 @@ def get_E5_subset_2D(datadir,fileid,varname,timestr,clon,clat,hda):
 # Get subset of a variable from ERA5 files
 #==================================================================
 
-def get_E5_subset_2D_file(datadir,fileid,timestr):
+def get_E5_subset_file(datadir,fileid,timestr):
   """
-  Get a 2D subset of ERA5 data.
+  Find the file and output the time indices given a time
 
   Input: 
    1,2) Data directory anhd filename identifier
@@ -1104,10 +1093,10 @@ def get_E5_subset_2D_file(datadir,fileid,timestr):
   Output:
    1) A handle for the datafile
    2) Indices for the time coordinates
+   3) A list of the times from the file
+   4) The time to inerpolate to converted to ERA5 time units
 
-  Requires numpy 1.16.3 (conda install -c anaconda numpy; 
-   https://pypi.org/project/numpy/), scipy 1.2.1 (conda install 
-   -c anaconda scipy; https://pypi.org/project/scipy/)
+  Requires 
   """
 
   # Import libraries
@@ -1138,7 +1127,8 @@ def get_E5_subset_2D_file(datadir,fileid,timestr):
 
 def get_E5_subset_2D_coords(fh,clon,clat,hda):
   """
-  Get a 2D subset of ERA5 data.
+  Find the horizontal coordinates and indices for a subset of 
+   ERA5 data
 
   Input: 
    1) A handle for the datafile
@@ -1151,15 +1141,11 @@ def get_E5_subset_2D_coords(fh,clon,clat,hda):
    3,4) Flattened lists of the longitude and latitude coordinates 
 
   Requires numpy 1.16.3 (conda install -c anaconda numpy; 
-   https://pypi.org/project/numpy/), scipy 1.2.1 (conda install 
-   -c anaconda scipy; https://pypi.org/project/scipy/)
+   https://pypi.org/project/numpy/)
   """
 
   # Import libraries
   import numpy as np
-  import glob
-  import datetime as dt
-  from netCDF4 import Dataset
 
   # Find lat and lon indices
   if clon<0: clon = clon+360
@@ -1191,11 +1177,13 @@ def get_E5_subset_2D_var(fh,varname,timi,loni,lati,times,ctime):
   Input: 
    1) A file handle for the file
    2) A string of the variable name in ERA5 e.g."CAPE"
-   3,4) The indices corresponding to longitude and latitude ranges
+   3) The indices corresponding to time
+   4,5) The indices corresponding to longitude and latitude ranges
+   6,7) Times and the central time for interpolation
 
   Output:
    1) Returns a flattened list of the ERA5 variable corresponding 
-    coordinates from get_E5_subset_2D_coords
+    to coordinates from get_E5_subset_2D_coords
 
   Requires numpy 1.16.3 (conda install -c anaconda numpy; 
    https://pypi.org/project/numpy/), scipy 1.2.1 (conda install 
@@ -1218,6 +1206,8 @@ def get_E5_subset_2D_var(fh,varname,timi,loni,lati,times,ctime):
 
   # Return data
   return(varss.flatten())
+
+
 
 #==================================================================
 # Write netcdf variable

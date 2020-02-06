@@ -163,10 +163,8 @@ def driver_addvars(fn):
       # Find file and time indices
       timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
                 " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
-      fh,timi,times,ctime = PFfunc.get_E5_subset_2D_file(
+      fh,timi,times,ctime = PFfunc.get_E5_subset_file(
                        nl.dataE5dir,nl.fileCPE5id,timestr)
-
-      CAPEunits = fh.variables["CAPE"].units
 
       # Find coordinates and indices
       loni,lati,lonE5[k],latE5[k] = \
@@ -176,6 +174,7 @@ def driver_addvars(fn):
       # Get a subset of the CAPE data
       CAPE[k] = PFfunc.get_E5_subset_2D_var(
                  fh,"CAPE",timi,loni,lati,times,ctime)
+      CAPEunits = fh.variables["CAPE"].units
 
 #==================================================================
 # Calculate maximum rain rate
@@ -980,7 +979,7 @@ def driver_addvars(fn):
 
   if nl.addCPE5=="True":
 
-    description = "Surface-based CAPE"
+    description = "Surface-based CAPE for a 10x10 degree area centered on the PF centroid"
     PFfunc.write_group("CAPE",
       "Convective Available Potential Energy",description,
       CAPEunits,format1,fileout,CAPE,f)
