@@ -1010,6 +1010,191 @@ def time_since(dateandtime,reftimeandunits):
 
 
 #==================================================================
+# Get subset of a variable from ERA5 files
+#==================================================================
+
+def get_E5_subset_2D(datadir,fileid,varname,timestr,clon,clat,hda):
+  """
+  Get a 2D subset of ERA5 data.
+
+  Input: 
+   1,2) Data directory anhd filename identifier
+   3) A string of the variable name in ERA5 e.g."CAPE"
+   4) A string indicating the current time in format:
+       yyyy-mm-dd HH:MM:SS
+   5,6) The central longitude and latitude for the subset
+   7) Half the size of the subset in degrees (i.e. for a 10x10 
+       degree subset hda==5)
+
+  Output:
+   1,2,3) Returns flattened lists of the ERA5 variable, and it's
+           corresponding longitude and latitude coordinates
+   
+
+  Requires numpy 1.16.3 (conda install -c anaconda numpy; 
+   https://pypi.org/project/numpy/), scipy 1.2.1 (conda install 
+   -c anaconda scipy; https://pypi.org/project/scipy/)
+  """
+
+  # Import libraries
+  import numpy as np
+  import glob
+  import datetime as dt
+  from scipy.interpolate import interp1d
+  from netCDF4 import Dataset
+
+  # Select which file the time is within
+  allfiles = sorted(glob.glob(datadir+fileid+"*"))
+  ds0 = Dataset(allfiles[0])
+  ctime = time_since(timestr,ds0.variables["time"].units)
+  for fi in allfiles:
+    ds = Dataset(fi)
+    if ds.variables["time"][0]<=ctime<=ds.variables["time"][-1]:
+      times = list(ds.variables["time"][:])
+      break
+
+  # Select the index(es) of the relevant time(s) 
+  if ctime in times:
+    timi = times.index(ctime)
+  else:
+    timi = k_closest(times,ctime,2)
+
+  # Find lat and lon indices
+  if clon<0: clon = clon+360
+  lat = ds.variables["latitude"][:]
+  lon = ds.variables["longitude"][:]
+  lati  = np.squeeze([k_closest(lat,clat+hda,1), 
+                      k_closest(lat,clat-hda,1)])
+  loni  = np.squeeze([k_closest(lon,clon-hda,1),
+                      k_closest(lon,clon+hda,1)])
+
+  # Read in subset of data (interpolate in time if necessary)
+  if hasattr(timi,"__len__"):
+    varall = np.array(ds.variables[varname][timi[0]:timi[1]+1,
+              lati[0]:lati[1]+1,loni[0]:loni[1]+1])
+    varss  = interp1d([times[timi[0]],times[timi[1]]],
+              varall,axis=0)(ctime)
+  else:
+    varss  = np.array(ds.variables[varname][timi,
+              lati[0]:lati[1]+1,loni[0]:loni[1]+1])
+     
+  # Get coordinates of that subset
+  coords = np.meshgrid(
+  ds.variables["latitude"][lati[0]:lati[1]+1],
+  ds.variables["longitude"][loni[0]:loni[1]+1])
+
+  # Return data
+  return(varss.flatten(),coords[1].flatten(),coords[0].flatten())
+
+
+
+#==================================================================
+# Get subset of a variable from ERA5 files
+#==================================================================
+
+def get_E5_subset_2D_coords(datadir,fileid,timestr,clon,clat,hda):
+  """
+  Get a 2D subset of ERA5 data.
+
+  Input: 
+   1,2) Data directory anhd filename identifier
+   3) A string indicating the current time in format:
+       yyyy-mm-dd HH:MM:SS
+   4,5) The central longitude and latitude for the subset
+   6) Half the size of the subset in degrees (i.e. for a 10x10 
+       degree subset hda==5)
+
+  Output:
+   1) A handle for the datafile that was used
+   2,3) Indices for the longitude and latitude coordinates
+   4,5) Flattened lists of the longitude and latitude coordinates 
+
+  Requires numpy 1.16.3 (conda install -c anaconda numpy; 
+   https://pypi.org/project/numpy/), scipy 1.2.1 (conda install 
+   -c anaconda scipy; https://pypi.org/project/scipy/)
+  """
+
+  # Import libraries
+  import numpy as np
+  import glob
+  import datetime as dt
+  from netCDF4 import Dataset
+
+  # Select which file the time is within
+  allfiles = sorted(glob.glob(datadir+fileid+"*"))
+  ds0 = Dataset(allfiles[0])
+  ctime = time_since(timestr,ds0.variables["time"].units)
+  for fi in allfiles:
+    ds = Dataset(fi)
+    if ds.variables["time"][0]<=ctime<=ds.variables["time"][-1]:
+      times = list(ds.variables["time"][:])
+      break
+
+  # Select the index(es) of the relevant time(s) 
+  if ctime in times:
+    timi = times.index(ctime)
+  else:
+    timi = k_closest(times,ctime,2)
+
+  # Find lat and lon indices
+  if clon<0: clon = clon+360
+  lat = ds.variables["latitude"][:]
+  lon = ds.variables["longitude"][:]
+  lati  = np.squeeze([k_closest(lat,clat+hda,1), 
+                      k_closest(lat,clat-hda,1)])
+  loni  = np.squeeze([k_closest(lon,clon-hda,1),
+                      k_closest(lon,clon+hda,1)])
+     
+  # Get coordinates of that subset
+  coords = np.meshgrid(
+  ds.variables["latitude"][lati[0]:lati[1]+1],
+  ds.variables["longitude"][loni[0]:loni[1]+1])
+
+  # Return data
+  return(ds,timi,loni,lati,coords[1].flatten(),coords[0].flatten())
+
+
+
+#==================================================================
+# Get subset of a variable from ERA5 files
+#==================================================================
+
+def get_E5_subset_2D_var(fh,varname,timi,loni,lati):
+  """
+  Get a 2D subset of ERA5 data.
+
+  Input: 
+   1) A file handle for the file
+   2) A string of the variable name in ERA5 e.g."CAPE"
+   3,4) The indices corresponding to longitude and latitude ranges
+
+  Output:
+   1) Returns a flattened list of the ERA5 variable corresponding 
+    coordinates from get_E5_subset_2D_coords
+
+  Requires numpy 1.16.3 (conda install -c anaconda numpy; 
+   https://pypi.org/project/numpy/), scipy 1.2.1 (conda install 
+   -c anaconda scipy; https://pypi.org/project/scipy/)
+  """
+
+  # Import libraries
+  import numpy as np
+  from scipy.interpolate import interp1d
+
+  # Read in subset of data (interpolate in time if necessary)
+  if hasattr(timi,"__len__"):
+    varall = np.array(fh.variables[varname][timi[0]:timi[1]+1,
+              lati[0]:lati[1]+1,loni[0]:loni[1]+1])
+    varss  = interp1d([times[timi[0]],times[timi[1]]],
+              varall,axis=0)(ctime)
+  else:
+    varss  = np.array(fh.variables[varname][timi,
+              lati[0]:lati[1]+1,loni[0]:loni[1]+1])
+
+  # Return data
+  return(varss.flatten())
+
+#==================================================================
 # Write netcdf variable
 #==================================================================
 

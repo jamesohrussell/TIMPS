@@ -120,7 +120,15 @@ def driver_addvars(fn):
     connectivity   = [0]*len(datakeys)
 
   if nl.addperimeter=="True":
-    perimeter_lp     = [0]*len(datakeys)
+    perimeter_lp = [0]*len(datakeys)
+  
+  if nl.addCPE5=="True":
+    lonE5     = {}
+    latE5     = {}
+
+  if nl.addCPE5=="True":
+    meanCAPE = [0]*len(datakeys)
+    CAPE     = {}
 
 #==================================================================
 # Begin loop over times
@@ -151,57 +159,21 @@ def driver_addvars(fn):
 #==================================================================
 
     if nl.addCPE5=="True":
+
+      # Format time string
+      timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
+                " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
+
+      # Find coordinates and indices
+      ds,timi,loni,lati,lonE5[k],latE5[k] = \
+       PFfunc.get_E5_subset_2D_coords(nl.dataE5dir,nl.fileCPE5id,
+       timestr,dataclon[c],dataclat[c],nl.hda)
       
-      # Import libraries
-      import glob
-      import datetime as dt
-      from scipy.interpolate import interp1d
+      # Get a subset of the CAPE data
+      CAPE[k] = PFfunc.get_E5_subset_2D_var(ds,"CAPE",timi,loni,lati)   
 
-      # Convert current time to ERA5 time units for comparison
-      timestring = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
-                   " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
-      currtime   = PFfunc.time_since(timestring,
-                    fd.variables["time"].units)
-
-      # Select which file the time is within
-      allfiles = sorted(glob.glob(nl.dataE5dir+nl.fileCPE5id+"*"))
-      for fE5 in allfiles:
-        ds = Dataset(fE5)
-        if ds.variables["time"][0]<=currtime<= \
-           ds.variables["time"][-1]:
-          times = list(ds.variables["time"][:])
-          break
-      
-      # Select the index(es) of the relevant time(s) 
-      if currtime in times:
-        timi = times.index(currtime)
-      else:
-        timi = PFfunc.k_closest(times,currtime,2)   
-            
-      # Find lat and lon indices
-      if dataclon[c]<0: clon = dataclon[c]+360
-      latE5 = ds.variables["latitude"][:]
-      lonE5 = ds.variables["longitude"][:]
-      lati  = np.squeeze([
-               PFfunc.k_closest(latE5,dataclat[c]+nl.hda,1), 
-               PFfunc.k_closest(latE5,dataclat[c]-nl.hda,1)])
-      loni  = np.squeeze([
-               PFfunc.k_closest(lonE5,clon-nl.hda,1),
-               PFfunc.k_closest(lonE5,clon+nl.hda,1)])
-
-      # Read in subset of data (interpolate in time if necessary)
-      if hasattr(timi,"__len__"):
-        CAPEnow = np.array(ds.variables["CAPE"][timi[0]:timi[1]+1,
-                   lati[0]:lati[1]+1,loni[0]:loni[1]+1])
-        intfn = interp1d([times[timi[0]],times[timi[1]]],
-                   CAPEnow,axis=0)
-        CAPEnow = intfn(currtime)
-      else:
-        CAPEnow = np.array(ds.variables["CAPE"][timi,
-                   lati[0]:lati[1]+1,loni[0]:loni[1]+1])
-
-
-
+      print(CAPE[k])
+      exit() 
 
 #==================================================================
 # Calculate maximum rain rate
@@ -904,8 +876,8 @@ def driver_addvars(fn):
     
     description = "1 if any part of PF is within a pixel of the tracking domain boundary. Else 0."
     PFfunc.write_var("touchesdombound",
-      "PF touches domain boundary",description,"time",
-      int,"",fileout,touchesdombound,f)
+     "PF touches domain boundary",description,"time",int,"",
+      fileout,touchesdombound,f)
 
 #==================================================================
 # Write land information to file
@@ -913,8 +885,7 @@ def driver_addvars(fn):
 
   if nl.addlandinfo=="True":
     description = "1 if center of PF is over land. 0 if not."
-    PFfunc.write_var("cPF_over_land",
-      "Center of PF over land",
+    PFfunc.write_var("cPF_over_land","Center of PF over land",
       description,"time",int,"",fileout,cPF_over_land,f)
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
@@ -982,6 +953,18 @@ def driver_addvars(fn):
     else:
     # If not, just set TC attribute as False
       fileout.within_TC = "False"
+
+#==================================================================
+# Write CAPE information to file
+#==================================================================
+
+  if nl.addCPE5=="True":
+
+    format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
+    description = ""
+    PFfunc.write_group("CAPE",
+      "Convective Available Potential Energy",description,"",
+      format1,fileout,CAPE,f)
 
 #==================================================================
 # Close current file
