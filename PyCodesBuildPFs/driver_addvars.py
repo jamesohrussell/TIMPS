@@ -160,20 +160,22 @@ def driver_addvars(fn):
 
     if nl.addCPE5=="True":
 
-      # Format time string
+      # Find file and time indices
       timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
                 " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
+      fh,timi,times,ctime = PFfunc.get_E5_subset_2D_file(
+                       nl.dataE5dir,nl.fileCPE5id,timestr)
+
+      CAPEunits = fh.variables["CAPE"].units
 
       # Find coordinates and indices
-      ds,timi,loni,lati,lonE5[k],latE5[k] = \
-       PFfunc.get_E5_subset_2D_coords(nl.dataE5dir,nl.fileCPE5id,
-       timestr,dataclon[c],dataclat[c],nl.hda)
+      loni,lati,lonE5[k],latE5[k] = \
+       PFfunc.get_E5_subset_2D_coords(
+        fh,dataclon[c],dataclat[c],nl.hda)
       
       # Get a subset of the CAPE data
-      CAPE[k] = PFfunc.get_E5_subset_2D_var(ds,"CAPE",timi,loni,lati)   
-
-      print(CAPE[k])
-      exit() 
+      CAPE[k] = PFfunc.get_E5_subset_2D_var(
+                 fh,"CAPE",timi,loni,lati,times,ctime)
 
 #==================================================================
 # Calculate maximum rain rate
@@ -955,16 +957,33 @@ def driver_addvars(fn):
       fileout.within_TC = "False"
 
 #==================================================================
-# Write CAPE information to file
+# Write coordinate data for environment information to file
 #==================================================================
 
   if nl.addCPE5=="True":
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
-    description = ""
+
+    description = "longitudes corresponding to ERA5 data"
+    PFfunc.write_group("longitudesE5",
+      "longitudes for ERA5 data",description,
+      "degreesE",format1,fileout,lonE5,f)
+
+    description = "latitudes corresponding to ERA5 data"
+    PFfunc.write_group("latitudesE5",
+      "latitudes for ERA5 data",description,
+      "degreesN",format1,fileout,latE5,f)
+
+#==================================================================
+# Write CAPE information to file
+#==================================================================
+
+  if nl.addCPE5=="True":
+
+    description = "Surface-based CAPE"
     PFfunc.write_group("CAPE",
-      "Convective Available Potential Energy",description,"",
-      format1,fileout,CAPE,f)
+      "Convective Available Potential Energy",description,
+      CAPEunits,format1,fileout,CAPE,f)
 
 #==================================================================
 # Close current file
