@@ -122,13 +122,19 @@ def driver_addvars(fn):
   if nl.addperimeter=="True":
     perimeter_lp = [0]*len(datakeys)
   
-  if nl.addCPE5=="True":
-    lonE5     = {}
-    latE5     = {}
+  if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
+     nl.addCCTOE5=="True":
+    lonsE5 = {}
+    latsE5 = {}
 
-  if nl.addCPE5=="True":
-    meanCAPE = [0]*len(datakeys)
-    CAPE     = {}
+  if nl.addCAPEE5=="True":
+    CAPEE5 = {}
+
+  if nl.addTCWVE5=="True":
+    TCWVE5 = {}
+
+  if nl.addCCTOE5=="True":
+    CCTOE5 = {}
 
 #==================================================================
 # Begin loop over times
@@ -155,26 +161,67 @@ def driver_addvars(fn):
     instrainnzk = instrain[k][instrain[k]>0]
 
 #==================================================================
-# Assign ERA5 data
+# ERA5 data prepwork
 #==================================================================
 
-    if nl.addCPE5=="True":
+    if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
+       nl.addCCTOE5=="True":
 
       # Find file and time indices
       timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
                 " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
       fh,timi,times,ctime = PFfunc.get_E5_subset_file(
-                       nl.dataE5dir,nl.fileCPE5id,timestr)
+                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
 
       # Find coordinates and indices
-      loni,lati,lonE5[k],latE5[k] = \
+      loni,lati,lonsE5[k],latsE5[k] = \
        PFfunc.get_E5_subset_2D_coords(
         fh,dataclon[c],dataclat[c],nl.hda)
+
+#==================================================================
+# Assign ERA5 CAPE data
+#==================================================================
+
+    if nl.addCAPEE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = PFfunc.get_E5_subset_file(
+                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
       
       # Get a subset of the CAPE data
-      CAPE[k] = PFfunc.get_E5_subset_2D_var(
+      CAPEE5[k] = PFfunc.get_E5_subset_2D_var(
                  fh,"CAPE",timi,loni,lati,times,ctime)
-      CAPEunits = fh.variables["CAPE"].units
+      CAPEE5units = fh.variables["CAPE"].units
+
+#==================================================================
+# Assign ERA5 CAPE data
+#==================================================================
+
+    if nl.addTCWVE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = PFfunc.get_E5_subset_file(
+                       nl.dataE5dir,nl.fileTCWVE5id,timestr)
+      
+      # Get a subset of the CAPE data
+      TCWVE5[k] = PFfunc.get_E5_subset_2D_var(
+                 fh,"TCWV",timi,loni,lati,times,ctime)
+      TCWVE5units = fh.variables["TCWV"].units
+
+#==================================================================
+# Assign ERA5 CAPE data
+#==================================================================
+
+    if nl.addCCTOE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = PFfunc.get_E5_subset_file(
+                       nl.dataE5dir,nl.fileCCTOE5id,timestr)
+      
+      # Get a subset of the CAPE data
+      CCTOE5[k] = PFfunc.get_E5_subset_2D_var(
+                 fh,"TCC",timi,loni,lati,times,ctime)
+      CCTOE5units = fh.variables["TCC"].units
 
 #==================================================================
 # Calculate maximum rain rate
@@ -959,30 +1006,51 @@ def driver_addvars(fn):
 # Write coordinate data for environment information to file
 #==================================================================
 
-  if nl.addCPE5=="True":
+  if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
+     nl.addCCTOE5=="True":
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
 
     description = "longitudes corresponding to ERA5 data"
-    PFfunc.write_group("longitudesE5",
-      "longitudes for ERA5 data",description,
-      "degreesE",format1,fileout,lonE5,f)
+    PFfunc.write_group("lonsE5",
+     "ERA5 longitudes",description,"degreesE",format1,fileout,
+     lonsE5,f)
 
     description = "latitudes corresponding to ERA5 data"
-    PFfunc.write_group("latitudesE5",
-      "latitudes for ERA5 data",description,
-      "degreesN",format1,fileout,latE5,f)
+    PFfunc.write_group("latsE5",
+     "ERA5 latitudes",description,"degreesN",format1,fileout,
+     latsE5,f)
 
 #==================================================================
 # Write CAPE information to file
 #==================================================================
 
-  if nl.addCPE5=="True":
+  if nl.addCAPEE5=="True":
 
-    description = "Surface-based CAPE for a 10x10 degree area centered on the PF centroid"
-    PFfunc.write_group("CAPE",
-      "Convective Available Potential Energy",description,
-      CAPEunits,format1,fileout,CAPE,f)
+    description = "Surface-based CAPE for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    PFfunc.write_group("CAPE_E5",
+     "ERA5 Convective Available Potential Energy",description,
+     CAPEE5units,format1,fileout,CAPEE5,f)
+
+#==================================================================
+# Write TCWV information to file
+#==================================================================
+
+  if nl.addTCWVE5=="True":
+
+    description = "Total column water vapor for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    PFfunc.write_group("TCWV_E5","ERA5 Total Column Water Vapor",
+     description,TCWVE5units,format1,fileout,TCWVE5,f)
+
+#==================================================================
+# Write TCWV information to file
+#==================================================================
+
+  if nl.addCCTOE5=="True":
+
+    description = "Total cloud cover for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    PFfunc.write_group("CCTO_E5","ERA5 Total Cloud Cover",description,
+      CCTOE5units,format1,fileout,CCTOE5,f)
 
 #==================================================================
 # Close current file

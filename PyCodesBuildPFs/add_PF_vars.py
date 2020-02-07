@@ -1,4 +1,4 @@
-#==========================================================
+#==================================================================
 # Add variables to IMERG PF netcdf files.
 #
 # Must provide in namelist:
@@ -8,11 +8,11 @@
 #  * Variables desired
 #  * Grid spacing of input data pixels in degrees 
 #     (IMERG = 0.1, only required if area or volumetric 
-#      rain rate is desired)
+#     rain rate is desired)
 #  * Subset information if desired
 #
 # James Russell 2019
-#==========================================================
+#==================================================================
 
 # Import python libraries (do not change)
 import numpy as np
@@ -25,9 +25,9 @@ import PF_functions as PFfunc
 import time as tm
 import os
 
-#==========================================================
+#==================================================================
 # Namelist
-#==========================================================
+#==================================================================
 
 # Directory and filename for PF files
 datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/IMERGPFs_2018/"
@@ -78,7 +78,9 @@ addconvarea       = False # Area of the convective region
                           #  (addconvrain must also be True)
 addconvvrr        = False # Volume of convective rainfall 
                           #  (addconvrain must also be True)
-addCPE5           = True  # ERA5 CAPE
+addCAPEE5         = True  # ERA5 Convective Available Potential Energy
+addTCWVE5         = True  # ERA5 Total Column Water Vapor
+addCCTOE5         = True  # ERA5 Total Cloud Cover
 #addconvshape      = False # All shape parameters specified 
                            #  but for convective region
 #addmergeinfo      = False # Information on mergers
@@ -99,19 +101,21 @@ fileTCid  = "IBTrACS.ALL.v04r00.nc"
 convrainthold = 10
 
 # Directory and filenames of ERA5 data
-dataE5dir  = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
-fileCPE5id = "ERA5.CAPE."
-hda        = 5 # Half data area in degrees
+dataE5dir    = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
+hda          = 5 # Half data area in degrees
+fileCAPEE5id = "ERA5.CAPE."
+fileTCWVE5id = "ERA5.TCWV."
+fileCCTOE5id = "ERA5.CCTO."
 
-#==========================================================
+#==================================================================
 # Initialize timer
-#==========================================================
+#==================================================================
 
 startnow = tm.time()
 
-#==========================================================
+#==================================================================
 # Write namelist to a dictionary
-#==========================================================
+#==================================================================
 
 # Put namelist information in dictionaries
 namelist = {}
@@ -136,7 +140,9 @@ namelist["addaxesshape"] = str(addaxesshape)
 namelist["addperimeter"] = str(addperimeter)
 namelist["addasymmetry"] = str(addasymmetry)
 namelist["addfragmentation"] = str(addfragmentation)
-namelist["addCPE5"] = str(addCPE5)
+namelist["addCAPEE5"] = str(addCAPEE5)
+namelist["addTCWVE5"] = str(addTCWVE5)
+namelist["addCCTOE5"] = str(addCCTOE5)
 if addarea or addvrr or addconvarea or addconvvrr or \
    addperimeter or addasymmetry or addfragmentation or \
    addaxesshape or addboundaryinfo:
@@ -147,10 +153,15 @@ if addTCinfo:
   namelist["fileTCid"] = str(fileTCid)
 if addconvrain or addconvarea or addconvvrr:
   namelist["convrainthold"] = convrainthold
-if addCPE5:
+if addCAPEE5 or addTCWVE5 or addCCTOE5:
   namelist["dataE5dir"] = str(dataE5dir)
-  namelist["fileCPE5id"] = str(fileCPE5id)
   namelist["hda"] = hda
+if addCAPEE5:
+  namelist["fileCAPEE5id"] = str(fileCAPEE5id)
+if addTCWVE5:
+  namelist["fileTCWVE5id"] = str(fileTCWVE5id)
+if addCCTOE5:
+  namelist["fileCCTOE5id"] = str(fileCCTOE5id)
 
 # Write namelist dictionary to netcdf file for reading 
 #  during parallel loop
@@ -160,9 +171,9 @@ for k,v in namelist.items():
   setattr(nlfileout, k,  v)
 nlfileout.close()
 
-#==========================================================
+#==================================================================
 # Generate list of IPF files to process
-#==========================================================
+#==================================================================
 
 # Reads directory and file names
 if ssdat:
@@ -222,9 +233,9 @@ for i in range(len(filenamesrun)):
   ffn.write(filenamesrun[i]+"\n")
 ffn.close()
 
-#==========================================================
+#==================================================================
 # Loop over IPF files in parrallel
-#==========================================================
+#==================================================================
 
 if serialorparallel==1:
   print("Begin serial loop over objects")
@@ -237,9 +248,9 @@ if serialorparallel==2:
   Parallel(n_jobs=njobs)(delayed(da.driver_addvars)(fn) \
     for fn in range(len(filenamesrun)))
 
-#==========================================================
+#==================================================================
 # Final clean up tasks
-#==========================================================
+#==================================================================
 
 # Remove namelist and filename files
 print("Cleaning up")
@@ -251,6 +262,6 @@ os.system("rm -rf __pycache__")
 endnow = tm.time()
 print("Program took "+str(endnow - startnow)+"s")
 
-#==========================================================
+#==================================================================
 # End code
-#==========================================================
+#==================================================================
