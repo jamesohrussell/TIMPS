@@ -9,7 +9,7 @@ def driver_addvars(fn):
 #==================================================================
 
   # Import libraries
-  import PF_functions as PFfunc
+  import TIPS_functions as fns
   from netCDF4 import Dataset, MFDataset
   import numpy as np
   import pandas as pd
@@ -167,15 +167,17 @@ def driver_addvars(fn):
     if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
        nl.addCCTOE5=="True":
 
+      import ERA5_functions as E5fns
+
       # Find file and time indices
       timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
                 " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
-      fh,timi,times,ctime = PFfunc.get_E5_subset_file(
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
                        nl.dataE5dir,nl.fileCAPEE5id,timestr)
 
       # Find coordinates and indices
       loni,lati,lonsE5[k],latsE5[k] = \
-       PFfunc.get_E5_subset_2D_coords(
+       E5fns.get_E5_ss_2D_coords(
         fh,dataclon[c],dataclat[c],nl.hda)
 
 #==================================================================
@@ -185,11 +187,11 @@ def driver_addvars(fn):
     if nl.addCAPEE5=="True":
 
       # Find file and time indices
-      fh,timi,times,ctime = PFfunc.get_E5_subset_file(
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
                        nl.dataE5dir,nl.fileCAPEE5id,timestr)
       
       # Get a subset of the CAPE data
-      CAPEE5[k] = PFfunc.get_E5_subset_2D_var(
+      CAPEE5[k] = E5fns.get_E5_ss_2D_var(
                  fh,"CAPE",timi,loni,lati,times,ctime)
       CAPEE5units = fh.variables["CAPE"].units
 
@@ -200,11 +202,11 @@ def driver_addvars(fn):
     if nl.addTCWVE5=="True":
 
       # Find file and time indices
-      fh,timi,times,ctime = PFfunc.get_E5_subset_file(
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
                        nl.dataE5dir,nl.fileTCWVE5id,timestr)
       
       # Get a subset of the CAPE data
-      TCWVE5[k] = PFfunc.get_E5_subset_2D_var(
+      TCWVE5[k] = E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime)
       TCWVE5units = fh.variables["TCWV"].units
 
@@ -215,11 +217,11 @@ def driver_addvars(fn):
     if nl.addCCTOE5=="True":
 
       # Find file and time indices
-      fh,timi,times,ctime = PFfunc.get_E5_subset_file(
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileCCTOE5id,timestr)
       
       # Get a subset of the CAPE data
-      CCTOE5[k] = PFfunc.get_E5_subset_2D_var(
+      CCTOE5[k] = E5fns.get_E5_ss_2D_var(
                  fh,"TCC",timi,loni,lati,times,ctime)
       CCTOE5units = fh.variables["TCC"].units
 
@@ -269,7 +271,7 @@ def driver_addvars(fn):
        nl.addvrr=="False":
 
       # Calculate area
-      ar = PFfunc.calc_area(lonsnzk,latsnzk,
+      ar = fns.calc_area(lonsnzk,latsnzk,
         float(nl.dx),float(nl.dy))
 
       # Convert to units of km**2 
@@ -283,7 +285,7 @@ def driver_addvars(fn):
        nl.addvrr=="True":
 
       # Calculate area and volumetric rain rate
-      ar,vrr = PFfunc.calc_area_and_volrainrate(
+      ar,vrr = fns.calc_area_and_volrainrate(
         lonsnzk,latsnzk,instrainnzk,float(nl.dx),float(nl.dy))
 
       # Convert units of km**2 and mm hr**-1 km**2
@@ -298,7 +300,7 @@ def driver_addvars(fn):
        nl.addvrr=="True":
 
       # Calculate volumetric rain rate
-      vrr = PFfunc.calc_area_and_volrainrate(
+      vrr = fns.calc_area_and_volrainrate(
         lonsnzk,latsnzk,instrainnzk,
         float(nl.dx),float(nl.dy))[1]
 
@@ -323,7 +325,7 @@ def driver_addvars(fn):
        nl.addconvvrr=="False":
       # Calculate area
       if len(instrain[k][instrain[k]>nl.convrainthold])>0:
-        convarea[c] = PFfunc.calc_area(
+        convarea[c] = fns.calc_area(
                     lons[k][instrain[k]>nl.convrainthold],
                     lats[k][instrain[k]>nl.convrainthold],
                     float(nl.dx),float(nl.dy))
@@ -338,7 +340,7 @@ def driver_addvars(fn):
        nl.addconvvrr=="True":
       # Calculate area and volumetric rain rate
       if len(instrain[k][instrain[k]>nl.convrainthold])>0:
-        convvrr[c] = PFfunc.calc_area_and_volrainrate(
+        convvrr[c] = fns.calc_area_and_volrainrate(
                     lons[k][instrain[k]>nl.convrainthold],
                     lats[k][instrain[k]>nl.convrainthold],
                     instrain[k][instrain[k]>nl.convrainthold],
@@ -354,7 +356,7 @@ def driver_addvars(fn):
        nl.addconvvrr=="True":
       # Calculate area and volumetric rain rate
       if len(instrain[k][instrain[k]>nl.convrainthold])>0:
-        convarea[c],convvrr[c] = PFfunc.calc_area_and_volrainrate(
+        convarea[c],convvrr[c] = fns.calc_area_and_volrainrate(
                     lons[k][instrain[k]>nl.convrainthold],
                     lats[k][instrain[k]>nl.convrainthold],
                     instrain[k][instrain[k]>nl.convrainthold],
@@ -370,7 +372,7 @@ def driver_addvars(fn):
     if nl.addlocaltime=="True":
     
       # Calculate local time based on central longitude
-      localsuntime[c] = PFfunc.calc_local_sun_time(
+      localsuntime[c] = fns.calc_local_sun_time(
                          str(datadtim[c]),dataclon[c])
 
 #==================================================================
@@ -391,19 +393,19 @@ def driver_addvars(fn):
 
         # Forward difference for first time
         if c==0:
-          propspd[c],propdir[c] = PFfunc.calc_propagation(
+          propspd[c],propdir[c] = fns.calc_propagation(
             str(datadtim[c]*100),  dataclon[c],  dataclat[c],
             str(datadtim[c+1]*100),dataclon[c+1],dataclat[c+1])
 
         # Backward difference for last time
         elif c==len(dataclon)-1:
-          propspd[c],propdir[c] = PFfunc.calc_propagation(
+          propspd[c],propdir[c] = fns.calc_propagation(
             str(datadtim[c-1]*100),dataclon[c-1],dataclat[c-1],
             str(datadtim[c]*100),  dataclon[c],  dataclat[c])
 
         # Centered difference for all other times
         else:
-          propspd[c],propdir[c] = PFfunc.calc_propagation(
+          propspd[c],propdir[c] = fns.calc_propagation(
             str(datadtim[c-1]*100),dataclon[c-1],dataclat[c-1],
             str(datadtim[c+1]*100),dataclon[c+1],dataclat[c+1])
 
@@ -420,11 +422,11 @@ def driver_addvars(fn):
          nl.addaxesshape=="True":
 
         # Generate dataframe for object
-        df = PFfunc.create_2d_dataframe(lonsnzk,latsnzk,
+        df = fns.create_2d_dataframe(lonsnzk,latsnzk,
                                         nl.dx,nl.dy,instrainnzk)
 
         # Find and label all contiguous areas within object
-        labels, numL = PFfunc.label_wdiags(df)
+        labels, numL = fns.label_wdiags(df)
         ny = [float(i) for i in df.index]
         nx = [float(i) for i in df.columns]
         df1 = pd.DataFrame(labels,[str(i) for i in ny],
@@ -451,7 +453,7 @@ def driver_addvars(fn):
            for z in df1[df1==i].stack().index.tolist()]
 
           # Calculate area of current piece
-          areas[i-1] = PFfunc.calc_area([x for x, y in indpairs],
+          areas[i-1] = fns.calc_area([x for x, y in indpairs],
                                         [y for x, y in indpairs],
                                                       nl.dx,nl.dy)
 
@@ -462,7 +464,7 @@ def driver_addvars(fn):
           if nl.addfragmentation=="True":
 
             # Define the corners of the pixels
-            cornersf = PFfunc.find_corners(indpairs,
+            cornersf = fns.find_corners(indpairs,
                                       nl.dx,nl.dy)
 
             # Fit a convex hull to the data points
@@ -471,10 +473,10 @@ def driver_addvars(fn):
                      hull.points[hull.vertices]]
 
             # Find points in shape
-            indpairsCH = PFfunc.points_in_shape(verts,points)
+            indpairsCH = fns.points_in_shape(verts,points)
 
             # Calculate ratio of object area to shape area
-            solid[i-1] = areas[i-1]/PFfunc.calc_area(
+            solid[i-1] = areas[i-1]/fns.calc_area(
              [x[0] for x in indpairsCH],
              [x[1] for x in indpairsCH],nl.dx,nl.dy)
 
@@ -490,7 +492,7 @@ def driver_addvars(fn):
         largelabel  = areas.index(max(areas))+1
         indpairslrg = [(round(float(z[1]),2),round(float(z[0]),2))
            for z in df1[df1==i].stack().index.tolist()]
-        corners = PFfunc.find_corners(indpairslrg,
+        corners = fns.find_corners(indpairslrg,
                                       nl.dx,nl.dy)
 
         # Find largest piece and all coordinates
@@ -511,7 +513,7 @@ def driver_addvars(fn):
 
         # Calculate perimeter by summing lengths of all edges
         # Divide by 1000 to get result in km
-        perimeter_lp[c] = sum([PFfunc.calc_dist(
+        perimeter_lp[c] = sum([fns.calc_dist(
                                hull_pts[0][i],hull_pts[1][i],
                                hull_pts[0][i+1],hull_pts[1][i+1])
                   for i in range(0,len(hull_pts[0])-1)])/1000
@@ -529,7 +531,7 @@ def driver_addvars(fn):
 
         # Calculate perimeter
         verts.append(verts[0])
-        perim = sum([PFfunc.calc_dist(verts[v][0]  ,verts[v][1],
+        perim = sum([fns.calc_dist(verts[v][0]  ,verts[v][1],
                                       verts[v+1][0],verts[v+1][1]) 
                           for v in range(0,len(verts)-1)])
 
@@ -545,7 +547,7 @@ def driver_addvars(fn):
 
         # Calculate metrics related to fragmentation
         connectivity[c]  = 1.-(numL-1.)/(numL+np.log10(
-         PFfunc.calc_area(lonsnzk,latsnzk,nl.dx,nl.dy)))
+         fns.calc_area(lonsnzk,latsnzk,nl.dx,nl.dy)))
         solidity[c] = np.mean(solid)
         fragmentation[c] = 1. - (solidity[c]*connectivity[c])
      
@@ -557,7 +559,7 @@ def driver_addvars(fn):
 
         center_lp[c,:],mjrax_length_lp[c],mjrax_angle_lp[c], \
                      mnrax_length_lp[c],mnrax_angle_lp[c] = \
-         PFfunc.calc_mjrmnrax(lonslatslrg[0],lonslatslrg[1])
+         fns.calc_mjrmnrax(lonslatslrg[0],lonslatslrg[1])
 
         # Calculate ellipticity  as ratio of major to minor axes
         ellipticity_lp[c] = 1 - (mnrax_length_lp[c]/
@@ -609,7 +611,7 @@ def driver_addvars(fn):
       import shapely.geometry as sgeom
       
       # Get land shape file
-      land = PFfunc.load_land()
+      land = fns.load_land()
 
       # Check if center of PF over land
       if land.contains(sgeom.Point(dataclon[c], dataclat[c])):
@@ -651,13 +653,13 @@ def driver_addvars(fn):
       fTC = Dataset(nl.dataTCdir+nl.fileTCid) 
 
       # Interpolate times and latitudes and get radius
-      TCinfo = PFfunc.interp_TC(datadtim[c],fTC)
+      TCinfo = fns.interp_TC(datadtim[c],fTC)
 
       if TCinfo["TC"]:
 
         # Check if center is close to TC
         dist_cPF_cTC[c],cPF_in_TC[c],TCname_cPF[c],TCrad_cPF[c] \
-          = PFfunc.calc_if_TC(dataclat[c],dataclon[c],TCinfo,fTC)
+          = fns.calc_if_TC(dataclat[c],dataclon[c],TCinfo,fTC)
 
         # Ensure variables are not scalar
         if not hasattr(lats[k], "__len__"):
@@ -673,7 +675,7 @@ def driver_addvars(fn):
         # Check all locations in PF for distance to TC center
         for il in range(len(lats[k])):
           TCdistnow[il],TCbinnow[il],TCnamenow[il],TCradnow[il] \
-            = PFfunc.calc_if_TC(lats[k][il],lons[k][il],TCinfo,fTC)
+            = fns.calc_if_TC(lats[k][il],lons[k][il],TCinfo,fTC)
 
         # Assign to dictionaries
         lPF_in_TC[k]    = TCbinnow
@@ -710,7 +712,7 @@ def driver_addvars(fn):
   if nl.addnormtime=="True":
 
     description = "A fractional time with 0 the first time of the PF and 1 the last time of the PF"
-    PFfunc.write_var("normalizedtime","Normalized time",
+    fns.write_var("normalizedtime","Normalized time",
       description,"time",np.float64,"",fileout,
       normalizedtime,f)
 
@@ -722,7 +724,7 @@ def driver_addvars(fn):
 
     localsuntime = [int(i) for i in localsuntime]
     description = "Calculated as the UTC time plus an offset based on the longitude. The offset is calculated by multiplying the longitude by 24/360. Note: This is not the actual local time. This should typically only be used to calculate times for the diurnal cycle."
-    PFfunc.write_var("localsuntime","Local solar time",
+    fns.write_var("localsuntime","Local solar time",
       description,"time",int,"",fileout,localsuntime,f)
 
 #==================================================================
@@ -732,7 +734,7 @@ def driver_addvars(fn):
   if nl.addmaxrr=="True":
 
     description = "Maximum rain rate within PF"
-    PFfunc.write_var("maxrainrate","Max rain rate",
+    fns.write_var("maxrainrate","Max rain rate",
       description,"time",np.float64,"mm/hr",fileout,
       maxrainrate,f)
 
@@ -743,7 +745,7 @@ def driver_addvars(fn):
   if nl.addmeanrr=="True":
 
     description = "Mean rain rate within PF excluding pixels with zero rain rate"
-    PFfunc.write_var("meanrainrate","Mean rain rate",
+    fns.write_var("meanrainrate","Mean rain rate",
       description,"time",np.float64,"mm/hr",fileout,
       meanrainrate,f)
 
@@ -754,7 +756,7 @@ def driver_addvars(fn):
   if nl.addmedianrr=="True":
 
     description = "Median rain rate within PF excluding pixels with zero rain rate"
-    PFfunc.write_var("medianrainrate","Median rain rate",
+    fns.write_var("medianrainrate","Median rain rate",
       description,"time",np.float64,"mm/hr",fileout,
       medianrainrate,f)
 
@@ -765,7 +767,7 @@ def driver_addvars(fn):
   if nl.addstddevrr=="True":
 
     description = "Standard deviation of rain rate within PF excluding pixels with zero rain rate"
-    PFfunc.write_var("stddevrainrate",
+    fns.write_var("stddevrainrate",
       "Standard deviation of rain rate",description,"time",
       np.float64,"mm/hr",fileout,stddevrainrate,f)
 
@@ -776,7 +778,7 @@ def driver_addvars(fn):
   if nl.addarea=="True":
 
     description = "Area within PF excluding pixels with zero rain rate"
-    PFfunc.write_var("area","Area",description,"time",np.float64,
+    fns.write_var("area","Area",description,"time",np.float64,
                  "km^2",fileout,area,f)
 
 #==================================================================
@@ -786,7 +788,7 @@ def driver_addvars(fn):
   if nl.addvrr=="True":
 
     description = "Volumetric rain rate within PF excluding pixels with zero rain rate"
-    PFfunc.write_var("volrainrate","Volumetric rain rate",
+    fns.write_var("volrainrate","Volumetric rain rate",
       description,"time",np.float64,"mm hr^-1 km^2",
       fileout,volrainrate,f)
 
@@ -797,12 +799,12 @@ def driver_addvars(fn):
   if nl.addpropagation=="True":
 
     description = "Calculated as the geodesic distance travelled by centroid divided by time taken"
-    PFfunc.write_var("propspd","Propagation speed",
+    fns.write_var("propspd","Propagation speed",
       description,"time",np.float64,"m/s",fileout,
       propspd,f)
 
     description = "Calculated as direction centroid is moving toward from north (clockwise)"
-    PFfunc.write_var("propdir","Propagation direction",
+    fns.write_var("propdir","Propagation direction",
       description,"time",np.float64,"degrees",fileout,
       propdir,f)
 
@@ -816,19 +818,19 @@ def driver_addvars(fn):
  
     if nl.addconvarea=="True":
       description = "Area of locations with rain rates greater than convective rain rate threshold"
-      PFfunc.write_var("conv_area","Convective area",
+      fns.write_var("conv_area","Convective area",
         description,"time",np.float64,"",fileout,
         convarea,f)
 
     if nl.addconvvrr=="True":
       description = "Volumetric rain rate of locations with rain rates greater than convective rain rate threshold"
-      PFfunc.write_var("conv_vrr",
+      fns.write_var("conv_vrr",
         "Convective volumetric rain rate",description,
         "time",np.float64,"",fileout,convvrr,f)
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
     description = "Binary indicating if a PF location has a convective rain rate (1 = convective, 0 = not convective)"
-    PFfunc.write_group("is_conv_rain",
+    fns.write_group("is_conv_rain",
       "Location has a convective rain rate",description,
       "",format1,fileout,is_conv_rain,f)
 
@@ -839,7 +841,7 @@ def driver_addvars(fn):
   if nl.addperimeter=="True":
 
     description = "Perimeter of largest piece within the PF. Calculated using alphashapes."
-    PFfunc.write_var("perimeter_lp","Perimeter",description,
+    fns.write_var("perimeter_lp","Perimeter",description,
       "time",np.float64,"m",fileout,perimeter_lp,f)
 
 #==================================================================
@@ -849,7 +851,7 @@ def driver_addvars(fn):
   if nl.addasymmetry=="True":
 
     description = "Asymmetry factor for largest piece within PF. 0 = symmetrical (circle). 1 = Highly asymmetrical, non-circular."
-    PFfunc.write_var("asymmetry_lp","Asymmetry factor",description,
+    fns.write_var("asymmetry_lp","Asymmetry factor",description,
       "time",np.float64,"",fileout,asymmetry_lp,f)
 
 #==================================================================
@@ -859,7 +861,7 @@ def driver_addvars(fn):
   if nl.addfragmentation=="True":
 
     description = "Fragmentation factor. 0 = One solid piece. 1 = multiple highly fragmented pieces"
-    PFfunc.write_var("fragmentation","Fragmentation factor",
+    fns.write_var("fragmentation","Fragmentation factor",
       description,"time",np.float64,"",fileout,fragmentation,f)
 
 #==================================================================
@@ -869,7 +871,7 @@ def driver_addvars(fn):
   if nl.addaxesshape=="True":
 
     description = "Ellipticity factor for largest piece of PF. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
-    PFfunc.write_var("ellipticity_lp","Ellipticity factor",
+    fns.write_var("ellipticity_lp","Ellipticity factor",
       description,"time",np.float64,"",fileout,ellipticity_lp,f)
 
 #==================================================================
@@ -881,12 +883,12 @@ def driver_addvars(fn):
     lat_center_lp = center_lp[:,1]
 
     description = "Longitude of centroid of largest piece"
-    PFfunc.write_var("lon_center_lp",
+    fns.write_var("lon_center_lp",
       "Longitude of centroid of largest piece",description,
       "time",np.float64,"degreesE",fileout,lon_center_lp,f)
 
     description = "Latitude of centroid of largest piece"
-    PFfunc.write_var("lat_center_lp",
+    fns.write_var("lat_center_lp",
       "Latitude of centroid of largest piece",description,
       "time",np.float64,"degreesN",fileout,lat_center_lp,f)
 
@@ -895,11 +897,11 @@ def driver_addvars(fn):
 #==================================================================
 
     description = "Length of major axis"
-    PFfunc.write_var("mjrax_length_lp","Major axis length",
+    fns.write_var("mjrax_length_lp","Major axis length",
      description,"time",np.float64,"m",fileout,mjrax_length_lp,f)
 
     description = "Length of major axis"
-    PFfunc.write_var("mnrax_length_lp","Minor axis length",
+    fns.write_var("mnrax_length_lp","Minor axis length",
      description,"time",np.float64,"m",fileout,mnrax_length_lp,f)
 
 #==================================================================
@@ -907,12 +909,12 @@ def driver_addvars(fn):
 #==================================================================
 
     description = "Angle major axis makes with northward vector"
-    PFfunc.write_var("mjrax_angle_lp","Major axis angle",
+    fns.write_var("mjrax_angle_lp","Major axis angle",
      description,"time",np.float64,"degrees",fileout,
      mjrax_angle_lp,f)
 
     description = "Length of major axis"
-    PFfunc.write_var("mnrax_angle_lp","Minor axis angle",
+    fns.write_var("mnrax_angle_lp","Minor axis angle",
      description,"time",np.float64,"degrees",fileout,
      mnrax_angle_lp,f)
 
@@ -923,7 +925,7 @@ def driver_addvars(fn):
   if nl.addboundaryinfo=="True":
     
     description = "1 if any part of PF is within a pixel of the tracking domain boundary. Else 0."
-    PFfunc.write_var("touchesdombound",
+    fns.write_var("touchesdombound",
      "PF touches domain boundary",description,"time",int,"",
       fileout,touchesdombound,f)
 
@@ -933,12 +935,12 @@ def driver_addvars(fn):
 
   if nl.addlandinfo=="True":
     description = "1 if center of PF is over land. 0 if not."
-    PFfunc.write_var("cPF_over_land","Center of PF over land",
+    fns.write_var("cPF_over_land","Center of PF over land",
       description,"time",int,"",fileout,cPF_over_land,f)
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
     description = "Binary indicating if a PF location is over land (1 = over land, 0 = not over land)"
-    PFfunc.write_group("lPF_over_land",
+    fns.write_group("lPF_over_land",
       "Location over land",description,"",
       format1,fileout,lPF_over_land,f)
 
@@ -956,19 +958,19 @@ def driver_addvars(fn):
 
       # Write cPF_in_TC
       description = "If PF center is within a maximum radius of TC center this is 1, if not, this is 0."
-      PFfunc.write_var("cPF_in_TC",
+      fns.write_var("cPF_in_TC",
         "Proximity of PF center to TC",description,"time",
         int,"",fileout,cPF_in_TC,f)
 
       # Write dist_cPF_cTC
       description = "Calculated as the geodesic distance of the PF center to TC center"
-      PFfunc.write_var("dist_cPF_cTC",
+      fns.write_var("dist_cPF_cTC",
         "Distance of PF center to TC center",description,
         "time",np.float64,"km",fileout,dist_cPF_cTC,f)
 
       # Write TCradius
       description = "Calculated by finding the largest radius of a TC from IBtracs and doubling."
-      PFfunc.write_var("TCrad_cPF","Radius of TC",
+      fns.write_var("TCrad_cPF","Radius of TC",
         description,"time",np.float64,"km",fileout,
         TCrad_cPF,f)
 
@@ -978,24 +980,24 @@ def driver_addvars(fn):
       # Create or open a group for lPF_in_TC
       format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
       description = "Binary indicating if a PF location is within a TC (1 = within TCradius, 0 = not within TC radius)"
-      PFfunc.write_group("lPF_in_TC","Location within TC",
+      fns.write_group("lPF_in_TC","Location within TC",
         description,"",format1,fileout,lPF_in_TC,f)
 
       # Create or open a group for dist_lPF_cTC
       description = "Calculated as geodesic distance to TC center from PF location"
-      PFfunc.write_group("dist_lPF_cTC",
+      fns.write_group("dist_lPF_cTC",
         "Distance to TC center from PF location",description,
         "km",format1,fileout,dist_lPF_cTC,f)
 
       # Create or open a group for TCname_lPF
       description = "Name of TC if given location is within TC"
-      PFfunc.write_group("TCname_lPF",
+      fns.write_group("TCname_lPF",
         "Name of TC if given location is within TC",
         description,"",format1,fileout,TCname_lPF,f)
 
       # Create or open a group for TCrad_lPF
       description = "Calculated by finding the largest radius of a TC from IBtracs and doubling."
-      PFfunc.write_group("TCrad_lPF","Radius of TC",
+      fns.write_group("TCrad_lPF","Radius of TC",
         description,"",format1,fileout,TCrad_lPF,f)
 
     else:
@@ -1012,12 +1014,12 @@ def driver_addvars(fn):
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
 
     description = "longitudes corresponding to ERA5 data"
-    PFfunc.write_group("lonsE5",
+    fns.write_group("lonsE5",
      "ERA5 longitudes",description,"degreesE",format1,fileout,
      lonsE5,f)
 
     description = "latitudes corresponding to ERA5 data"
-    PFfunc.write_group("latsE5",
+    fns.write_group("latsE5",
      "ERA5 latitudes",description,"degreesN",format1,fileout,
      latsE5,f)
 
@@ -1028,7 +1030,7 @@ def driver_addvars(fn):
   if nl.addCAPEE5=="True":
 
     description = "Surface-based CAPE for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    PFfunc.write_group("CAPE_E5",
+    fns.write_group("CAPE_E5",
      "ERA5 Convective Available Potential Energy",description,
      CAPEE5units,format1,fileout,CAPEE5,f)
 
@@ -1039,7 +1041,7 @@ def driver_addvars(fn):
   if nl.addTCWVE5=="True":
 
     description = "Total column water vapor for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    PFfunc.write_group("TCWV_E5","ERA5 Total Column Water Vapor",
+    fns.write_group("TCWV_E5","ERA5 Total Column Water Vapor",
      description,TCWVE5units,format1,fileout,TCWVE5,f)
 
 #==================================================================
@@ -1049,7 +1051,7 @@ def driver_addvars(fn):
   if nl.addCCTOE5=="True":
 
     description = "Total cloud cover for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    PFfunc.write_group("CCTO_E5","ERA5 Total Cloud Cover",description,
+    fns.write_group("CCTO_E5","ERA5 Total Cloud Cover",description,
       CCTOE5units,format1,fileout,CCTOE5,f)
 
 #==================================================================

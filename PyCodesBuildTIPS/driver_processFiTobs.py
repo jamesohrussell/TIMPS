@@ -2,7 +2,7 @@ def driver_processFiTobs(o):
   "o corresponds to the object in objs"
   
   # Import python libraries (do not change)
-  import PF_functions as fa 
+  import TIPS_functions as fns 
   import numpy as np
   import h5py
   import csv
@@ -312,59 +312,59 @@ def driver_processFiTobs(o):
   time = fileout.createDimension('time', len(time1))
 
   # Create variables in file
-  fa.write_var("time","Time","","time",np.float64,
+  fns.write_var("time","Time","","time",np.float64,
                "hours since "+nl.reftime,fileout,
                time1,nl.datadirout+filename)
 
-  fa.write_var("datetime","Date and time","","time",
+  fns.write_var("datetime","Date and time","","time",
                int,"YYYYMMDDhhmm",fileout,datetime1,
                nl.datadirout+filename)
 
 #  description = "x-location of PF centroid in tracked domain"
-#  fa.write_var("centrallocx","Central x-location",
+#  fns.write_var("centrallocx","Central x-location",
 #               description,"time",int,"",fileout,
 #               centrallocx1,nl.datadirout+filename)
 
 #  description = "y-location of PF centroid in tracked domain"
-#  fa.write_var("centrallocy","Central y-location",
+#  fns.write_var("centrallocy","Central y-location",
 #               description,"time",int,"",fileout,
 #               centrallocx1,nl.datadirout+filename)
 
-  fa.write_var("centrallat","Central latitude",
+  fns.write_var("centrallat","Central latitude",
                "Latitude of PF centroid","time",
                np.float64,"degreesNorth",fileout,
                centrallat1,nl.datadirout+filename)
 
-  fa.write_var("centrallon","Central longitude",
+  fns.write_var("centrallon","Central longitude",
                "Longitude of PF centroid","time",
                np.float64,"degreesEast",fileout,
                centrallon1,nl.datadirout+filename)
 
-#  fa.write_var("pieces","Pieces",
+#  fns.write_var("pieces","Pieces",
 #               "Number of pieces that make up the PF",
 #               "time",int,"",fileout,pieces1,
 #               nl.datadirout+filename)
 
   format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time."
 
-  fa.write_group("lats","Latitudes",
+  fns.write_group("lats","Latitudes",
                  "Latitudes of IMERG grid cell centers for PF",
                  "DegreesNorth",format1,fileout,
                  lats1,nl.datadirout+filename)
 
-  fa.write_group("lons","Longitudes",
+  fns.write_group("lons","Longitudes",
                  "Longitudes of IMERG grid cell centers for PF",
                  "DegreesEast",format1,fileout,
                  lons1,nl.datadirout+filename)
 
   description = "Instantaneous rain rates at IMERG grid cells corresponding to all latitude and longitude values in PF."
-  fa.write_group("instrain","Instantaneous rain rate",
+  fns.write_group("instrain","Instantaneous rain rate",
                  description,"mm/hr",format1,fileout,
                  instrain1,nl.datadirout+filename)
 
 #  if (sstd is not None) or (swid is not None):
 #    description = "Smoothed instantaneous rain rates at IMERG grid cells corresponding to all latitude and longitude values in PF"
-#    fa.write_group("instrainS",
+#    fns.write_group("instrainS",
 #                   "Smoothed instantaneous rain rate",
 #                   description,"mm/hr",format1,fileout,
 #                   instrainS1,nl.datadirout+filename)
