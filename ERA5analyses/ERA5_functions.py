@@ -277,102 +277,6 @@ def get_E5_ss_4D(datadir,fileid,varname,timestr1,timestr2,
 # Get subset of a variable from ERA5 files
 #==================================================================
 
-def get_E5_ss_4D_fitiold(datadir,fileid,timestr1,timestr2):
-  """
-  Find all files with data between two times and output the 
-   indices of the times within the first and last files
-
-  Input: 
-   1,2) Data directory and file identifier
-   3,4) Strings indicating the first and last times in format:
-       YYYY-MM-DD hh
-
-  Output:
-   1) A list of strings indicating the paths and files
-   2,3) Either a scalar or list of indices indicating the time 
-    index(es) within that file corresponding to either the first
-    or last times
-
-  Requires glob and netCDF4
-  """
-
-  # Import libraries
-  import glob
-  from netCDF4 import Dataset
-  import TIPS_functions as fns
-  import numpy as np
-
-  # Find all files 
-  allfiles = sorted(glob.glob(datadir+fileid+"*"))
-
-  # Convert first and last time to same units
-  ds0 = Dataset(allfiles[0])
-  time1 = fns.time_since(timestr1+":00:00",
-                         ds0.variables["time"].units)
-  time2 = fns.time_since(timestr2+":00:00",
-                         ds0.variables["time"].units)
-
-  # Loop over all files and initialize variables
-  append = False
-  ssfiles = []
-  for fi in allfiles:
-    fh = Dataset(fi)
-    
-    # If first time is within current file
-    if not append and \
-       fh.variables["time"][0]<=time1<=fh.variables["time"][-1]:
-
-      # Set it to append
-      append = True
-
-      # Select the index(es) of the relevant time(s)
-      times1 = list(fh.variables["time"][:])
-      if time1 in times1:
-        timi1 = times1.index(time1)
-      else:
-        timi1 = fns.k_closest(times1,time1,1)[0]
-
-      # Get times
-      times = times1[timi1:]
-
-      # Append file to filenames
-      ssfiles.append(fi)
-
-      # Move on to next file
-      continue
-
-    # If last time is within current file
-    if fh.variables["time"][0]<=time2<=fh.variables["time"][-1]:
-    
-      # Select the index(es) of the relevant time(s) 
-      times2 = list(fh.variables["time"][:])
-      if time2 in times2:
-        timi2 = times2.index(time2)
-      else:
-        timi2 = fns.k_closest(times2,time2,1)[0]
-
-      # Get times
-      times.extend(times2[0:timi2+1])
-      ssfiles.append(fi)
-
-      # Break the loop
-      break
-
-    # Middle times
-    elif append:
-      times.extend(fh.variables["time"][:])
-      ssfiles.append(fi)
-
-  # Make time indices a list
-  timi = np.squeeze([timi1,timi2])
-
-  # Return data
-  return(ssfiles,timi,times)
-
-#==================================================================
-# Get subset of a variable from ERA5 files
-#==================================================================
-
 def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
   """
   Find all files with data between two times and output the 
@@ -414,12 +318,16 @@ def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
   for fi in allfiles:
     fh = Dataset(fi)
 
+    print(fi)
+
     # Read the times
     times1 = list(fh.variables["time"][:])
     
     # If first and second time is within current file
     if times1[0]<=time1<=times1[-1] and \
        times1[0]<=time2<=times1[-1]:
+
+      print("First and last file")
 
       # Select the indexes of the relevant times
       timi1 = fns.k_closest(times1,time1,1)[0]
@@ -436,6 +344,8 @@ def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
     if times1[0]<=time1<=times1[-1] and not \
        times1[0]<=time2<=times1[-1]:
 
+      print("First file only")
+
       # Select the index of the relevant time
       timi1 = fns.k_closest(times1,time1,1)[0]
 
@@ -444,11 +354,13 @@ def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
       ssfiles.append(fi)
 
       # Move on to next file
-      append==True
+      append=True
       continue
 
     # If last time is within current file
     if times1[0]<=time2<=times1[-1]:
+
+      print("Last file")
     
       # Select the index of the relevant time
       timi2 = fns.k_closest(times1,time2,1)[0]
@@ -461,17 +373,14 @@ def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
       break
 
     # Middle times
-    elif append:
+    if append:
+
+      print("Middle file")
       times.extend(times1)
       ssfiles.append(fi)
 
   # Make time indices a list
   timi = np.squeeze([timi1,timi2])
-
-  print(times)
-  print(np.shape(times))
-  print(timi)
-  exit()
 
   # Return data
   return(ssfiles,timi,times)

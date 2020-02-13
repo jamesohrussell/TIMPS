@@ -318,12 +318,16 @@ def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
   for fi in allfiles:
     fh = Dataset(fi)
 
+    print(fi)
+
     # Read the times
     times1 = list(fh.variables["time"][:])
     
     # If first and second time is within current file
     if times1[0]<=time1<=times1[-1] and \
        times1[0]<=time2<=times1[-1]:
+
+      print("First and last file")
 
       # Select the indexes of the relevant times
       timi1 = fns.k_closest(times1,time1,1)[0]
@@ -340,6 +344,8 @@ def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
     if times1[0]<=time1<=times1[-1] and not \
        times1[0]<=time2<=times1[-1]:
 
+      print("First file only")
+
       # Select the index of the relevant time
       timi1 = fns.k_closest(times1,time1,1)[0]
 
@@ -348,11 +354,13 @@ def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
       ssfiles.append(fi)
 
       # Move on to next file
-      append==True
+      append=True
       continue
 
     # If last time is within current file
     if times1[0]<=time2<=times1[-1]:
+
+      print("Last file")
     
       # Select the index of the relevant time
       timi2 = fns.k_closest(times1,time2,1)[0]
@@ -365,7 +373,9 @@ def get_E5_ss_4D_fiti(datadir,fileid,timestr1,timestr2):
       break
 
     # Middle times
-    elif append:
+    if append:
+
+      print("Middle file")
       times.extend(times1)
       ssfiles.append(fi)
 
