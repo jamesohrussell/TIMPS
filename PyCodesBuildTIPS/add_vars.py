@@ -31,7 +31,7 @@ import os
 
 # Directory and filename for PF files
 datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/IMERGPFs_2018/"
-fileid  = "IPF_"
+fileid  = "IPFS_"
 
 # Subset (for certain range of dates) 
 ssdat = False
@@ -78,9 +78,27 @@ addconvarea       = False # Area of the convective region
                           #  (addconvrain must also be True)
 addconvvrr        = False # Volume of convective rainfall 
                           #  (addconvrain must also be True)
-addCAPEE5         = True  # ERA5 Convective Available Potential Energy
-addTCWVE5         = True  # ERA5 Total Column Water Vapor
-addCCTOE5         = True  # ERA5 Total Cloud Cover
+# Thermodynamic variables
+addCAPEE5         = False # ERA5 Convective Available 
+                          #  Potential Energy
+
+# Moisture variables
+addTCWVE5         = False # ERA5 Total Column Water Vapor
+addSPHFE5         = True  # ERA5 850-200 hPa specific humidity
+                          #  (free troposphere)
+addSPHBE5         = False # ERA5 1000-850 hPa specific humidity 
+                          #  (boundary layer)
+
+# Kinematic/dynamics variables
+addSHRFE5         = False # ERA5 850-200 hPa wind shear 
+                          #  (free troposphere)
+addSHRBE5         = False # ERA5 1000-850 hPa wind shear 
+                          #  (boundary layer)
+
+# Cloud variables
+addCCTOE5         = False # ERA5 Total Cloud Cover
+
+
 #addconvshape      = False # All shape parameters specified 
                            #  but for convective region
 #addmergeinfo      = False # Information on mergers
@@ -106,6 +124,10 @@ hda          = 5 # Half data area in degrees
 fileCAPEE5id = "ERA5.CAPE."
 fileTCWVE5id = "ERA5.TCWV."
 fileCCTOE5id = "ERA5.CCTO."
+fileSHRFE5id = "ERA5.WSHR_850-200hPamean."
+fileSHRBE5id = "ERA5.WSHR_1000-850hPamean."
+fileSPHFE5id = "ERA5.SPHU_850-200hPamean."
+fileSPHBE5id = "ERA5.SPHB_1000-850hPamean."
 
 #==================================================================
 # Initialize timer
@@ -143,6 +165,11 @@ namelist["addfragmentation"] = str(addfragmentation)
 namelist["addCAPEE5"] = str(addCAPEE5)
 namelist["addTCWVE5"] = str(addTCWVE5)
 namelist["addCCTOE5"] = str(addCCTOE5)
+namelist["addSHRBE5"] = str(addSHRBE5)
+namelist["addSHRFE5"] = str(addSHRFE5)
+namelist["addSPHBE5"] = str(addSPHBE5)
+namelist["addSPHFE5"] = str(addSPHFE5)
+
 if addarea or addvrr or addconvarea or addconvvrr or \
    addperimeter or addasymmetry or addfragmentation or \
    addaxesshape or addboundaryinfo:
@@ -156,12 +183,13 @@ if addconvrain or addconvarea or addconvvrr:
 if addCAPEE5 or addTCWVE5 or addCCTOE5:
   namelist["dataE5dir"] = str(dataE5dir)
   namelist["hda"] = hda
-if addCAPEE5:
-  namelist["fileCAPEE5id"] = str(fileCAPEE5id)
-if addTCWVE5:
-  namelist["fileTCWVE5id"] = str(fileTCWVE5id)
-if addCCTOE5:
-  namelist["fileCCTOE5id"] = str(fileCCTOE5id)
+if addCAPEE5: namelist["fileCAPEE5id"] = str(fileCAPEE5id)
+if addTCWVE5: namelist["fileTCWVE5id"] = str(fileTCWVE5id)
+if addCCTOE5: namelist["fileCCTOE5id"] = str(fileCCTOE5id)
+if addSHRBE5: namelist["fileSHRBE5id"] = str(fileSHRBE5id)
+if addSHRFE5: namelist["fileSHRFE5id"] = str(fileSHRFE5id)
+if addSPHBE5: namelist["fileSPHBE5id"] = str(fileSPHBE5id)
+if addSPHFE5: namelist["fileSPHFE5id"] = str(fileSPHFE5id)
 
 # Write namelist dictionary to netcdf file for reading 
 #  during parallel loop

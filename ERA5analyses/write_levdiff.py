@@ -4,20 +4,20 @@
 #==================================================================
 
 datadir = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
-fileid  = "ERA5.SPHU."
-varname = "Q"
-varfile = "SPHU"
-varfileln = "Specific humidity"
-varfileds = "Specific humidity (850-200 hPa mean)"
+fileid  = "ERA5.UWND."
+varname = "U"
+varfile = "USHR"
+varfileln = "Zonal Wind Shear"
+varfileds = "Zonal Wind Shear (200 - 850 hPa)"
 # Times must be in format "YYYY-MM-DD hh"
 timestr1= ["2018-01-01 00","2018-02-01 00","2018-03-01 00",
-           "2018-04-01 00","2018-05-01 00",
+           "2018-04-01 00","2018-05-01 00","2018-06-01 00",
+           "2018-07-01 00","2018-08-01 00","2018-09-01 00",
            "2018-10-01 00","2018-11-01 00","2018-12-01 00"]
-# "2018-07-01 00","2018-08-01 00","2018-09-01 00","2018-06-01 00",
-timestr2= ["2018-01-31 23","2018-02-28 23","2018-03-31 23",
-           "2018-04-30 23","2018-05-31 23",
+timestr2= ["2018-01-01 23","2018-02-28 23","2018-03-31 23",
+           "2018-04-30 23","2018-05-31 23","2018-06-30 23",
+           "2018-07-31 23","2018-08-31 23","2018-09-30 23",
            "2018-10-31 23","2018-11-30 23","2018-12-31 23"]
-# "2018-07-31 23","2018-08-31 23","2018-09-30 23","2018-06-30 23",
 # Levels are 1-1000 (hPa)
 lev1    = 200
 lev2    = 850
@@ -29,7 +29,7 @@ lon1    = 0
 lon2    = 359.75
 
 tunits   = "hours since 1900-01-01 00:00:00"
-qunits   = "kg kg**-1"
+dunits   = "ms^-1"
 
 #==================================================================
 # Import libraries
@@ -60,11 +60,14 @@ for i in range(0,len(timestr1)):
    lon1,lon2)
 
   # Get levels and their indices 
-  levi,levs = E5fns.get_E5_ss_4D_levels(fh,lev1,lev2)
+  levi = E5fns.get_E5_ss_4D_2levels(fh,lev1,lev2)
 
   # Get the variable 
-  var = E5fns.get_E5_ss_4D_levavgvar(
+  var = E5fns.get_E5_ss_4D_levdiffvar(
    files,varname,timi,levi,lati,loni)
+
+  print(var)
+  exit()
 
 #==================================================================
 # Write NetCDF file for object
@@ -104,7 +107,7 @@ for i in range(0,len(timestr1)):
                 "degreesE",fileout,lons,datadir+filename)
 
   # Create variables in file
-  fns.write_var(varname,varfileln,varfileds,
+  fns.write_var(varfile,varfileln,varfileds,
    ("time","latitude","longitude"),np.float64,qunits,fileout,
    var,datadir+filename)
 

@@ -123,18 +123,25 @@ def driver_addvars(fn):
     perimeter_lp = [0]*len(datakeys)
   
   if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
-     nl.addCCTOE5=="True":
+     nl.addCCTOE5=="True" or nl.addSHRFE5=="True" or \
+     nl.addSHRBE5=="True" or nl.addSPHFE5=="True" or \
+     nl.addSPHFE5=="True":
     lonsE5 = {}
     latsE5 = {}
 
-  if nl.addCAPEE5=="True":
-    CAPEE5 = {}
+  if nl.addCAPEE5=="True": CAPEE5 = {}
 
-  if nl.addTCWVE5=="True":
-    TCWVE5 = {}
+  if nl.addTCWVE5=="True": TCWVE5 = {}
 
-  if nl.addCCTOE5=="True":
-    CCTOE5 = {}
+  if nl.addCCTOE5=="True": CCTOE5 = {}
+
+  if nl.addSHRFE5=="True": SHRFE5 = {}
+
+  if nl.addSHRBE5=="True": SHRBE5 = {}
+
+  if nl.addSPHFE5=="True": SPHFE5 = {}
+
+  if nl.addSPHBE5=="True": SPHBE5 = {}
 
 #==================================================================
 # Begin loop over times
@@ -159,71 +166,6 @@ def driver_addvars(fn):
     latsnzk = lats[k][instrain[k]>0]
     lonsnzk = lons[k][instrain[k]>0]
     instrainnzk = instrain[k][instrain[k]>0]
-
-#==================================================================
-# ERA5 data prepwork
-#==================================================================
-
-    if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
-       nl.addCCTOE5=="True":
-
-      import ERA5_functions as E5fns
-
-      # Find file and time indices
-      timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
-                " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
-                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
-
-      # Find coordinates and indices
-      loni,lati,lonsE5[k],latsE5[k] = \
-       E5fns.get_E5_ss_2D_coords(
-        fh,dataclon[c],dataclat[c],nl.hda)
-
-#==================================================================
-# Assign ERA5 CAPE data
-#==================================================================
-
-    if nl.addCAPEE5=="True":
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
-                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
-      
-      # Get a subset of the CAPE data
-      CAPEE5[k] = E5fns.get_E5_ss_2D_var(
-                 fh,"CAPE",timi,loni,lati,times,ctime)
-      CAPEE5units = fh.variables["CAPE"].units
-
-#==================================================================
-# Assign ERA5 CAPE data
-#==================================================================
-
-    if nl.addTCWVE5=="True":
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
-                       nl.dataE5dir,nl.fileTCWVE5id,timestr)
-      
-      # Get a subset of the CAPE data
-      TCWVE5[k] = E5fns.get_E5_ss_2D_var(
-                 fh,"TCWV",timi,loni,lati,times,ctime)
-      TCWVE5units = fh.variables["TCWV"].units
-
-#==================================================================
-# Assign ERA5 CAPE data
-#==================================================================
-
-    if nl.addCCTOE5=="True":
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileCCTOE5id,timestr)
-      
-      # Get a subset of the CAPE data
-      CCTOE5[k] = E5fns.get_E5_ss_2D_var(
-                 fh,"TCC",timi,loni,lati,times,ctime)
-      CCTOE5units = fh.variables["TCC"].units
 
 #==================================================================
 # Calculate maximum rain rate
@@ -691,6 +633,137 @@ def driver_addvars(fn):
         writeTCdata = False
 
 #==================================================================
+# ERA5 data prepwork
+#==================================================================
+
+    if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
+       nl.addCCTOE5=="True" or nl.addSHRFE5=="True" or \
+       nl.addSHRBE5=="True" or nl.addSPHFE5=="True" or \
+       nl.addSPHFE5=="True":
+
+      import ERA5_functions as E5fns
+
+      # Find file and time indices
+      timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
+                " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
+
+      # Find coordinates and indices
+      loni,lati,lonsE5[k],latsE5[k] = \
+       E5fns.get_E5_ss_2D_coords(
+        fh,dataclon[c],dataclat[c],nl.hda)
+
+#==================================================================
+# Assign ERA5 CAPE data
+#==================================================================
+
+    if nl.addCAPEE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
+      
+      # Get a subset of the CAPE data
+      CAPEE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"CAPE",timi,loni,lati,times,ctime)
+      CAPEE5units = fh.variables["CAPE"].units
+
+#==================================================================
+# Assign ERA5 TCWV data
+#==================================================================
+
+    if nl.addTCWVE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+                       nl.dataE5dir,nl.fileTCWVE5id,timestr)
+      
+      # Get a subset of the CAPE data
+      TCWVE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"TCWV",timi,loni,lati,times,ctime)
+      TCWVE5units = fh.variables["TCWV"].units
+
+#==================================================================
+# Assign ERA5 SPHF data
+#==================================================================
+
+    if nl.addSPHFE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+                       nl.dataE5dir,nl.fileSPHFE5id,timestr)
+      
+      # Get a subset of the SPHF data
+      SPHFE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"Q",timi,loni,lati,times,ctime)
+      SPHFE5units = fh.variables["Q"].units
+
+#==================================================================
+# Assign ERA5 SPHB data
+#==================================================================
+
+    if nl.addSPHBE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+                       nl.dataE5dir,nl.fileSPHBE5id,timestr)
+      
+      # Get a subset of the SPHF data
+      SPHBE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"Q",timi,loni,lati,times,ctime)
+      SPHBE5units = fh.variables["Q"].units
+
+#==================================================================
+# Assign ERA5 SHRF data
+#==================================================================
+
+    if nl.addSHRFE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+                       nl.dataE5dir,nl.fileSHRFE5id,timestr)
+      
+      # Get a subset of the SPHF data
+      USRFE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"USHR",timi,loni,lati,times,ctime)
+      VSRFE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"VSHR",timi,loni,lati,times,ctime)
+      SHRFE5units = fh.variables["USHR"].units
+
+#==================================================================
+# Assign ERA5 SHRF data
+#==================================================================
+
+    if nl.addSHRBE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+                       nl.dataE5dir,nl.fileSHRBE5id,timestr)
+      
+      # Get a subset of the SPHF data
+      USRBE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"USHR",timi,loni,lati,times,ctime)
+      VSRBE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"VSHR",timi,loni,lati,times,ctime)
+      SHRBE5units = fh.variables["USHR"].units
+
+#==================================================================
+# Assign ERA5 CCTO data
+#==================================================================
+
+    if nl.addCCTOE5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       nl.dataE5dir,nl.fileCCTOE5id,timestr)
+      
+      # Get a subset of the CAPE data
+      CCTOE5[k] = E5fns.get_E5_ss_2D_var(
+                 fh,"TCC",timi,loni,lati,times,ctime)
+      CCTOE5units = fh.variables["TCC"].units
+
+#==================================================================
 # End loops over objects and times
 #==================================================================
       
@@ -1009,7 +1082,9 @@ def driver_addvars(fn):
 #==================================================================
 
   if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
-     nl.addCCTOE5=="True":
+     nl.addCCTOE5=="True" or nl.addSHRFE5=="True" or \
+     nl.addSHRBE5=="True" or nl.addSPHFE5=="True" or \
+     nl.addSPHFE5=="True":
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
 
@@ -1045,14 +1120,58 @@ def driver_addvars(fn):
      description,TCWVE5units,format1,fileout,TCWVE5,f)
 
 #==================================================================
-# Write TCWV information to file
+# Write SPHF information to file
+#==================================================================
+
+  if nl.addSPHFE5=="True":
+
+    description = "Specific humidity averaged between 850-200 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    fns.write_group("SPHU_FT_E5",
+     "ERA5 Free Tropospheric Specific Humidity",description,
+     SPHFE5units,format1,fileout,SPHFE5,f)
+
+#==================================================================
+# Write SPHB information to file
+#==================================================================
+
+  if nl.addSPHBE5=="True":
+
+    description = "Specific humidity averaged between 1000-850 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    fns.write_group("SPHU_BL_E5",
+     "ERA5 Boundary Layer Specific Humidity",description,
+     SPHBE5units,format1,fileout,SPHBE5,f)
+
+#==================================================================
+# Write SHRF information to file
+#==================================================================
+
+  if nl.addSHRFE5=="True":
+
+    description = "Wind shear averaged between 850-200 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    fns.write_group("WSHR_FT_E5",
+     "ERA5 Free Tropospheric Wind Shear",description,
+     SHRFE5units,format1,fileout,SHRFE5,f)
+
+#==================================================================
+# Write SHRB information to file
+#==================================================================
+
+  if nl.addSHRBE5=="True":
+
+    description = "Wind shear averaged between 1000-850 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    fns.write_group("WSHR_BL_E5",
+     "ERA5 Boundary Layer Wind Shear",description,
+     SHRBE5units,format1,fileout,SHRBE5,f)
+
+#==================================================================
+# Write CCTO information to file
 #==================================================================
 
   if nl.addCCTOE5=="True":
 
     description = "Total cloud cover for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("CCTO_E5","ERA5 Total Cloud Cover",description,
-      CCTOE5units,format1,fileout,CCTOE5,f)
+    fns.write_group("CCTO_E5","ERA5 Total Cloud Cover",
+     description,CCTOE5units,format1,fileout,CCTOE5,f)
 
 #==================================================================
 # Close current file

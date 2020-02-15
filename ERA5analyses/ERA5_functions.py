@@ -509,7 +509,7 @@ def get_E5_ss_4D_2levels(fh,lev1,lev2):
 
   # Find lat and lon indices
   lev  = fh.variables["level"][:]
-  levi = np.squeeze([fns.k_closest(lev,lev1,1), 
+  levi = np.squeeze([fns.k_closest(lev,lev1,1),
                      fns.k_closest(lev,lev2,1)])
 
   # Return data
@@ -705,6 +705,120 @@ def get_E5_ss_4D_levavgvar(files,varname,timi,levi,lati,loni):
          levi[0]:levi[1],lati[0]:lati[1]+1,loni[0]:],axis=1)
         varss2  = np.mean(fh.variables[varname][:,
          levi[0]:levi[1],lati[0]:lati[1]+1,0:loni[1]+1],axis=1)
+        varss3 = np.concatenate((varss1,varss2),axis=2)
+
+      # Concatenate data in time
+      varss = np.squeeze(np.concatenate((varss,varss3),axis=0))
+
+    # Advance counter
+    c+=1
+
+  # Return data
+  return(varss)
+
+#==================================================================
+# Get subset of a variable from ERA5 files
+#==================================================================
+
+def get_E5_ss_4D_levdiffvar(files,varname,timi,levi,lati,loni):
+  """
+  Get a 4D subset of ERA5 data.
+
+  Input: 
+   1) A list of files to read
+   2) A string of the variable name in ERA5 e.g."CAPE"
+   3) The indices corresponding to time
+   4,5,6) The indices corresponding to first and last levels,
+    longitudes, and latitudes
+
+  Output:
+   1) Returns a flattened list of the ERA5 variable corresponding 
+    to coordinates from get_E5_subset_2D_coords
+
+  Requires numpy 1.16.3 (conda install -c anaconda numpy; 
+   https://pypi.org/project/numpy/)
+  """
+
+  # Import libraries
+  import numpy as np
+  from netCDF4 import Dataset
+
+  # Loop over all files and open the current file
+  c = 0
+  for fi in files:
+    fh = Dataset(fi)
+    print("Working on file: "+str(fi))
+
+    # At first time
+    if c==0:
+
+      # Read in subset of data (not over Greenwich Meridian)
+      if loni[0]<loni[1]:
+        varss = fh.variables[varname][timi[0]:,levi[0],
+         lati[0]:lati[1]+1,loni[0]:loni[1]+1] - \
+         fh.variables[varname][timi[0]:,levi[1],
+         lati[0]:lati[1]+1,loni[0]:loni[1]+1]
+
+      # Read in subset of data (over Greenwich Meridian)
+      # and concatenate data in longitude
+      elif loni[0]>loni[1]:
+        varss1  = fh.variables[varname][timi[0]:,levi[0],
+         lati[0]:lati[1]+1,loni[0]:] - \
+         fh.variables[varname][timi[0]:,levi[1],
+         lati[0]:lati[1]+1,loni[0]:]
+        varss2  = fh.variables[varname][timi[0]:,levi[0],
+         lati[0]:lati[1]+1,0:loni[1]+1] - \
+         fh.variables[varname][timi[0]:,levi[1],
+         lati[0]:lati[1]+1,0:loni[1]+1]
+        varss = np.concatenate((varss1,varss2),axis=2)
+
+    # At last time
+    elif c==len(files)-1:
+    
+      # Read in subset of data (not over Greenwich Meridian)
+      if loni[0]<loni[1]:
+        varss3  = fh.variables[varname][0:timi[1]+1,levi[0],
+         lati[0]:lati[1]+1,loni[0]:loni[1]+1] - \
+         fh.variables[varname][0:timi[1]+1,levi[1],
+         lati[0]:lati[1]+1,loni[0]:loni[1]+1]
+
+      # Read in subset of data (over Greenwich Meridian)
+      # and concatenate data in longitude
+      elif loni[0]>loni[1]:
+        varss1  = fh.variables[varname][0:timi[1]+1,levi[0],
+         lati[0]:lati[1]+1,loni[0]:] - \
+         fh.variables[varname][0:timi[1]+1,levi[1],
+         lati[0]:lati[1]+1,loni[0]:]
+        varss2  = fh.variables[varname][0:timi[1]+1,levi[0],
+         lati[0]:lati[1]+1,0:loni[1]+1] - \
+         fh.variables[varname][0:timi[1]+1,levi[1],
+         lati[0]:lati[1]+1,0:loni[1]+1]
+        varss3 = np.concatenate((varss1,varss2),axis=2)
+
+      # Concatenate data in time
+      varss = np.concatenate((varss,varss3),axis=0)
+
+    # Middle times
+    else:
+
+      # Read in subset of data (not over Greenwich Meridian)
+      if loni[0]<loni[1]:
+        varss3  = fh.variables[varname][:,levi[0],
+         lati[0]:lati[1]+1,loni[0]:loni[1]+1] - \
+         fh.variables[varname][:,levi[1],
+         lati[0]:lati[1]+1,loni[0]:loni[1]+1]
+
+      # Read in subset of data (over Greenwich Meridian)
+      # and concatenate data in longitude
+      elif loni[0]>loni[1]:
+        varss1  = fh.variables[varname][:,levi[0],
+         lati[0]:lati[1]+1,loni[0]:] - \
+         fh.variables[varname][:,levi[1],
+         lati[0]:lati[1]+1,loni[0]:]
+        varss2  = fh.variables[varname][:,levi[0],
+         lati[0]:lati[1]+1,0:loni[1]+1] - \
+         fh.variables[varname][:,levi[1],
+         lati[0]:lati[1]+1,0:loni[1]+1]
         varss3 = np.concatenate((varss1,varss2),axis=2)
 
       # Concatenate data in time
