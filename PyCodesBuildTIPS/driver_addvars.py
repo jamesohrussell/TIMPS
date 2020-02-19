@@ -135,9 +135,9 @@ def driver_addvars(fn):
 
   if nl.addCCTOE5=="True": CCTOE5 = {}
 
-  if nl.addSHRFE5=="True": SHRFE5 = {}
+  if nl.addSHRFE5=="True": USRFE5 = {}; VSRFE5 = {}
 
-  if nl.addSHRBE5=="True": SHRBE5 = {}
+  if nl.addSHRBE5=="True": USRBE5 = {}; VSRBE5 = {}
 
   if nl.addSPHFE5=="True": SPHFE5 = {}
 
@@ -1147,10 +1147,15 @@ def driver_addvars(fn):
 
   if nl.addSHRFE5=="True":
 
-    description = "Wind shear averaged between 850-200 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("WSHR_FT_E5",
-     "ERA5 Free Tropospheric Wind Shear",description,
-     SHRFE5units,format1,fileout,SHRFE5,f)
+    description = "Zonal wind shear averaged between 850-200 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    fns.write_group("USHR_850_200_E5",
+     "ERA5 850-200 hPa Zonal Wind Shear",description,
+     SHRFE5units,format1,fileout,USRFE5,f)
+
+    description = "Meridional wind shear averaged between 850-200 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    fns.write_group("VSHR_850_200_E5",
+     "ERA5 850-200 hPa Meridional Wind Shear",description,
+     SHRFE5units,format1,fileout,VSRFE5,f)
 
 #==================================================================
 # Write SHRB information to file
@@ -1158,10 +1163,15 @@ def driver_addvars(fn):
 
   if nl.addSHRBE5=="True":
 
-    description = "Wind shear averaged between 1000-850 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("WSHR_BL_E5",
-     "ERA5 Boundary Layer Wind Shear",description,
-     SHRBE5units,format1,fileout,SHRBE5,f)
+    description = "Zonal wind shear averaged between 1000-850 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    fns.write_group("USHR_1000_850_E5",
+     "ERA5 1000-850 hPa Zonal Wind Shear",description,
+     SHRBE5units,format1,fileout,USRBE5,f)
+
+    description = "Meridional wind shear averaged between 1000-850 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
+    fns.write_group("VSHR_1000_850_E5",
+     "ERA5 1000-850 hPa Meridional Wind Shear",description,
+     SHRBE5units,format1,fileout,VSRBE5,f)
 
 #==================================================================
 # Write CCTO information to file

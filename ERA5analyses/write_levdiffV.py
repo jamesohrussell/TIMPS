@@ -4,11 +4,11 @@
 #==================================================================
 
 datadir = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
-fileid  = "ERA5.UWND."
-varname = "U"
-varfile = "USHR"
-varfileln = "Zonal Wind Shear"
-varfileds = "Zonal Wind Shear (850 - 1000 hPa)"
+fileid  = "ERA5.VWND."
+varname = "V"
+varfile = "VSHR"
+varfileln = "Meridional Wind Shear"
+varfileds = "Meridional Wind Shear (850 - 1000 hPa)"
 # Times must be in format "YYYY-MM-DD hh"
 timestr1= ["2018-01-01 00","2018-02-01 00","2018-03-01 00",
            "2018-04-01 00","2018-05-01 00","2018-06-01 00",
