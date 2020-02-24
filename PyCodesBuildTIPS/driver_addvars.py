@@ -10,7 +10,7 @@ def driver_addvars(fn):
 
   # Import libraries
   import TIPS_functions as fns
-  from netCDF4 import Dataset, MFDataset
+  from netCDF4 import Dataset
   import numpy as np
   import pandas as pd
   from scipy.spatial import ConvexHull
@@ -129,7 +129,7 @@ def driver_addvars(fn):
     lonsE5 = {}
     latsE5 = {}
 
-  if nl.addCAPEE5=="True": CAPEE5 = {}
+#  if nl.addCAPEE5=="True": CAPEE5 = {}
 
   if nl.addTCWVE5=="True": TCWVE5 = {}
 
@@ -646,7 +646,7 @@ def driver_addvars(fn):
       # Find file and time indices
       timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
                 " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileCAPEE5id,timestr)
 
       # Find coordinates and indices
@@ -654,18 +654,25 @@ def driver_addvars(fn):
        E5fns.get_E5_ss_2D_coords(
         fh,dataclon[c],dataclat[c],nl.hda)
 
+      xE5 = np.linspace(-nl.hda,nl.hda,len(lonsE5[k]))
+      yE5 = np.linspace(-nl.hda,nl.hda,len(latsE5[k]))
+
 #==================================================================
 # Assign ERA5 CAPE data
 #==================================================================
 
     if nl.addCAPEE5=="True":
 
+      # Preallocate array
+      if c==0:
+        CAPEE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileCAPEE5id,timestr)
       
       # Get a subset of the CAPE data
-      CAPEE5[k] = E5fns.get_E5_ss_2D_var(
+      CAPEE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fh,"CAPE",timi,loni,lati,times,ctime)
       CAPEE5units = fh.variables["CAPE"].units
 
@@ -675,12 +682,16 @@ def driver_addvars(fn):
 
     if nl.addTCWVE5=="True":
 
+      # Preallocate array
+      if c==0:
+        TCWVE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileTCWVE5id,timestr)
       
       # Get a subset of the CAPE data
-      TCWVE5[k] = E5fns.get_E5_ss_2D_var(
+      TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime)
       TCWVE5units = fh.variables["TCWV"].units
 
@@ -690,12 +701,16 @@ def driver_addvars(fn):
 
     if nl.addSPHFE5=="True":
 
+      # Preallocate array
+      if c==0:
+        SPHFE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
-                       nl.dataE5dir,nl.fileSPHFE5id,timestr)
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
       
       # Get a subset of the SPHF data
-      SPHFE5[k] = E5fns.get_E5_ss_2D_var(
+      SPHFE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fh,"Q",timi,loni,lati,times,ctime)
       SPHFE5units = fh.variables["Q"].units
 
@@ -706,7 +721,7 @@ def driver_addvars(fn):
     if nl.addSPHBE5=="True":
 
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileSPHBE5id,timestr)
       
       # Get a subset of the SPHF data
@@ -721,32 +736,36 @@ def driver_addvars(fn):
     if nl.addSHRFE5=="True":
 
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
-                       nl.dataE5dir,nl.fileSHRFE5id,timestr)
-      
+      fhU,timiU,timesU,ctimeU = E5fns.get_E5_ss_2D_fiti(
+                       nl.dataE5dir,nl.fileUSRFE5id,timestr)
+      fhV,timiV,timesV,ctimeV = E5fns.get_E5_ss_2D_fiti(
+                       nl.dataE5dir,nl.fileVSRFE5id,timestr)
+
       # Get a subset of the SPHF data
       USRFE5[k] = E5fns.get_E5_ss_2D_var(
-                 fh,"USHR",timi,loni,lati,times,ctime)
+                 fhU,"USHR",timiU,loni,lati,timesU,ctimeU)
       VSRFE5[k] = E5fns.get_E5_ss_2D_var(
-                 fh,"VSHR",timi,loni,lati,times,ctime)
-      SHRFE5units = fh.variables["USHR"].units
+                 fhV,"VSHR",timiV,loni,lati,timesV,ctimeV)
+      SHRFE5units = fhU.variables["USHR"].units
 
 #==================================================================
-# Assign ERA5 SHRF data
+# Assign ERA5 SHRB data
 #==================================================================
 
     if nl.addSHRBE5=="True":
 
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_file(
-                       nl.dataE5dir,nl.fileSHRBE5id,timestr)
-      
+      fhU,timiU,timesU,ctimeU = E5fns.get_E5_ss_2D_fiti(
+                       nl.dataE5dir,nl.fileUSRBE5id,timestr)
+      fhV,timiV,timesV,ctimeV = E5fns.get_E5_ss_2D_fiti(
+                       nl.dataE5dir,nl.fileVSRBE5id,timestr)
+
       # Get a subset of the SPHF data
       USRBE5[k] = E5fns.get_E5_ss_2D_var(
-                 fh,"USHR",timi,loni,lati,times,ctime)
+                 fhU,"USHR",timiU,loni,lati,timesU,ctimeU)
       VSRBE5[k] = E5fns.get_E5_ss_2D_var(
-                 fh,"VSHR",timi,loni,lati,times,ctime)
-      SHRBE5units = fh.variables["USHR"].units
+                 fhV,"VSHR",timiV,loni,lati,timesV,ctimeV)
+      SHRBE5units = fhU.variables["USHR"].units
 
 #==================================================================
 # Assign ERA5 CCTO data
@@ -1089,14 +1108,24 @@ def driver_addvars(fn):
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
 
     description = "longitudes corresponding to ERA5 data"
-    fns.write_group("lonsE5",
-     "ERA5 longitudes",description,"degreesE",format1,fileout,
-     lonsE5,f)
+    fns.write_group("lonsE5","ERA5 longitudes",description,
+                    "degreesE",format1,fileout,lonsE5,f)
 
     description = "latitudes corresponding to ERA5 data"
-    fns.write_group("latsE5",
-     "ERA5 latitudes",description,"degreesN",format1,fileout,
-     latsE5,f)
+    fns.write_group("latsE5","ERA5 latitudes",description,
+                    "degreesN",format1,fileout,latsE5,f)
+
+    try: xE51 = fileout.createDimension('xE5',len(xE5))
+    except: print("xE5 already defined")
+    try: yE51 = fileout.createDimension('yE5',len(yE5))
+    except: print("yE5 already defined")
+
+    description = "Corresponds to ERA5 data centered on precipitation system centroid. Negative is west. Positive is east."
+    fns.write_var("xE5","ERA5 zonal distance from centroid",
+     description,("xE5"),np.float64,"degrees",fileout,xE5,f)
+    description = "Corresponds to ERA5 data centered on precipitation system centroid. Negative is south. Positive is north."
+    fns.write_var("yE5","Meridional distance from centroid",
+     description,("yE5"),np.float64,"degrees",fileout,yE5,f)
 
 #==================================================================
 # Write CAPE information to file
@@ -1104,10 +1133,10 @@ def driver_addvars(fn):
 
   if nl.addCAPEE5=="True":
 
-    description = "Surface-based CAPE for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("CAPE_E5",
+    description = "Surface-based CAPE from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("CAPE_E5",
      "ERA5 Convective Available Potential Energy",description,
-     CAPEE5units,format1,fileout,CAPEE5,f)
+     ("time","yE5","xE5"),np.float64,CAPEE5units,fileout,CAPEE5,f)
 
 #==================================================================
 # Write TCWV information to file
@@ -1115,9 +1144,10 @@ def driver_addvars(fn):
 
   if nl.addTCWVE5=="True":
 
-    description = "Total column water vapor for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("TCWV_E5","ERA5 Total Column Water Vapor",
-     description,TCWVE5units,format1,fileout,TCWVE5,f)
+    description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("TCWV_E5","ERA5 Total Column Water Vapor",
+     description,("time","yE5","xE5"),np.float64,TCWVE5units,
+     fileout,TCWVE5,f)
 
 #==================================================================
 # Write SPHF information to file
@@ -1125,10 +1155,10 @@ def driver_addvars(fn):
 
   if nl.addSPHFE5=="True":
 
-    description = "Specific humidity averaged between 850-200 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("SPHU_FT_E5",
-     "ERA5 Free Tropospheric Specific Humidity",description,
-     SPHFE5units,format1,fileout,SPHFE5,f)
+    description = "Specific humidity between 850-200 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("SPHU_850-200_E5",
+     "ERA5 850-200 hPa mean specific humidity",description,
+     ("time","yE5","xE5"),np.float64,SPHFE5units,fileout,SPHFE5,f)
 
 #==================================================================
 # Write SPHB information to file
@@ -1136,10 +1166,10 @@ def driver_addvars(fn):
 
   if nl.addSPHBE5=="True":
 
-    description = "Specific humidity averaged between 1000-850 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("SPHU_BL_E5",
-     "ERA5 Boundary Layer Specific Humidity",description,
-     SPHBE5units,format1,fileout,SPHBE5,f)
+    description = "Specific humidity between 1000-850 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("SPHU_1000-850_E5",
+     "ERA5 1000-850 hPa mean specific humidity",description,
+     ("time","yE5","xE5"),np.float64,SPHBE5units,fileout,SPHBE5,f)
 
 #==================================================================
 # Write SHRF information to file
@@ -1147,15 +1177,15 @@ def driver_addvars(fn):
 
   if nl.addSHRFE5=="True":
 
-    description = "Zonal wind shear averaged between 850-200 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("USHR_850_200_E5",
-     "ERA5 850-200 hPa Zonal Wind Shear",description,
-     SHRFE5units,format1,fileout,USRFE5,f)
+    description = "Zonal wind shear between 850-200 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("USHR_850-200_E5",
+     "ERA5 850-200 hPa zonal wind shear",description,
+     ("time","yE5","xE5"),np.float64,SHRFE5units,fileout,USRFE5,f)
 
-    description = "Meridional wind shear averaged between 850-200 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("VSHR_850_200_E5",
-     "ERA5 850-200 hPa Meridional Wind Shear",description,
-     SHRFE5units,format1,fileout,VSRFE5,f)
+    description = "Meridional wind shear between 850-200 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("VSHR_850-200_E5",
+     "ERA5 850-200 hPa meridional wind shear",description,
+     ("time","yE5","xE5"),np.float64,SHRFE5units,fileout,VSRFE5,f)
 
 #==================================================================
 # Write SHRB information to file
@@ -1163,15 +1193,15 @@ def driver_addvars(fn):
 
   if nl.addSHRBE5=="True":
 
-    description = "Zonal wind shear averaged between 1000-850 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("USHR_1000_850_E5",
-     "ERA5 1000-850 hPa Zonal Wind Shear",description,
-     SHRBE5units,format1,fileout,USRBE5,f)
+    description = "Zonal wind shear between 1000-850 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("USHR_1000-850_E5",
+     "ERA5 1000-850 hPa zonal wind shear",description,
+     ("time","yE5","xE5"),np.float64,SHRBE5units,fileout,USRBE5,f)
 
-    description = "Meridional wind shear averaged between 1000-850 hPa for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("VSHR_1000_850_E5",
-     "ERA5 1000-850 hPa Meridional Wind Shear",description,
-     SHRBE5units,format1,fileout,VSRBE5,f)
+    description = "Meridional wind shear between 1000-850 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("VSHR_1000-850_E5",
+     "ERA5 1000-850 hPa meridional wind shear",description,
+     ("time","yE5","xE5"),np.float64,SHRBE5units,fileout,VSRBE5,f)
 
 #==================================================================
 # Write CCTO information to file
@@ -1179,15 +1209,17 @@ def driver_addvars(fn):
 
   if nl.addCCTOE5=="True":
 
-    description = "Total cloud cover for a 10x10 degree area centered on the PF centroid from the ERA5 dataset"
-    fns.write_group("CCTO_E5","ERA5 Total Cloud Cover",
-     description,CCTOE5units,format1,fileout,CCTOE5,f)
+    description = "Total cloud cover from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    fns.write_var("CCTO_E5","ERA5 Total Cloud Cover",
+     description,("time","yE5","xE5"),np.float64,CCTOE5units,
+     fileout,CCTOE5,f)
 
 #==================================================================
 # Close current file
 #==================================================================
 
   fileout.close()
+  exit()
 
 #==================================================================
 # End processing of current PF

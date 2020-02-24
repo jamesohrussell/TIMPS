@@ -35,35 +35,35 @@ datanc4    = False
 
 # Directory and filename for FiT input files
 # Should obtain from create_FiT_input_files.py
-datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/FiT_input_2018/"
+datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_2018/"
 fileidFin  = "IMERG_FiT_tholds_CapVer_"
 
 # Directory and filename for FiT output data files
-datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/FiT_output_2018/"
+datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_output_2018/"
 fileidFi1  = "IMERG_tracked_"
 fileidFi2  = "_4Dobjects.nc"
 fileidtxt  = "4Dobject_tree.txt"
 
 # Directory and filename for output PF nc files
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/IMERGPFs_2018/"
-fileidout1 = "IPF_"
+datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_2018/"
+fileidout1 = "TIPS_"
 
 # Only process a set of objects
-subsetobs = False
+subsetobs = True
 ob1       = 100000 # First obid
-ob2       = 100100 # Last obid
+ob2       = 100010 # Last obid
 subsetsztm= True
 nsz       = 10     # Minimum no of pixels
 nt        = 2      # Minimum number of times
 
 # Specify merging distance from tracking (number of pixels)
-mergedist = 30
+mergedist = 20
 
 # Specify reference time in format YYYY-MM-DD hh:mm:ss
 reftime = "1900-01-01 00:00:00"
 
 # Number of processes for parallelization
-serialorparallel = 2
+serialorparallel = 1
 njobs = 8
 
 #============================================================

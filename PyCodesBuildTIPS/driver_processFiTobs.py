@@ -371,4 +371,4 @@ def driver_processFiTobs(o):
 
   # Close file
   fileout.close()
-
+  exit()

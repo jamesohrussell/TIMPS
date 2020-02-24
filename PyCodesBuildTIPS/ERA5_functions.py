@@ -174,13 +174,13 @@ def get_E5_ss_2D_coords(fh,clon,clat,hda):
                       fns.k_closest(lon,clon+hda,1)])
      
   # Get coordinates of that subset
-  coords = np.meshgrid(
-   fh.variables["latitude"][lati[0]:lati[1]+1],
-   fh.variables["longitude"][loni[0]:loni[1]+1])
+  #coords = np.meshgrid(
+  # fh.variables["latitude"][lati[0]:lati[1]+1],
+  # fh.variables["longitude"][loni[0]:loni[1]+1])
 
   # Return data
-  return(loni,lati,coords[1].flatten(),coords[0].flatten())
-
+  #return(loni,lati,coords[1].flatten(),coords[0].flatten())
+  return(loni,lati,lon[loni[0]:loni[1]+1],lat[lati[0]:lati[1]+1])
 
 
 #==================================================================
@@ -215,14 +215,11 @@ def get_E5_ss_2D_var(fh,varname,timi,loni,lati,times,ctime):
   if hasattr(timi,"__len__"):
     varall = np.array(fh.variables[varname][timi[0]:timi[1]+1,
               lati[0]:lati[1]+1,loni[0]:loni[1]+1])
-    varss  = interp1d([times[timi[0]],times[timi[1]]],
-              varall,axis=0)(ctime)
+    return(interp1d([times[timi[0]],times[timi[1]]],
+              varall,axis=0)(ctime))
   else:
-    varss  = np.array(fh.variables[varname][timi,
-              lati[0]:lati[1]+1,loni[0]:loni[1]+1])
-
-  # Return data
-  return(varss.flatten())
+    return(np.array(fh.variables[varname][timi,
+              lati[0]:lati[1]+1,loni[0]:loni[1]+1]))
 
 
 

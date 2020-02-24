@@ -30,8 +30,8 @@ import os
 #==================================================================
 
 # Directory and filename for PF files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/IMERGPFs_2018/"
-fileid  = "IPFS_"
+datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_2018/"
+fileid  = "TIPS_"
 
 # Subset (for certain range of dates) 
 ssdat = False
@@ -46,23 +46,23 @@ serialorparallel = 1
 njobs = 8
 
 # Variables desired
-addmaxrr          = False # Maximum rain rate
-addmeanrr         = False # Mean rain rate
-addmedianrr       = False # Median rain rate
-addstddevrr       = False # Standard deviation of the rain
+addmaxrr          = True # Maximum rain rate
+addmeanrr         = True # Mean rain rate
+addmedianrr       = True # Median rain rate
+addstddevrr       = True # Standard deviation of the rain
                           #  rates
-addarea           = False # Area of the PF
-addvrr            = False # Volumetric rain rate
-addpropagation    = False # Propagation characteristics
-addnormtime       = False # Add a normalized time variable 
+addarea           = True # Area of the PF
+addvrr            = True # Volumetric rain rate
+addpropagation    = True # Propagation characteristics
+addnormtime       = True # Add a normalized time variable 
                           #  (0-1 for PF)
-addTCinfo         = False # Flags indicating proximity to 
+addTCinfo         = True # Flags indicating proximity to 
                           #  TC center
-addlandinfo       = False # Flags indicating locations over 
+addlandinfo       = True # Flags indicating locations over 
                           #  land
-addboundaryinfo   = False # Time-series indicating if PF 
+addboundaryinfo   = True # Time-series indicating if PF 
                           #  touching domain boundary
-addlocaltime      = False # Local solar time of the PF
+addlocaltime      = True # Local solar time of the PF
 addasymmetry      = False # Asymmetry shape parameter 
                           #  (Zick et al. 2016)
 addfragmentation  = False # Fragmentation shape parameter 
@@ -79,24 +79,24 @@ addconvarea       = False # Area of the convective region
 addconvvrr        = False # Volume of convective rainfall 
                           #  (addconvrain must also be True)
 # Thermodynamic variables
-addCAPEE5         = False # ERA5 Convective Available 
+addCAPEE5         = True # ERA5 Convective Available 
                           #  Potential Energy
 
 # Moisture variables
-addTCWVE5         = False # ERA5 Total Column Water Vapor
+addTCWVE5         = True # ERA5 Total Column Water Vapor
 addSPHFE5         = True  # ERA5 850-200 hPa specific humidity
                           #  (free troposphere)
-addSPHBE5         = False # ERA5 1000-850 hPa specific humidity 
+addSPHBE5         = True # ERA5 1000-850 hPa specific humidity 
                           #  (boundary layer)
 
 # Kinematic/dynamics variables
-addSHRFE5         = False # ERA5 850-200 hPa wind shear 
+addSHRFE5         = True # ERA5 850-200 hPa wind shear 
                           #  (free troposphere)
-addSHRBE5         = False # ERA5 1000-850 hPa wind shear 
+addSHRBE5         = True # ERA5 1000-850 hPa wind shear 
                           #  (boundary layer)
 
 # Cloud variables
-addCCTOE5         = False # ERA5 Total Cloud Cover
+addCCTOE5         = True # ERA5 Total Cloud Cover
 
 
 #addconvshape      = False # All shape parameters specified 
@@ -124,10 +124,12 @@ hda          = 5 # Half data area in degrees
 fileCAPEE5id = "ERA5.CAPE."
 fileTCWVE5id = "ERA5.TCWV."
 fileCCTOE5id = "ERA5.CCTO."
-fileSHRFE5id = "ERA5.WSHR_850-200hPamean."
-fileSHRBE5id = "ERA5.WSHR_1000-850hPamean."
+fileUSRFE5id = "ERA5.USHR_850-200hPamean."
+fileUSRBE5id = "ERA5.USHR_1000-850hPamean."
+fileVSRFE5id = "ERA5.VSHR_850-200hPamean."
+fileVSRBE5id = "ERA5.VSHR_1000-850hPamean."
 fileSPHFE5id = "ERA5.SPHU_850-200hPamean."
-fileSPHBE5id = "ERA5.SPHB_1000-850hPamean."
+fileSPHBE5id = "ERA5.SPHU_1000-850hPamean."
 
 #==================================================================
 # Initialize timer
@@ -186,8 +188,10 @@ if addCAPEE5 or addTCWVE5 or addCCTOE5:
 if addCAPEE5: namelist["fileCAPEE5id"] = str(fileCAPEE5id)
 if addTCWVE5: namelist["fileTCWVE5id"] = str(fileTCWVE5id)
 if addCCTOE5: namelist["fileCCTOE5id"] = str(fileCCTOE5id)
-if addSHRBE5: namelist["fileSHRBE5id"] = str(fileSHRBE5id)
-if addSHRFE5: namelist["fileSHRFE5id"] = str(fileSHRFE5id)
+if addSHRBE5: namelist["fileUSRBE5id"] = str(fileUSRBE5id)
+if addSHRFE5: namelist["fileUSRFE5id"] = str(fileUSRFE5id)
+if addSHRBE5: namelist["fileVSRBE5id"] = str(fileVSRBE5id)
+if addSHRFE5: namelist["fileVSRFE5id"] = str(fileVSRFE5id)
 if addSPHBE5: namelist["fileSPHBE5id"] = str(fileSPHBE5id)
 if addSPHFE5: namelist["fileSPHFE5id"] = str(fileSPHFE5id)
 
