@@ -341,6 +341,12 @@ def driver_addvars(fn):
 # Shape prepwork
 #==================================================================
 
+#
+# For convective shape:
+# Find largest piece, then do everything the same within largest
+#  piece
+#
+
     # Only calculate if there are enough points and shape is 2d
     if len(latsnzk)>9:
 
