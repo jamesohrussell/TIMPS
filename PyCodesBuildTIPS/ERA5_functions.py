@@ -76,15 +76,15 @@ def get_E5_subset_2D(datadir,fileid,varname,timestr,clon,clat,hda):
   """
 
   # Get the file handle and time coordinates
-  fh,timi,times,ctime = get_E5_ss_file(
+  fh,timi,times,ctime = get_E5_ss_2D_fiti(
    datadir,fileid,timestr)
 
   # Find lat and lon coordinates and incices
-  loni,lati,lonE5,latE5 = get_E5_ss_3D_coords(
+  loni,lati,lonE5,latE5 = get_E5_ss_2D_coords(
    fh,clon,clat,hda)
 
   # Read in subset of specific variable
-  varE5 = get_E5_ss_3D_var(
+  varE5 = get_E5_ss_2D_var(
    fh,varname,timi,loni,lati,times,ctime)
 
   # Return data

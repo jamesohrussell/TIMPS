@@ -345,6 +345,11 @@ def driver_processFiTobs(o):
 #               "time",int,"",fileout,pieces1,
 #               nl.datadirout+filename)
 
+#  fns.write_var("instrain","Instantaneous rain rate",
+#                "IMERG instantaneous rain rates",
+#                ("time","y","x"),np.float64,"mm/hr",
+#                fileout,instrain1,nl.datadirout+filename)
+
   format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time."
 
   fns.write_group("lats","Latitudes",
@@ -371,4 +376,4 @@ def driver_processFiTobs(o):
 
   # Close file
   fileout.close()
-  exit()
+

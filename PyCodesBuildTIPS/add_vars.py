@@ -30,7 +30,7 @@ import os
 #==================================================================
 
 # Directory and filename for PF files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_2018/"
+datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
 fileid  = "TIPS_"
 
 # Subset (for certain range of dates) 
@@ -46,30 +46,33 @@ serialorparallel = 1
 njobs = 8
 
 # Variables desired
-addmaxrr          = True # Maximum rain rate
-addmeanrr         = True # Mean rain rate
-addmedianrr       = True # Median rain rate
-addstddevrr       = True # Standard deviation of the rain
+addmaxrr          = False  # Maximum rain rate
+addmeanrr         = False  # Mean rain rate
+addmedianrr       = False  # Median rain rate
+addstddevrr       = False  # Standard deviation of the rain
                           #  rates
-addarea           = True # Area of the PF
-addvrr            = True # Volumetric rain rate
-addpropagation    = True # Propagation characteristics
-addnormtime       = True # Add a normalized time variable 
+addarea           = False  # Area of the PF
+addvrr            = False  # Volumetric rain rate
+addpropagation    = False  # Propagation characteristics
+addnormtime       = False  # Add a normalized time variable 
                           #  (0-1 for PF)
-addTCinfo         = True # Flags indicating proximity to 
+addTCinfo         = False  # Flags indicating proximity to 
                           #  TC center
-addlandinfo       = True # Flags indicating locations over 
+addlandinfo       = False  # Flags indicating locations over 
                           #  land
-addboundaryinfo   = True # Time-series indicating if PF 
+addboundaryinfo   = False  # Time-series indicating if PF 
                           #  touching domain boundary
-addlocaltime      = True # Local solar time of the PF
+addlocaltime      = False  # Local solar time of the PF
 addasymmetry      = False # Asymmetry shape parameter 
                           #  (Zick et al. 2016)
+addasymmetryc     = True  # As above for convective pixels
 addfragmentation  = False # Fragmentation shape parameter 
                           #  (Zick et al. 2016)
+addfragmentationc = True  # As above for convective pixels
 addaxesshape      = False # Array of variables based on 
                           #  the major and minor axes from 
                           #  eigenvalue/vectors
+addaxesshapec     = True  # As above for convective pixels
 addperimeter      = False # Distance around perimeter of 
                           #  shape (alpha-shape method)
 addconvrain       = False # Flags indicating whether rain 
@@ -79,24 +82,24 @@ addconvarea       = False # Area of the convective region
 addconvvrr        = False # Volume of convective rainfall 
                           #  (addconvrain must also be True)
 # Thermodynamic variables
-addCAPEE5         = True # ERA5 Convective Available 
+addCAPEE5         = False  # ERA5 Convective Available 
                           #  Potential Energy
 
 # Moisture variables
-addTCWVE5         = True # ERA5 Total Column Water Vapor
-addSPHFE5         = True  # ERA5 850-200 hPa specific humidity
+addTCWVE5         = False  # ERA5 Total Column Water Vapor
+addSPHFE5         = False  # ERA5 850-200 hPa specific humidity
                           #  (free troposphere)
-addSPHBE5         = True # ERA5 1000-850 hPa specific humidity 
+addSPHBE5         = False  # ERA5 1000-850 hPa specific humidity 
                           #  (boundary layer)
 
 # Kinematic/dynamics variables
-addSHRFE5         = True # ERA5 850-200 hPa wind shear 
+addSHRFE5         = False # ERA5 850-200 hPa wind shear 
                           #  (free troposphere)
-addSHRBE5         = True # ERA5 1000-850 hPa wind shear 
+addSHRBE5         = True  # ERA5 1000-850 hPa wind shear 
                           #  (boundary layer)
 
 # Cloud variables
-addCCTOE5         = True # ERA5 Total Cloud Cover
+addCCTOE5         = False # ERA5 Total Cloud Cover
 
 
 #addconvshape      = False # All shape parameters specified 
@@ -121,15 +124,15 @@ convrainthold = 10
 # Directory and filenames of ERA5 data
 dataE5dir    = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
 hda          = 5 # Half data area in degrees
-fileCAPEE5id = "ERA5.CAPE."
-fileTCWVE5id = "ERA5.TCWV."
-fileCCTOE5id = "ERA5.CCTO."
-fileUSRFE5id = "ERA5.USHR_850-200hPamean."
-fileUSRBE5id = "ERA5.USHR_1000-850hPamean."
-fileVSRFE5id = "ERA5.VSHR_850-200hPamean."
-fileVSRBE5id = "ERA5.VSHR_1000-850hPamean."
-fileSPHFE5id = "ERA5.SPHU_850-200hPamean."
-fileSPHBE5id = "ERA5.SPHU_1000-850hPamean."
+fileCAPEE5id = "convparams/ERA5.CAPE."
+fileTCWVE5id = "moisture/ERA5.TCWV."
+fileCCTOE5id = "clouds/ERA5.CCTO."
+fileUSRFE5id = "shear/ERA5.USHR_850-200hPamean."
+fileUSRBE5id = "shear/ERA5.USHR_1000-850hPamean."
+fileVSRFE5id = "shear/ERA5.VSHR_850-200hPamean."
+fileVSRBE5id = "shear/ERA5.VSHR_1000-850hPamean."
+fileSPHFE5id = "moisture/ERA5.SPHU_850-200hPamean."
+fileSPHBE5id = "moisture/ERA5.SPHU_1000-850hPamean."
 
 #==================================================================
 # Initialize timer
@@ -161,9 +164,12 @@ namelist["addconvrain"] = str(addconvrain)
 namelist["addconvarea"] = str(addconvarea)
 namelist["addconvvrr"] = str(addconvvrr)
 namelist["addaxesshape"] = str(addaxesshape)
+namelist["addaxesshapec"] = str(addaxesshapec)
 namelist["addperimeter"] = str(addperimeter)
 namelist["addasymmetry"] = str(addasymmetry)
+namelist["addasymmetryc"] = str(addasymmetryc)
 namelist["addfragmentation"] = str(addfragmentation)
+namelist["addfragmentationc"] = str(addfragmentationc)
 namelist["addCAPEE5"] = str(addCAPEE5)
 namelist["addTCWVE5"] = str(addTCWVE5)
 namelist["addCCTOE5"] = str(addCCTOE5)
@@ -180,9 +186,11 @@ if addarea or addvrr or addconvarea or addconvvrr or \
 if addTCinfo:
   namelist["dataTCdir"] = str(dataTCdir)
   namelist["fileTCid"] = str(fileTCid)
-if addconvrain or addconvarea or addconvvrr:
+if addconvrain or addconvarea or addconvvrr or addasymmetryc or \
+   addfragmentationc or addaxesshapec:
   namelist["convrainthold"] = convrainthold
-if addCAPEE5 or addTCWVE5 or addCCTOE5:
+if addCAPEE5 or addTCWVE5 or addCCTOE5 or addSHRBE5 or \
+   addSHRFE5 or addSPHBE5 or addSPHFE5:
   namelist["dataE5dir"] = str(dataE5dir)
   namelist["hda"] = hda
 if addCAPEE5: namelist["fileCAPEE5id"] = str(fileCAPEE5id)

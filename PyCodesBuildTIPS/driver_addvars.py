@@ -129,20 +129,6 @@ def driver_addvars(fn):
     lonsE5 = {}
     latsE5 = {}
 
-#  if nl.addCAPEE5=="True": CAPEE5 = {}
-
-  if nl.addTCWVE5=="True": TCWVE5 = {}
-
-  if nl.addCCTOE5=="True": CCTOE5 = {}
-
-  if nl.addSHRFE5=="True": USRFE5 = {}; VSRFE5 = {}
-
-  if nl.addSHRBE5=="True": USRBE5 = {}; VSRBE5 = {}
-
-  if nl.addSPHFE5=="True": SPHFE5 = {}
-
-  if nl.addSPHBE5=="True": SPHBE5 = {}
-
 #==================================================================
 # Begin loop over times
 #==================================================================
@@ -644,15 +630,30 @@ def driver_addvars(fn):
       import ERA5_functions as E5fns
 
       # Find file and time indices
+      if nl.addCAPEE5=="True":
+        fileid1 = nl.fileCAPEE5id
+      elif nl.addTCWVE5=="True":
+        fileid1 = nl.fileTCWVE5id
+      elif nl.addCCTOE5=="True":
+        fileid1 = nl.fileCCTOE5id
+      elif nl.addSHRFE5=="True":
+        fileid1 = nl.fileUSRFE5id
+      elif nl.addSHRBE5=="True":
+        fileid1 = nl.fileUSRBE5id
+      elif nl.addSPHFE5=="True":
+        fileid1 = nl.fileSPHFE5id
+      elif nl.addSPHBE5=="True":
+        fileid1 = nl.fileSPHBE5id
       timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
                 " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
       fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
+                       nl.dataE5dir,fileid1,timestr)
 
       # Find coordinates and indices
       loni,lati,lonsE5[k],latsE5[k] = \
        E5fns.get_E5_ss_2D_coords(
         fh,dataclon[c],dataclat[c],nl.hda)
+      fh.close()
 
       xE5 = np.linspace(-nl.hda,nl.hda,len(lonsE5[k]))
       yE5 = np.linspace(-nl.hda,nl.hda,len(latsE5[k]))
@@ -707,7 +708,7 @@ def driver_addvars(fn):
 
       # Find file and time indices
       fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
+                       nl.dataE5dir,nl.fileSPHFE5id,timestr)
       
       # Get a subset of the SPHF data
       SPHFE5[c,:,:] = E5fns.get_E5_ss_2D_var(
@@ -720,12 +721,16 @@ def driver_addvars(fn):
 
     if nl.addSPHBE5=="True":
 
+      # Preallocate array
+      if c==0:
+        SPHBE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+
       # Find file and time indices
       fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileSPHBE5id,timestr)
       
       # Get a subset of the SPHF data
-      SPHBE5[k] = E5fns.get_E5_ss_2D_var(
+      SPHBE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fh,"Q",timi,loni,lati,times,ctime)
       SPHBE5units = fh.variables["Q"].units
 
@@ -735,6 +740,11 @@ def driver_addvars(fn):
 
     if nl.addSHRFE5=="True":
 
+      # Preallocate array
+      if c==0:
+        USRFE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+        VSRFE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+      
       # Find file and time indices
       fhU,timiU,timesU,ctimeU = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileUSRFE5id,timestr)
@@ -742,11 +752,13 @@ def driver_addvars(fn):
                        nl.dataE5dir,nl.fileVSRFE5id,timestr)
 
       # Get a subset of the SPHF data
-      USRFE5[k] = E5fns.get_E5_ss_2D_var(
+      USRFE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fhU,"USHR",timiU,loni,lati,timesU,ctimeU)
-      VSRFE5[k] = E5fns.get_E5_ss_2D_var(
+      VSRFE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fhV,"VSHR",timiV,loni,lati,timesV,ctimeV)
       SHRFE5units = fhU.variables["USHR"].units
+      fhU.close()
+      fhV.close()
 
 #==================================================================
 # Assign ERA5 SHRB data
@@ -754,18 +766,25 @@ def driver_addvars(fn):
 
     if nl.addSHRBE5=="True":
 
+      # Preallocate array
+      if c==0:
+        USRBE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+        VSRBE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+      
       # Find file and time indices
       fhU,timiU,timesU,ctimeU = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileUSRBE5id,timestr)
       fhV,timiV,timesV,ctimeV = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileVSRBE5id,timestr)
 
-      # Get a subset of the SPHF data
-      USRBE5[k] = E5fns.get_E5_ss_2D_var(
+      # Get a subset of the SPHB data
+      USRBE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fhU,"USHR",timiU,loni,lati,timesU,ctimeU)
-      VSRBE5[k] = E5fns.get_E5_ss_2D_var(
+      VSRBE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fhV,"VSHR",timiV,loni,lati,timesV,ctimeV)
       SHRBE5units = fhU.variables["USHR"].units
+      fhU.close()
+      fhV.close()
 
 #==================================================================
 # Assign ERA5 CCTO data
@@ -773,12 +792,16 @@ def driver_addvars(fn):
 
     if nl.addCCTOE5=="True":
 
+      # Preallocate array
+      if c==0:
+        CCTOE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+
       # Find file and time indices
       fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        nl.dataE5dir,nl.fileCCTOE5id,timestr)
       
-      # Get a subset of the CAPE data
-      CCTOE5[k] = E5fns.get_E5_ss_2D_var(
+      # Get a subset of the SPHF data
+      CCTOE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fh,"TCC",timi,loni,lati,times,ctime)
       CCTOE5units = fh.variables["TCC"].units
 
