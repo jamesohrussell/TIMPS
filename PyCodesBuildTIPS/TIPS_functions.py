@@ -228,10 +228,6 @@ def calc_dist(lon1,lat1,lon2,lat2):
 
   # Import libraries
   from geopy.distance import geodesic
-  import pyproj
-
-  # Get projection
-  geod = pyproj.Geod(ellps='WGS84')
 
   # Calculate propagation speed
   dist = geodesic((lat1,lon1),(lat2,lon2)).m
@@ -265,23 +261,27 @@ def calc_distandangle(lon1,lat1,lon2,lat2):
 
   # Import libraries
   from geopy.distance import geodesic
-  import pyproj
+  import numpy as np
 
-  # Get projection
-  geod = pyproj.Geod(ellps='WGS84')
-
-  # Calculate propagation speed
+  # Calculate distance
   dist = geodesic((lat1,lon1),(lat2,lon2)).m
 
-  # Calculate propagation direction
-  az1, az2, di = geod.inv(str(lon1),str(lat1),
-                          str(lon2),str(lat2))
+  # Calculate direction
+  if lat1!=lat2 and lon1!=lon2:
+    angle = np.rad2deg(np.arctan(
+     geodesic((lat2,lon1),(lat2,lon2)).m/
+     geodesic((lat1,lon1),(lat2,lon1)).m))
 
-  # Adjust for degrees from north
-  if az1<0:
-    angle = 360+az1
-  else:
-    angle = az1
+  # Adjust direction for quadrant
+  if lat1>lat2 and lon1<lon2: angle = 180-angle
+  if lat1>lat2 and lon1>lon2: angle = 180+angle
+  if lat1<lat2 and lon1>lon2: angle = 360-angle
+  if lat1==lat2: 
+    if lon1<lon2: angle=90
+    if lon1>lon2: angle=270
+  if lon1==lon2: 
+    if lat1<lat2: angle=0
+    if lat1>lat2: angle=180
 
   return(dist,angle)
 
@@ -314,11 +314,7 @@ def calc_propagation(date1,lon1,lat1,date2,lon2,lat2):
 
   # Import libraries
   from geopy.distance import geodesic
-  import pyproj
   import datetime as dt
-
-  # Get projection
-  geod = pyproj.Geod(ellps='WGS84')
 
   # Make time objects
   dtob1 = dt.datetime(int(date1[0:4]),int(date1[4:6]),
@@ -332,15 +328,22 @@ def calc_propagation(date1,lon1,lat1,date2,lon2,lat2):
   propspd = (geodesic((lat1,lon1),(lat2,lon2)).m)/\
              ((dtob2-dtob1).seconds)
 
-  # Calculate propagation direction
-  az1, az2, di = geod.inv(str(lon1),str(lat1),
-                          str(lon2),str(lat2))
+  # Calculate direction
+  if lat1!=lat2 and lon1!=lon2:
+    propdir = np.rad2deg(np.arctan(
+     geodesic((lat2,lon1),(lat2,lon2)).m/
+     geodesic((lat1,lon1),(lat2,lon1)).m))
 
-  # Adjust for degrees from north
-  if az1<0:
-    propdir = 360+az1
-  else:
-    propdir = az1
+  # Adjust direction for quadrant
+  if lat1>lat2 and lon1<lon2: angle = 180-angle
+  if lat1>lat2 and lon1>lon2: angle = 180+angle
+  if lat1<lat2 and lon1>lon2: angle = 360-angle
+  if lat1==lat2: 
+    if lon1<lon2: propdir=90 
+    if lon1>lon2: propdir=270
+  if lon1==lon2: 
+    if lat1<lat2: propdir=0
+    if lat1>lat2: propdir=180
 
   return(propspd,propdir)
 
@@ -705,19 +708,15 @@ def create_2d_dataframe(x,y,dx,dy,data):
   import pandas as pd
 
   # Create coordinates
-  ny = [round(i,2) for i in np.arange(min(y)-2*dy, 
-                                      max(y)+2*dy,dy)]
-  nx = [round(i,2) for i in np.arange(min(x)-2*dx, 
-                                      max(x)+2*dx,dx)]
+  ny = [round(i,2) for i in np.arange(min(y)-2*dy,max(y)+2*dy,dy)]
+  nx = [round(i,2) for i in np.arange(min(x)-2*dx,max(x)+2*dx,dx)]
 
   # Generate dataframe
   df = pd.DataFrame(np.zeros([len(ny),len(nx)],float),
-                                 [str(i) for i in ny],
-                                 [str(i) for i in nx])
+            [str(i) for i in ny],[str(i) for i in nx])
 
   # Populate dataframe
-  for i in range(len(y)):
-    df.loc[str(y[i]),str(x[i])] = data[i]
+  for i in range(len(y)): df.loc[str(y[i]),str(x[i])] = data[i]
 
   # Return dataframe
   return(df)
@@ -871,25 +870,28 @@ def calc_mjrmnrax(lons,lats):
   center = [np.mean(lons),np.mean(lats)]
 
   # Calculate eigen-value/vector pairs for largest piece
-  eigvals, eigvecs = np.linalg.eig(np.cov((lons,lats)))
+  eigvals, eigvecs = np.linalg.eig(np.cov((lons[::-1],lats)))
 
   # Calculate coordinates of axes
-  lonseig = np.zeros((2,2)); latseig = np.zeros((2,2))
-  lonseig[0,:],latseig[0,:] = np.vstack((
-    center+(eigvals[0]*2)*eigvecs[0,:], 
-    center-(eigvals[0]*2)*eigvecs[0,:])).T
-  lonseig[1,:],latseig[1,:] = np.vstack((
-    center+(eigvals[1]*2)*eigvecs[1,:], 
-    center-(eigvals[1]*2)*eigvecs[1,:])).T
+  locseig0 = (center+(eigvals[0]*2)*eigvecs[0,:], 
+              center-(eigvals[0]*2)*eigvecs[0,:])
+  locseig1 = (center+(eigvals[1]*2)*eigvecs[1], 
+              center-(eigvals[1]*2)*eigvecs[1])
+  lonseig0 = [x for x,y in locseig0]
+  lonseig1 = [x for x,y in locseig1]
+  latseig0 = [y for x,y in locseig0]
+  latseig1 = [y for x,y in locseig1]
 
   # Calculate lengths and angles of the axes
   lengths = np.zeros(2); angles = np.zeros(2)
   lengths[0],angles[0] = calc_distandangle(
-   lonseig[0,0],latseig[0,0],lonseig[0,1],latseig[0,1])
+   lonseig0[1],latseig0[1],lonseig0[0],latseig0[0])
+  lengths[0],angles[0] = calc_distandangle(
+   lonseig0[0],latseig0[0],lonseig0[1],latseig0[1])
   lengths[1],angles[1] = calc_distandangle(
-   lonseig[1,0],latseig[1,0],lonseig[1,1],latseig[1,1])
+   lonseig1[0],latseig1[0],lonseig1[1],latseig1[1])
 
-  # Calculate angle from north
+  # Adjust angle since direction doesn't matter
   for i in range(len(angles)):
     if angles[i]>180:
       angles[i] = angles[i]-180
@@ -906,6 +908,11 @@ def calc_mjrmnrax(lons,lats):
   mnrax_len = lengths[mnrind]
   mjrax_ang = angles[mjrind]
   mnrax_ang = angles[mnrind]
+
+  print(mjrax_len)
+  print(mjrax_ang)
+  print(mnrax_len)
+  print(mnrax_ang)
 
   # Return
   return(center,mjrax_len,mjrax_ang,mnrax_len,mnrax_ang)

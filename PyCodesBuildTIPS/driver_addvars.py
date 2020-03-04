@@ -111,6 +111,15 @@ def driver_addvars(fn):
     mjrax_angle_lp = [-999]*len(datakeys)
     mnrax_angle_lp = [-999]*len(datakeys)
 
+  if nl.addaxesshapec=="True":
+    ellipticity_lp_c = [-999]*len(datakeys)
+    center_lp_c      = np.zeros((len(datakeys),2))
+    center_lp_c[:,:] = -999
+    mjrax_length_lp_c= [-999]*len(datakeys)
+    mnrax_length_lp_c= [-999]*len(datakeys)
+    mjrax_angle_lp_c = [-999]*len(datakeys)
+    mnrax_angle_lp_c = [-999]*len(datakeys)
+
   if nl.addasymmetry=="True":
     asymmetry_lp    = [0]*len(datakeys)
 
@@ -338,14 +347,144 @@ def driver_addvars(fn):
             str(datadtim[c+1]*100),dataclon[c+1],dataclat[c+1])
 
 #==================================================================
-# Shape prepwork
+# Convective shape prepwork
 #==================================================================
 
-#
 # For convective shape:
 # Find largest piece, then do everything the same within largest
 #  piece
 #
+
+    # Only calculate if there are enough points and shape is 2d
+    if len(latsnzk)>9:
+
+      if nl.addasymmetryc=="True" or \
+         nl.addfragmentationc=="True" or \
+         nl.addaxesshapec=="True":
+
+        # Generate dataframe for object
+        df = fns.create_2d_dataframe(lonsnzk,latsnzk,
+                                     nl.dx,nl.dy,instrainnzk)
+        df.loc["2.75"] = 0
+
+        # Find and label all contiguous areas within object
+        labels, numL = fns.label_wdiags(df)
+        ny = [float(i) for i in df.index]
+        nx = [float(i) for i in df.columns]
+        df1 = pd.DataFrame(labels,[str(i) for i in ny],
+                                  [str(i) for i in nx])
+
+        # Loop over all separate pieces
+        areas = [0.]*numL
+        for i in range(1,numL+1):
+        
+          # Line 2: Identify pairs of indices for current piece
+          # Line 1: Convert all pairs to floats
+          indpairs = [(round(float(z[1]),2),round(float(z[0]),2))
+           for z in df1[df1==i].stack().index.tolist()]
+
+          # Calculate area of current piece
+          areas[i-1] = fns.calc_area([x for x, y in indpairs],
+                        [y for x, y in indpairs],nl.dx,nl.dy)
+
+        # Find convective pixels within largest piece
+        largelabel  = areas.index(max(areas))+1
+        indpairslrg = [(round(float(z[1]),2),round(float(z[0]),2))
+           for z in df1[df1==largelabel].stack().index.tolist()]
+        instrainlrg = [df.loc[str(y),str(x)] 
+           for x,y in indpairslrg]
+        instrainlrgc = [a for a in instrainlrg 
+                        if a>=nl.convrainthold]
+        indpairslrgc = [b for a,b in zip(instrainlrg,indpairslrg)
+                        if a>=nl.convrainthold]
+        cornersc = fns.find_corners(indpairslrgc,nl.dx,nl.dy)
+        lonslatslrgc = [np.array([x for x, y in cornersc]),
+                        np.array([y for x, y in cornersc])]
+
+      import EllipseFit.ellipses as el
+      import numpy as np
+      import matplotlib.pyplot as plt
+      from matplotlib.patches import Ellipse
+      
+      data1 = el.make_test_ellipse()
+      data = lonslatslrgc
+      print(data1)
+      print(data)
+      print(np.shape(data1))
+      print(np.shape(data))
+      lsqe = el.LSqEllipse()
+      lsqe.fit(data)
+      center, width, height, phi = lsqe.parameters()
+
+      plt.close('all')
+      fig = plt.figure(figsize=(6,6))
+      ax = fig.add_subplot(111)
+      ax.axis('equal')
+      ax.plot(data[0],data[1],'ro',
+       label='Convective IMERG Pixels',zorder=1)
+      
+      ellipse = Ellipse(xy=center, width=2*width, height=2*height,
+       angle=np.rad2deg(phi),edgecolor='b', fc='None', lw=2,
+       label='Fit', zorder = 2)
+      ax.add_patch(ellipse)
+
+      plt.legend()
+      plt.show()
+
+      
+      exit()
+        
+
+      if nl.addaxesshapec=="True":
+
+        center_lp_c[c,:], \
+         mjrax_length_lp_c[c],mjrax_angle_lp_c[c], \
+         mnrax_length_lp_c[c],mnrax_angle_lp_c[c] = \
+         fns.calc_mjrmnrax(lonslatslrgc[0],lonslatslrgc[1])
+
+        # Calculate ellipticity  as ratio of major to minor axes
+        ellipticity_lp_c[c] = 1 - (mnrax_length_lp_c[c]/
+                                   mjrax_length_lp_c[c])
+
+      import matplotlib.pyplot as plt
+      plt.close('all')
+      fig = plt.figure(figsize=(6,6))
+      ax = fig.add_subplot(111)
+      ax.axis('equal')
+      ax.scatter([x for x,y in indpairslrgc],
+                 [y for x,y in indpairslrgc],
+                 c=instrainlrgc, marker=',',cmap="GnBu",
+                 vmin=0.5,vmax=16.5,s=1000)
+
+      b = ((mjrax_length_lp_c[c]/2)/111111)* \
+          np.sin((mjrax_angle_lp_c[c])*0.0174533)
+      a = ((mjrax_length_lp_c[c]/2)/111111)* \
+          np.cos((mjrax_angle_lp_c[c])*0.0174533)
+      ax.plot([center_lp_c[c,0]-b,center_lp_c[c,0]+b],
+              [center_lp_c[c,1]-a,center_lp_c[c,1]+a])
+      b = ((mnrax_length_lp_c[c]/2)/111111)* \
+          np.sin((mnrax_angle_lp_c[c])*0.0174533)
+      a = ((mnrax_length_lp_c[c]/2)/111111)* \
+          np.cos((mnrax_angle_lp_c[c])*0.0174533)
+      ax.plot([center_lp_c[c,0]-b,center_lp_c[c,0]+b],
+              [center_lp_c[c,1]-a,center_lp_c[c,1]+a])
+      plt.show()
+
+        # Generate dataframe for convective pixels
+        #dflrgc = fns.create_2d_dataframe(
+        # [x[0] for x in indpairslrgc],[x[1] for x in indpairslrgc],
+        # nl.dx,nl.dy,instrainlrgc)
+
+        #import seaborn as sns
+        #import matplotlib.pyplot as plt
+        #sns.heatmap(df,cmap="GnBu")
+        #plt.show()
+        #sns.heatmap(dflrgc,cmap="GnBu")
+        #plt.show()
+
+#==================================================================
+# Shape prepwork
+#==================================================================
 
     # Only calculate if there are enough points and shape is 2d
     if len(latsnzk)>9:
@@ -357,7 +496,7 @@ def driver_addvars(fn):
 
         # Generate dataframe for object
         df = fns.create_2d_dataframe(lonsnzk,latsnzk,
-                                        nl.dx,nl.dy,instrainnzk)
+                                     nl.dx,nl.dy,instrainnzk)
 
         # Find and label all contiguous areas within object
         labels, numL = fns.label_wdiags(df)
@@ -388,8 +527,8 @@ def driver_addvars(fn):
 
           # Calculate area of current piece
           areas[i-1] = fns.calc_area([x for x, y in indpairs],
-                                        [y for x, y in indpairs],
-                                                      nl.dx,nl.dy)
+                                     [y for x, y in indpairs],
+                                                  nl.dx,nl.dy)
 
 #==================================================================
 # Calculate solidity of pieces (for fragmentation)
@@ -425,9 +564,8 @@ def driver_addvars(fn):
         # Find largest piece and all corner coordinates
         largelabel  = areas.index(max(areas))+1
         indpairslrg = [(round(float(z[1]),2),round(float(z[0]),2))
-           for z in df1[df1==i].stack().index.tolist()]
-        corners = fns.find_corners(indpairslrg,
-                                      nl.dx,nl.dy)
+           for z in df1[df1==largelabel].stack().index.tolist()]
+        corners = fns.find_corners(indpairslrg,nl.dx,nl.dy)
 
         # Find largest piece and all coordinates
         lonslatslrg = [[x for x, y in corners],

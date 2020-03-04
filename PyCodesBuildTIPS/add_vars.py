@@ -180,7 +180,8 @@ namelist["addSPHFE5"] = str(addSPHFE5)
 
 if addarea or addvrr or addconvarea or addconvvrr or \
    addperimeter or addasymmetry or addfragmentation or \
-   addaxesshape or addboundaryinfo:
+   addaxesshape or addboundaryinfo or addasymmetryc or \
+   addaxesshapec or addfragmentationc:
   namelist["dx"] = dx
   namelist["dy"] = dy
 if addTCinfo:
