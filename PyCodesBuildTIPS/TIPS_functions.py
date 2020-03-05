@@ -240,6 +240,54 @@ def calc_dist(lon1,lat1,lon2,lat2):
 # Calculate distance and angle of a vector on earth
 #==================================================================
 
+def calc_direction(lon1,lat1,lon2,lat2):
+  """
+  Calculates distance on earth between two sets of 
+   latitude, longitude coordinates, and then calculates 
+   angle that vector makes from north.
+
+  Inputs:
+  1,2) lat1, lon1
+  3,4) lat2, lon2
+
+  Output is the distance in units of m and angle 
+   the vector makes from north.
+
+  Requires pyproj 1.9.6 (conda install -c conda-forge pyproj; 
+   https://pypi.org/project/pyproj/) and geopy 1.20.0
+   (conda install -c conda-forge geopy; 
+   https://pypi.org/project/geopy/).
+  """
+
+  # Import libraries
+  from geopy.distance import geodesic
+  import numpy as np
+
+  # Calculate direction
+  if lat1!=lat2 and lon1!=lon2:
+    angle = np.rad2deg(np.arctan(
+     geodesic((lat2,lon1),(lat2,lon2)).m/
+     geodesic((lat1,lon1),(lat2,lon1)).m))
+
+  # Adjust direction for quadrant
+  if lat1>lat2 and lon1<lon2: angle = 180-angle
+  if lat1>lat2 and lon1>lon2: angle = 180+angle
+  if lat1<lat2 and lon1>lon2: angle = 360-angle
+  if lat1==lat2: 
+    if lon1<lon2: angle=90
+    if lon1>lon2: angle=270
+  if lon1==lon2: 
+    if lat1<lat2: angle=0
+    if lat1>lat2: angle=180
+
+  return(angle)
+
+
+
+#==================================================================
+# Calculate distance and angle of a vector on earth
+#==================================================================
+
 def calc_distandangle(lon1,lat1,lon2,lat2):
   """
   Calculates distance on earth between two sets of 
@@ -845,19 +893,24 @@ def points_in_shape(verts,points,widen=0):
   # Return list of coordinate tuples for points inside shape
   return([points[i] for i, x in enumerate(grid) if x])
 
+
+
 #==================================================================
-# Find which points are inside a shape
+# Fit an ellipse to a set of 2D data points with SVD
 #==================================================================
 
-def calc_mjrmnrax(lons,lats):
+def fit_ellipse_svd(x,y,plot=False):
   """
-  Finds the major and minor axes of a set of points on earth
+  Fit an ellipse to a set of 2D data points with singular value 
+   decomposition (SVD)
 
   Input: 
-   1,2) Lists of longitude and latitude coordinates to fit the 
-    major and minor axes too
+   1,2) Lists of x and y coordinates to fit the ellipse to
 
-  Output 
+  Output:
+   1) A list with x and y location of ellipse center
+   2) A list with major and minor axes angle from north
+   3) A list with major and minor axes geographic distances
 
   Requires numpy 1.16.3 (conda install -c anaconda numpy; 
    https://pypi.org/project/numpy/)
@@ -866,56 +919,90 @@ def calc_mjrmnrax(lons,lats):
   # Import libraries
   import numpy as np
 
+  # Get number of points
+  N = len(x)
+
   # Calculate center of mass of shape
-  center = [np.mean(lons),np.mean(lats)]
+  center = [np.mean(x),np.mean(y)]
 
-  # Calculate eigen-value/vector pairs for largest piece
-  eigvals, eigvecs = np.linalg.eig(np.cov((lons[::-1],lats)))
+  # Get distance to center for all points
+  xc = x - center[0]
+  yc = y - center[1]
 
-  # Calculate coordinates of axes
-  locseig0 = (center+(eigvals[0]*2)*eigvecs[0,:], 
-              center-(eigvals[0]*2)*eigvecs[0,:])
-  locseig1 = (center+(eigvals[1]*2)*eigvecs[1], 
-              center-(eigvals[1]*2)*eigvecs[1])
-  lonseig0 = [x for x,y in locseig0]
-  lonseig1 = [x for x,y in locseig1]
-  latseig0 = [y for x,y in locseig0]
-  latseig1 = [y for x,y in locseig1]
+  # Do singular value decomposition
+  U, S = np.linalg.svd(np.stack((xc, yc)))[0:2]
 
-  # Calculate lengths and angles of the axes
-  lengths = np.zeros(2); angles = np.zeros(2)
-  lengths[0],angles[0] = calc_distandangle(
-   lonseig0[1],latseig0[1],lonseig0[0],latseig0[0])
-  lengths[0],angles[0] = calc_distandangle(
-   lonseig0[0],latseig0[0],lonseig0[1],latseig0[1])
-  lengths[1],angles[1] = calc_distandangle(
-   lonseig1[0],latseig1[0],lonseig1[1],latseig1[1])
+  # Calculate angle of axes
+  axdir = [calc_direction(center[0],center[1],
+           center[0]+a[0],center[1]+a[1]) for a in U]
+  axdir = [d-180 for d in axdir if d>=180]
 
-  # Adjust angle since direction doesn't matter
-  for i in range(len(angles)):
-    if angles[i]>180:
-      angles[i] = angles[i]-180
+  # Calculate length in degrees of axes
+  axlen = [2*np.sqrt(2/N)*l for l in S]
 
-  # Calculate which is the major and minor axes
-  mjrind1 = np.argmax(lengths)
-  if hasattr(mjrind1, "__len__"): mjrind=mjrind1[0]
-  else: mjrind=mjrind1
-  if mjrind==0: mnrind=1
-  if mjrind==1: mnrind=0
+  # Calculate geopgraphic distance of axes
+  axdist =  [calc_dist(center[0] - ((axlen[i]/2)* \
+                       np.sin(np.deg2rad(axdir[i]))), \
+                       center[1] - ((axlen[i]/2)* \
+                       np.cos(np.deg2rad(axdir[i]))), \
+                       center[0] + ((axlen[i]/2)* \
+                       np.sin(np.deg2rad(axdir[i]))), \
+                       center[1] + ((axlen[i]/2)* \
+                       np.cos(np.deg2rad(axdir[i])))) \
+             for i in range(len(axlen))]
 
-  # Assign axes
-  mjrax_len = lengths[mjrind]
-  mnrax_len = lengths[mnrind]
-  mjrax_ang = angles[mjrind]
-  mnrax_ang = angles[mnrind]
+  # Ensure major and minor axes in correct order
+  if axdist[0]<axdist[1]:
+    axdist = axdist[::-1]
+    axdir  = axdir[::-1]
 
-  print(mjrax_len)
-  print(mjrax_ang)
-  print(mnrax_len)
-  print(mnrax_ang)
+  # Plot ellipse and data
+  if plot==True:
 
-  # Return
-  return(center,mjrax_len,mjrax_ang,mnrax_len,mnrax_ang)
+    # Define a unit circle
+    tt = np.linspace(0, 2*np.pi, 1000)
+    circle = np.stack((np.cos(tt), np.sin(tt)))
+  
+    # Define transformation matrix
+    transform = np.sqrt(2/N) * U.dot(np.diag(S))
+    fit = transform.dot(circle)+np.array([[center[0]],[center[1]]])
+  
+    # Make plot with data
+    print("Plotting ellipse")
+    import matplotlib.pyplot as plt
+    plt.plot(x, y, '.')
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.grid(True)
+
+    # Plot ellipse
+    plt.plot(fit[0, :], fit[1, :], 'r')
+
+    # Plot center
+    plt.plot(center[0],center[1],".r")
+
+    # Plot major axis
+    x1 = center[0]-((axlen[0]/2)*np.sin(np.deg2rad(axdir[0])))
+    x2 = center[0]+((axlen[0]/2)*np.sin(np.deg2rad(axdir[0])))
+    y1 = center[1]-((axlen[0]/2)*np.cos(np.deg2rad(axdir[0])))
+    y2 = center[1]+((axlen[0]/2)*np.cos(np.deg2rad(axdir[0])))
+    plt.plot([x1,x2],[y1,y2])
+
+    # Plot minor axis
+    x1 = center[0]-((axlen[1]/2)*np.sin(np.deg2rad(axdir[1])))
+    x2 = center[0]+((axlen[1]/2)*np.sin(np.deg2rad(axdir[1])))
+    y1 = center[1]-((axlen[1]/2)*np.cos(np.deg2rad(axdir[1])))
+    y2 = center[1]+((axlen[1]/2)*np.cos(np.deg2rad(axdir[1])))
+    plt.plot([x1,x2],[y1,y2])
+
+    # Show plot
+    plt.show()
+    print("Finish plot")
+
+
+  # Return center, and direction and length of major and minor axes
+  return(center,axdir,axdist)
+
+
 
 #==================================================================
 # Find indices of k closest values in list

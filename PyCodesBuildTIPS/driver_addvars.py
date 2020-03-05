@@ -106,19 +106,19 @@ def driver_addvars(fn):
     ellipticity_lp = [-999]*len(datakeys)
     center_lp      = np.zeros((len(datakeys),2))
     center_lp[:,:] = -999
-    mjrax_length_lp= [-999]*len(datakeys)
-    mnrax_length_lp= [-999]*len(datakeys)
-    mjrax_angle_lp = [-999]*len(datakeys)
-    mnrax_angle_lp = [-999]*len(datakeys)
+    axlen_lp       = np.zeros((len(datakeys),2))
+    axlen_lp[:,:]  = -999
+    axang_lp       = np.zeros((len(datakeys),2))
+    axang_lp[:,:]  = -999
 
   if nl.addaxesshapec=="True":
     ellipticity_lp_c = [-999]*len(datakeys)
     center_lp_c      = np.zeros((len(datakeys),2))
     center_lp_c[:,:] = -999
-    mjrax_length_lp_c= [-999]*len(datakeys)
-    mnrax_length_lp_c= [-999]*len(datakeys)
-    mjrax_angle_lp_c = [-999]*len(datakeys)
-    mnrax_angle_lp_c = [-999]*len(datakeys)
+    axlen_lp_c       = np.zeros((len(datakeys),2))
+    axlen_lp_c[:,:]  = -999
+    axang_lp_c       = np.zeros((len(datakeys),2))
+    axang_lp_c[:,:]  = -999
 
   if nl.addasymmetry=="True":
     asymmetry_lp    = [0]*len(datakeys)
@@ -350,11 +350,6 @@ def driver_addvars(fn):
 # Convective shape prepwork
 #==================================================================
 
-# For convective shape:
-# Find largest piece, then do everything the same within largest
-#  piece
-#
-
     # Only calculate if there are enough points and shape is 2d
     if len(latsnzk)>9:
 
@@ -365,7 +360,7 @@ def driver_addvars(fn):
         # Generate dataframe for object
         df = fns.create_2d_dataframe(lonsnzk,latsnzk,
                                      nl.dx,nl.dy,instrainnzk)
-        df.loc["2.75"] = 0
+        #df.loc["2.75"] = 0
 
         # Find and label all contiguous areas within object
         labels, numL = fns.label_wdiags(df)
@@ -401,74 +396,17 @@ def driver_addvars(fn):
         lonslatslrgc = [np.array([x for x, y in cornersc]),
                         np.array([y for x, y in cornersc])]
 
-      import EllipseFit.ellipses as el
-      import numpy as np
-      import matplotlib.pyplot as plt
-      from matplotlib.patches import Ellipse
-      
-      data1 = el.make_test_ellipse()
-      data = lonslatslrgc
-      print(data1)
-      print(data)
-      print(np.shape(data1))
-      print(np.shape(data))
-      lsqe = el.LSqEllipse()
-      lsqe.fit(data)
-      center, width, height, phi = lsqe.parameters()
-
-      plt.close('all')
-      fig = plt.figure(figsize=(6,6))
-      ax = fig.add_subplot(111)
-      ax.axis('equal')
-      ax.plot(data[0],data[1],'ro',
-       label='Convective IMERG Pixels',zorder=1)
-      
-      ellipse = Ellipse(xy=center, width=2*width, height=2*height,
-       angle=np.rad2deg(phi),edgecolor='b', fc='None', lw=2,
-       label='Fit', zorder = 2)
-      ax.add_patch(ellipse)
-
-      plt.legend()
-      plt.show()
-
-      
-      exit()
-        
+#==================================================================
+# Convective axes shape
+#==================================================================
 
       if nl.addaxesshapec=="True":
 
-        center_lp_c[c,:], \
-         mjrax_length_lp_c[c],mjrax_angle_lp_c[c], \
-         mnrax_length_lp_c[c],mnrax_angle_lp_c[c] = \
-         fns.calc_mjrmnrax(lonslatslrgc[0],lonslatslrgc[1])
+        center_lp_c[c,:],axang_lp_c[c,:],axlen_lp_c[c,:] = \
+         fns.fit_ellipse_svd(lonslatslrgc[0],lonslatslrgc[1],plot=True)
 
-        # Calculate ellipticity  as ratio of major to minor axes
-        ellipticity_lp_c[c] = 1 - (mnrax_length_lp_c[c]/
-                                   mjrax_length_lp_c[c])
+        ellipticity_lp_c[c] = 1-(axlen_lp_c[c,0]/axlen_lp_c[c,1])
 
-      import matplotlib.pyplot as plt
-      plt.close('all')
-      fig = plt.figure(figsize=(6,6))
-      ax = fig.add_subplot(111)
-      ax.axis('equal')
-      ax.scatter([x for x,y in indpairslrgc],
-                 [y for x,y in indpairslrgc],
-                 c=instrainlrgc, marker=',',cmap="GnBu",
-                 vmin=0.5,vmax=16.5,s=1000)
-
-      b = ((mjrax_length_lp_c[c]/2)/111111)* \
-          np.sin((mjrax_angle_lp_c[c])*0.0174533)
-      a = ((mjrax_length_lp_c[c]/2)/111111)* \
-          np.cos((mjrax_angle_lp_c[c])*0.0174533)
-      ax.plot([center_lp_c[c,0]-b,center_lp_c[c,0]+b],
-              [center_lp_c[c,1]-a,center_lp_c[c,1]+a])
-      b = ((mnrax_length_lp_c[c]/2)/111111)* \
-          np.sin((mnrax_angle_lp_c[c])*0.0174533)
-      a = ((mnrax_length_lp_c[c]/2)/111111)* \
-          np.cos((mnrax_angle_lp_c[c])*0.0174533)
-      ax.plot([center_lp_c[c,0]-b,center_lp_c[c,0]+b],
-              [center_lp_c[c,1]-a,center_lp_c[c,1]+a])
-      plt.show()
 
         # Generate dataframe for convective pixels
         #dflrgc = fns.create_2d_dataframe(
@@ -629,13 +567,10 @@ def driver_addvars(fn):
 
       if nl.addaxesshape=="True":
 
-        center_lp[c,:],mjrax_length_lp[c],mjrax_angle_lp[c], \
-                     mnrax_length_lp[c],mnrax_angle_lp[c] = \
-         fns.calc_mjrmnrax(lonslatslrg[0],lonslatslrg[1])
+        center_lp[c,:],axang_lp[c,:],axlen_lp[c,:] = \
+         fns.fit_ellipse_svd(lonslatslrg[0],lonslatslrg[1])
 
-        # Calculate ellipticity  as ratio of major to minor axes
-        ellipticity_lp[c] = 1 - (mnrax_length_lp[c]/
-                                 mjrax_length_lp[c])
+        ellipticity_lp_c[c] = 1-(axlen_lp[c,0]/axlen_lp[c,1])
 
 #==================================================================
 # Add boundary information
@@ -1155,11 +1090,14 @@ def driver_addvars(fn):
 # Write length of axes
 #==================================================================
 
+    mjrax_length_lp = axlen_lp[:,0]
+    mnrax_length_lp = axlen_lp[:,1]
+
     description = "Length of major axis"
     fns.write_var("mjrax_length_lp","Major axis length",
      description,"time",np.float64,"m",fileout,mjrax_length_lp,f)
 
-    description = "Length of major axis"
+    description = "Length of minor axis"
     fns.write_var("mnrax_length_lp","Minor axis length",
      description,"time",np.float64,"m",fileout,mnrax_length_lp,f)
 
@@ -1167,12 +1105,15 @@ def driver_addvars(fn):
 # Write angle major axis makes from north
 #==================================================================
 
+    mjrax_angle_lp = axang_lp[:,0]
+    mnrax_angle_lp = axang_lp[:,1]
+
     description = "Angle major axis makes with northward vector"
     fns.write_var("mjrax_angle_lp","Major axis angle",
      description,"time",np.float64,"degrees",fileout,
      mjrax_angle_lp,f)
 
-    description = "Length of major axis"
+    description = "Angle minor axis makes with northward vector"
     fns.write_var("mnrax_angle_lp","Minor axis angle",
      description,"time",np.float64,"degrees",fileout,
      mnrax_angle_lp,f)
@@ -1386,7 +1327,6 @@ def driver_addvars(fn):
 #==================================================================
 
   fileout.close()
-  exit()
 
 #==================================================================
 # End processing of current PF

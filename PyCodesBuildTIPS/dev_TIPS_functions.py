@@ -233,3 +233,70 @@ class LSqEllipse:
 
     def parameters(self):
         return self.center, self.width, self.height, self.phi
+
+#==================================================================
+# Calculate eigenvalues and eigenvectors
+#==================================================================
+
+def calc_mjrmnrax(lons,lats):
+  """
+  Finds the major and minor axes of a set of points on earth
+
+  Input: 
+   1,2) Lists of longitude and latitude coordinates to fit the 
+    major and minor axes too
+
+  Output 
+
+  Requires numpy 1.16.3 (conda install -c anaconda numpy; 
+   https://pypi.org/project/numpy/)
+  """
+
+  # Import libraries
+  import numpy as np
+
+  # Calculate center of mass of shape
+  center = [np.mean(lons),np.mean(lats)]
+
+  # Calculate eigen-value/vector pairs for largest piece
+  eigvals, eigvecs = np.linalg.eig(np.cov((lons[::-1],lats)))
+
+  # Calculate coordinates of axes
+  locseig0 = (center+(eigvals[0]*2)*eigvecs[0,:], 
+              center-(eigvals[0]*2)*eigvecs[0,:])
+  locseig1 = (center+(eigvals[1]*2)*eigvecs[1], 
+              center-(eigvals[1]*2)*eigvecs[1])
+  lonseig0 = [x for x,y in locseig0]
+  lonseig1 = [x for x,y in locseig1]
+  latseig0 = [y for x,y in locseig0]
+  latseig1 = [y for x,y in locseig1]
+
+  # Calculate lengths and angles of the axes
+  lengths = np.zeros(2); angles = np.zeros(2)
+  lengths[0],angles[0] = calc_distandangle(
+   lonseig0[1],latseig0[1],lonseig0[0],latseig0[0])
+  lengths[0],angles[0] = calc_distandangle(
+   lonseig0[0],latseig0[0],lonseig0[1],latseig0[1])
+  lengths[1],angles[1] = calc_distandangle(
+   lonseig1[0],latseig1[0],lonseig1[1],latseig1[1])
+
+  # Adjust angle since direction doesn't matter
+  for i in range(len(angles)):
+    if angles[i]>=180:
+      angles[i] = angles[i]-180
+
+  # Calculate which is the major and minor axes
+  mjrind1 = np.argmax(lengths)
+  if hasattr(mjrind1, "__len__"): mjrind=mjrind1[0]
+  else: mjrind=mjrind1
+  if mjrind==0: mnrind=1
+  if mjrind==1: mnrind=0
+
+  # Assign axes
+  mjrax_len = lengths[mjrind]
+  mnrax_len = lengths[mnrind]
+  mjrax_ang = angles[mjrind]
+  mnrax_ang = angles[mnrind]
+
+  # Return
+  return(center,mjrax_len,mjrax_ang,mnrax_len,mnrax_ang)
