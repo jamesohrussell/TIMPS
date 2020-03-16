@@ -300,3 +300,20 @@ def calc_mjrmnrax(lons,lats):
 
   # Return
   return(center,mjrax_len,mjrax_ang,mnrax_len,mnrax_ang)
+
+#==================================================================
+# Time variables
+#==================================================================
+
+
+#  if nl.addnormtime=="True":
+#    # Calculate normalized time variable
+#    np.seterr(divide='ignore', invalid='ignore')
+#    normalizedtime = [i for i in range(len(datakeys))]/\
+#     np.float32(len(datakeys)-1)
+
+
+      # Calculate local solar hour
+      localsolarhour[c] = round(float(localsolartime[c][8:10])+ \
+       float(localsolartime[c][10:12])/60,2)
+

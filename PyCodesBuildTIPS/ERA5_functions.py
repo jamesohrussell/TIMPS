@@ -109,7 +109,7 @@ def get_E5_ss_2D_fiti(datadir,fileid,timestr):
    1) A handle for the datafile
    2) Indices for the time coordinates
    3) A list of the times from the file
-   4) The time to inerpolate to converted to ERA5 time units
+   4) The time to interpolate to, converted to ERA5 time units
 
   Requires 
   """
@@ -829,4 +829,6 @@ def get_E5_ss_4D_levdiffvar(files,varname,timi,levi,lati,loni):
 
   # Return data
   return(varss)
+
+
 

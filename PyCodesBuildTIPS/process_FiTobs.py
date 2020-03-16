@@ -45,7 +45,7 @@ fileidFi2  = "_4Dobjects.nc"
 fileidtxt  = "4Dobject_tree.txt"
 
 # Directory and filename for output PF nc files
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_2018/"
+datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
 fileidout1 = "TIPS_"
 
 # Only process a set of objects

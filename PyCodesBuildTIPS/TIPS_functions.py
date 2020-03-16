@@ -56,7 +56,7 @@
 #      land area shape file, it checks location against 
 #      shape file to return True if location is over land.
 #
-# * calc_local_sun_time
+# * calc_local_solar_time
 #   - Takes a date and time, and a longitude, and adds an 
 #      offset factor to give a local solar time (i.e. for a
 #      diurnal cycle). Not the actual local time.
@@ -209,7 +209,7 @@ def calc_area_and_volrainrate(lons,lats,rain,dx,dy):
 # Calculate distance between two points on earth
 #==================================================================
 
-def calc_dist(lon1,lat1,lon2,lat2):
+def calc_distance(lon1,lat1,lon2,lat2):
   """
   Calculates distance on earth between two sets of 
    latitude, longitude coordinates.
@@ -220,67 +220,68 @@ def calc_dist(lon1,lat1,lon2,lat2):
 
   Output is the distance in units of m.
 
-  Requires pyproj 1.9.6 (conda install -c conda-forge pyproj; 
-   https://pypi.org/project/pyproj/) and geopy 1.20.0
-   (conda install -c conda-forge geopy; 
+  Requires geopy 1.20.0 (conda install -c conda-forge geopy; 
    https://pypi.org/project/geopy/).
   """
 
   # Import libraries
   from geopy.distance import geodesic
 
-  # Calculate propagation speed
+  # Calculate distance on earth
   dist = geodesic((lat1,lon1),(lat2,lon2)).m
 
+  # Return distance
   return(dist)
 
 
 
 #==================================================================
-# Calculate distance and angle of a vector on earth
+# Calculate direction on earth
 #==================================================================
 
 def calc_direction(lon1,lat1,lon2,lat2):
   """
-  Calculates distance on earth between two sets of 
-   latitude, longitude coordinates, and then calculates 
-   angle that vector makes from north.
+  Calculates direction on earth between two sets of 
+   latitude, longitude coordinates.
 
   Inputs:
   1,2) lat1, lon1
   3,4) lat2, lon2
 
-  Output is the distance in units of m and angle 
-   the vector makes from north.
+  Output is the direction in degrees from north.
 
-  Requires pyproj 1.9.6 (conda install -c conda-forge pyproj; 
-   https://pypi.org/project/pyproj/) and geopy 1.20.0
-   (conda install -c conda-forge geopy; 
-   https://pypi.org/project/geopy/).
+  Requires geopy 1.20.0 (conda install -c conda-forge geopy; 
+   https://pypi.org/project/geopy/) and numpy.
   """
 
   # Import libraries
   from geopy.distance import geodesic
   import numpy as np
 
-  # Calculate direction
-  if lat1!=lat2 and lon1!=lon2:
-    angle = np.rad2deg(np.arctan(
-     geodesic((lat2,lon1),(lat2,lon2)).m/
-     geodesic((lat1,lon1),(lat2,lon1)).m))
+  # Case where both locations are the same
+  if abs(lat1-lat2)<0.0001 and abs(lon1-lon2)<0.0001:
+    direction = float('NaN')
+  # Case where vector is directly east or west
+  elif abs(lat1-lat2)<0.0001:
+    if lon1<lon2: direction=90
+    if lon1>lon2: direction=270
+  # Case where vector is directly north or south
+  elif abs(lon1-lon2)<0.0001:
+    if lat1<lat2: direction=0
+    if lat1>lat2: direction=180
+  # All other cases
+  else:
+    direction = np.rad2deg(np.arctan(
+     calc_distance(lon1,lat1,lon2,lat2)/
+     calc_distance(lon1,lat1,lon2,lat2)))
 
-  # Adjust direction for quadrant
-  if lat1>lat2 and lon1<lon2: angle = 180-angle
-  if lat1>lat2 and lon1>lon2: angle = 180+angle
-  if lat1<lat2 and lon1>lon2: angle = 360-angle
-  if lat1==lat2: 
-    if lon1<lon2: angle=90
-    if lon1>lon2: angle=270
-  if lon1==lon2: 
-    if lat1<lat2: angle=0
-    if lat1>lat2: angle=180
+  # Adjust for quadrant
+  if lat1>lat2 and lon1<lon2: direction = 180-direction
+  elif lat1>lat2 and lon1>lon2: direction = 180+direction
+  elif lat1<lat2 and lon1>lon2: direction = 360-direction
 
-  return(angle)
+  # Return direction
+  return(direction)
 
 
 
@@ -288,50 +289,31 @@ def calc_direction(lon1,lat1,lon2,lat2):
 # Calculate distance and angle of a vector on earth
 #==================================================================
 
-def calc_distandangle(lon1,lat1,lon2,lat2):
+def calc_distdir(lon1,lat1,lon2,lat2):
   """
-  Calculates distance on earth between two sets of 
-   latitude, longitude coordinates, and then calculates 
-   angle that vector makes from north.
+  Calculates distance on earth between two sets of latitude, 
+   longitude coordinates, and direction that vector makes from 
+   north.
 
   Inputs:
   1,2) lat1, lon1
   3,4) lat2, lon2
 
-  Output is the distance in units of m and angle 
+  Output is the distance in units of m and direction 
    the vector makes from north.
 
-  Requires pyproj 1.9.6 (conda install -c conda-forge pyproj; 
-   https://pypi.org/project/pyproj/) and geopy 1.20.0
-   (conda install -c conda-forge geopy; 
+  Requires geopy 1.20.0 (conda install -c conda-forge geopy; 
    https://pypi.org/project/geopy/).
   """
 
-  # Import libraries
-  from geopy.distance import geodesic
-  import numpy as np
+  # Calculate distance on earth
+  distance = calc_distance(lon1,lat1,lon2,lat2)
 
-  # Calculate distance
-  dist = geodesic((lat1,lon1),(lat2,lon2)).m
+  # calculate direction on earth
+  direction = calc_direction(lon1,lat1,lon2,lat2)
 
-  # Calculate direction
-  if lat1!=lat2 and lon1!=lon2:
-    angle = np.rad2deg(np.arctan(
-     geodesic((lat2,lon1),(lat2,lon2)).m/
-     geodesic((lat1,lon1),(lat2,lon1)).m))
-
-  # Adjust direction for quadrant
-  if lat1>lat2 and lon1<lon2: angle = 180-angle
-  if lat1>lat2 and lon1>lon2: angle = 180+angle
-  if lat1<lat2 and lon1>lon2: angle = 360-angle
-  if lat1==lat2: 
-    if lon1<lon2: angle=90
-    if lon1>lon2: angle=270
-  if lon1==lon2: 
-    if lat1<lat2: angle=0
-    if lat1>lat2: angle=180
-
-  return(dist,angle)
+  # Return distance and direction
+  return(distance,direction)
 
 
 
@@ -361,8 +343,10 @@ def calc_propagation(date1,lon1,lat1,date2,lon2,lat2):
   """
 
   # Import libraries
-  from geopy.distance import geodesic
   import datetime as dt
+
+  # Calculate distance and propagation direction
+  distance,propdir = calc_distdir(lon1,lat1,lon2,lat2)
 
   # Make time objects
   dtob1 = dt.datetime(int(date1[0:4]),int(date1[4:6]),
@@ -373,26 +357,9 @@ def calc_propagation(date1,lon1,lat1,date2,lon2,lat2):
                       int(date2[10:12]),int(date2[12:14]))
 
   # Calculate propagation speed
-  propspd = (geodesic((lat1,lon1),(lat2,lon2)).m)/\
-             ((dtob2-dtob1).seconds)
+  propspd = distance/((dtob2-dtob1).seconds)
 
-  # Calculate direction
-  if lat1!=lat2 and lon1!=lon2:
-    propdir = np.rad2deg(np.arctan(
-     geodesic((lat2,lon1),(lat2,lon2)).m/
-     geodesic((lat1,lon1),(lat2,lon1)).m))
-
-  # Adjust direction for quadrant
-  if lat1>lat2 and lon1<lon2: angle = 180-angle
-  if lat1>lat2 and lon1>lon2: angle = 180+angle
-  if lat1<lat2 and lon1>lon2: angle = 360-angle
-  if lat1==lat2: 
-    if lon1<lon2: propdir=90 
-    if lon1>lon2: propdir=270
-  if lon1==lon2: 
-    if lat1<lat2: propdir=0
-    if lat1>lat2: propdir=180
-
+  # Return speed and direction
   return(propspd,propdir)
 
 
@@ -465,8 +432,8 @@ def interp_TC(dtim,fTC):
     #  the time of the PF
 
     # Instance where time of PF and TC ob are same
-    if TCtimenow==fTC.variables["time"][indTC[iTC][0],
-                                        indTC[iTC][1]]:
+    if abs(TCtimenow-
+     fTC.variables["time"][indTC[iTC][0],indTC[iTC][1]])<0.0001:
       TClatnow[iTC] = fTC.variables["lat"][indTC[iTC][0],
                                            indTC[iTC][1]]
       TClonnow[iTC] = fTC.variables["lon"][indTC[iTC][0],
@@ -688,7 +655,7 @@ def is_land(lon, lat, res='50m'):
 # Calculate local solar time based on longitude
 #==================================================================
 
-def calc_local_sun_time(dt,lon):
+def calc_local_solar_time(yr,mo,dy,hr,mn,sc,lon):
   """
   Calculates the local solar time given a date and time and 
    location. Calculated as the UTC time plus an offset based 
@@ -713,12 +680,12 @@ def calc_local_sun_time(dt,lon):
   import datetime
 
   # Make a datetime object for the current date and time
-  timenow = datetime.datetime(int(dt[0:4]),int(dt[4:6]),
-             int(dt[6:8]),int(dt[8:10]),int(dt[10:12]),0)
-
+  timenow = datetime.datetime(int(yr),int(mo),int(dy),
+                              int(hr),int(mn),int(sc))
+ 
   # Calculate time with offset added
   newtime = timenow + datetime.timedelta(hours=lon*(24./360.))
-
+  
   # Return time in same format as input
   return(str(newtime.year).zfill(4)+\
          str(newtime.month).zfill(2)+\
@@ -899,7 +866,7 @@ def points_in_shape(verts,points,widen=0):
 # Fit an ellipse to a set of 2D data points with SVD
 #==================================================================
 
-def fit_ellipse_svd(x,y,plot=False):
+def fit_ellipse_svd(x,y,fit=False,plot=False):
   """
   Fit an ellipse to a set of 2D data points with singular value 
    decomposition (SVD)
@@ -935,13 +902,13 @@ def fit_ellipse_svd(x,y,plot=False):
   # Calculate angle of axes
   axdir = [calc_direction(center[0],center[1],
            center[0]+a[0],center[1]+a[1]) for a in U]
-  axdir = [d-180 for d in axdir if d>=180]
+  axdir = [d-180 if d>180 else d for d in axdir]
 
   # Calculate length in degrees of axes
   axlen = [2*np.sqrt(2/N)*l for l in S]
 
   # Calculate geopgraphic distance of axes
-  axdist =  [calc_dist(center[0] - ((axlen[i]/2)* \
+  axdist =  [calc_distance(center[0] - ((axlen[i]/2)* \
                        np.sin(np.deg2rad(axdir[i]))), \
                        center[1] - ((axlen[i]/2)* \
                        np.cos(np.deg2rad(axdir[i]))), \
@@ -956,17 +923,21 @@ def fit_ellipse_svd(x,y,plot=False):
     axdist = axdist[::-1]
     axdir  = axdir[::-1]
 
-  # Plot ellipse and data
-  if plot==True:
-
+  # Get 1000 point data fit for the ellipse
+  if fit or plot:
     # Define a unit circle
     tt = np.linspace(0, 2*np.pi, 1000)
     circle = np.stack((np.cos(tt), np.sin(tt)))
   
     # Define transformation matrix
     transform = np.sqrt(2/N) * U.dot(np.diag(S))
-    fit = transform.dot(circle)+np.array([[center[0]],[center[1]]])
-  
+    fitxy = transform.dot(circle)+ \
+     np.array([[center[0]],[center[1]]])
+
+  # Plot ellipse and data
+  if plot:
+
+
     # Make plot with data
     print("Plotting ellipse")
     import matplotlib.pyplot as plt
@@ -996,13 +967,14 @@ def fit_ellipse_svd(x,y,plot=False):
 
     # Show plot
     plt.show()
-    print("Finish plot")
 
-
-  # Return center, and direction and length of major and minor axes
-  return(center,axdir,axdist)
-
-
+  if fit:
+    # Also return fit
+    return(center,axdir,axlen,fitxy)
+  else:
+    # Return center, and direction and length of major and minor
+    #  axes
+    return(center,axdir,axdist)
 
 #==================================================================
 # Find indices of k closest values in list

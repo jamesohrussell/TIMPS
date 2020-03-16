@@ -19,7 +19,7 @@ import numpy as np
 from netCDF4 import Dataset
 import glob
 import datetime
-import driver_addvars as da
+import driver_addERA5vars_v2 as da
 from joblib import Parallel, delayed
 import TIPS_functions as fns
 import time as tm
@@ -45,55 +45,28 @@ obid2 = "100010"
 serialorparallel = 1
 njobs = 8
 
+# Types of variables desired
+#addctarea         = False # Area centered on TIPS
+addctmean         = True  # Mean of centered area
+#addctarearainchk  = False # As above but checked for pixels that have IMERG rainfall
+addctmeanrainchk  = True  # As above but checked for pixels that have IMERG rainfall
+#addinarea         = False # All points in calculated inflow
+addinmean         = False # Add mean of inflow region
+#addinarearainchk  = False # As above but checked for pixels that have IMERG rainfall
+addinmeanrainchk  = False # As above but checked for pixels that have IMERG rainfall
+
 # Variables desired
-addmaxrr          = True  # Maximum rain rate
-addmeanrr         = True  # Mean rain rate
-addmedianrr       = True  # Median rain rate
-addstddevrr       = True  # Standard deviation of the rain
-                          #  rates
-addarea           = True  # Area of the PF
-addvrr            = True  # Volumetric rain rate
-addpropagation    = True  # Propagation characteristics
-addTCinfo         = True  # Flags indicating proximity to 
-                          #  TC center
-addlandinfo       = True  # Flags indicating locations over 
-                          #  land
-addboundaryinfo   = True  # Time-series indicating if PF 
-                          #  touching domain boundary
-addlocaltime      = True  # Local solar time of the PF
-addasymmetry      = True # Asymmetry shape parameter 
-                          #  (Zick et al. 2016)
-addasymmetryc     = True  # As above for convective pixels
-addfragmentation  = True # Fragmentation shape parameter 
-                          #  (Zick et al. 2016)
-addfragmentationc = False  # As above for convective pixels
-addaxesshape      = True # Array of variables based on 
-                          #  the major and minor axes from 
-                          #  eigenvalue/vectors
-addaxesshapec     = False  # As above for convective pixels
-addperimeter      = False # Distance around perimeter of 
-                          #  shape (alpha-shape method)
-addconvrain       = True # Flags indicating whether rain 
-                          #  is convective
-addconvarea       = True # Area of the convective region 
-                          #  (addconvrain must also be True)
-addconvvrr        = True # Volume of convective rainfall 
-                          #  (addconvrain must also be True)
+addTCWVE5    = True # ERA5 Total Column Water Vapor
 
-# Inputs for specific variables
+# ERA5 domain variables
+hda           = 5            # Half data area in degrees
+hoursbefore   = [48,24,18,12,6] # Hours before (descending)
+hoursafter    = [6,12,18,24,48] # Hours after (ascending)
 
-# Grid spacing in degrees lon, lat (only required for 
-#  area/volrainrate/shape)
-dx = 0.1
-dy = 0.1
-
-# Directory and filename of TC data (only required for TC 
-#  information)
-dataTCdir = "/uufs/chpc.utah.edu/common/home/varble-group2/IBTrACS/"
-fileTCid  = "IBTrACS.ALL.v04r00.nc"
-
-# Convective rain rate threshold (mm/hr)
-convrainthold = 10
+# Directory and filenames of ERA5 data
+dataE5dir    = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
+fileTCWVE5id = "moisture/ERA5.TCWV."
+fileTCRWE5id = "clouds/ERA5.TCRW."
 
 #==================================================================
 # Initialize timer
@@ -109,40 +82,23 @@ startnow = tm.time()
 namelist = {}
 
 # Add which variables are selected
-namelist["addmaxrr"] = str(addmaxrr)
-namelist["addmeanrr"] = str(addmeanrr)
-namelist["addmedianrr"] = str(addmedianrr)
-namelist["addstddevrr"] = str(addstddevrr)
-namelist["addarea"] = str(addarea)
-namelist["addvrr"] = str(addvrr)
-namelist["addpropagation"] = str(addpropagation)
-namelist["addTCinfo"] = str(addTCinfo)
-namelist["addlandinfo"] = str(addlandinfo)
-namelist["addboundaryinfo"] = str(addboundaryinfo)
-namelist["addlocaltime"] = str(addlocaltime)
-namelist["addconvrain"] = str(addconvrain)
-namelist["addconvarea"] = str(addconvarea)
-namelist["addconvvrr"] = str(addconvvrr)
-namelist["addaxesshape"] = str(addaxesshape)
-namelist["addaxesshapec"] = str(addaxesshapec)
-namelist["addperimeter"] = str(addperimeter)
-namelist["addasymmetry"] = str(addasymmetry)
-namelist["addasymmetryc"] = str(addasymmetryc)
-namelist["addfragmentation"] = str(addfragmentation)
-namelist["addfragmentationc"] = str(addfragmentationc)
+namelist["addTCWVE5"] = str(addTCWVE5)
+namelist["addctmean"] = str(addctmean)
+namelist["addctmeanrainchk"] = str(addctmeanrainchk)
+namelist["addinmean"] = str(addinmean)
+namelist["addinmeanrainchk"] = str(addinmeanrainchk)
 
-if addarea or addvrr or addconvarea or addconvvrr or \
-   addperimeter or addasymmetry or addfragmentation or \
-   addaxesshape or addboundaryinfo or addasymmetryc or \
-   addaxesshapec or addfragmentationc:
-  namelist["dx"] = dx
-  namelist["dy"] = dy
-if addTCinfo:
-  namelist["dataTCdir"] = str(dataTCdir)
-  namelist["fileTCid"] = str(fileTCid)
-if addconvrain or addconvarea or addconvvrr or addasymmetryc or \
-   addfragmentationc or addaxesshapec:
-  namelist["convrainthold"] = convrainthold
+namelist["dataE5dir"] = str(dataE5dir)
+
+namelist["hda"] = hda
+
+namelist["hoursbefore"] = hoursbefore
+namelist["hoursafter"] = hoursafter
+
+if addTCWVE5: namelist["fileTCWVE5id"] = str(fileTCWVE5id)
+
+if addctmeanrainchk or addinmeanrainchk:  
+  namelist["fileTCRWE5id"] = str(fileTCRWE5id)
 
 # Write namelist dictionary to netcdf file for reading 
 #  during parallel loop

@@ -26,8 +26,9 @@ import glob
 import time
 import datetime
 from netCDF4 import Dataset
-import driver_plotIMERG as dp
+import driver_plotIMERG_CPEXAW as dp
 from joblib import Parallel, delayed
+import os
 
 #==========================================================
 # Namelist
@@ -59,8 +60,8 @@ fileidFi3 = "IMERG_tracked_4Dobject_tree.txt"
 ssreg  = True
 latN   = 25
 latS   = 0
-lonW   = -40
-lonE   = -10
+lonW   = -45
+lonE   = -5
 ssname = "CPEXAW"
 
 # Gaussian smoothing (No smoothing if False)
@@ -90,14 +91,14 @@ tholds  = [0.8,3.0,9.0,27.0]
 
 # For plotting
 plot  = True # Turn on or off plot (mostly for debugging)
-labnx = 4    # Number of x-labels between/incl. lonW,lonE
+labnx = 9    # Number of x-labels between/incl. lonW,lonE
 labny = 6    # Number of y-labels between/incl. latS,latN
 dx    = 0.1  # Grid-spacing in x (0.1 for IMERG)
 dy    = 0.1  # Grid spacing in y (0.1 for IMERG)
-latmn = 0   # Min lat for plotting
+latmn = 0    # Min lat for plotting
 latmx = 25   # Max lat for plotting
-lonmn = -40 # Min lon for plotting
-lonmx = -10  # Max lon for plotting
+lonmn = -45  # Min lon for plotting
+lonmx = -5   # Max lon for plotting
 mincl = -0.5 # Min for colorbar
 maxcl = 16.5 # Max for colorbar
 #tracks= True # Plot tracks?
