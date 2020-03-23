@@ -29,6 +29,9 @@ import os
 # Namelist
 #==================================================================
 
+# Directory for custom functions
+fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
+
 # Directory and filename for PF files
 datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
 fileid  = "TIPS_"
@@ -80,6 +83,7 @@ startnow = tm.time()
 
 # Put namelist information in dictionaries
 namelist = {}
+namelist["fnsdir"] = str(fnsdir)
 
 # Add which variables are selected
 namelist["addTCWVE5"] = str(addTCWVE5)

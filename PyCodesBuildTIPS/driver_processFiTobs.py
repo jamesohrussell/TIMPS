@@ -2,7 +2,6 @@ def driver_processFiTobs(o):
   "o corresponds to the object in objs"
   
   # Import python libraries (do not change)
-  import TIPS_functions as fns 
   import numpy as np
   import h5py
   import csv
@@ -11,6 +10,7 @@ def driver_processFiTobs(o):
   from netCDF4 import Dataset
   import datetime as dt
   import time as tm
+  import sys
 
 #============================================================
 # Read files output by main script
@@ -18,6 +18,10 @@ def driver_processFiTobs(o):
 
   # Read in namelist
   nl = Dataset("namelist_po.nc","r")
+
+  # Load custom libraries
+  sys.path.insert(0,nl.fnsdir)
+  import misc_functions as mfns
 
   # Read text file
   f       = open(nl.datadirFi+nl.fileidFi1+nl.fileidtxt,'r') 
@@ -312,64 +316,64 @@ def driver_processFiTobs(o):
   time = fileout.createDimension('time', len(time1))
 
   # Create variables in file
-  fns.write_var("time","Time","","time",np.float64,
+  mfns.write_var("time","Time","","time",np.float64,
                "hours since "+nl.reftime,fileout,
                time1,nl.datadirout+filename)
 
-  fns.write_var("datetime","Date and time","","time",
+  mfns.write_var("datetime","Date and time","","time",
                int,"YYYYMMDDhhmm",fileout,datetime1,
                nl.datadirout+filename)
 
 #  description = "x-location of PF centroid in tracked domain"
-#  fns.write_var("centrallocx","Central x-location",
+#  mfns.write_var("centrallocx","Central x-location",
 #               description,"time",int,"",fileout,
 #               centrallocx1,nl.datadirout+filename)
 
 #  description = "y-location of PF centroid in tracked domain"
-#  fns.write_var("centrallocy","Central y-location",
+#  mfns.write_var("centrallocy","Central y-location",
 #               description,"time",int,"",fileout,
 #               centrallocx1,nl.datadirout+filename)
 
-  fns.write_var("centrallat","Central latitude",
+  mfns.write_var("centrallat","Central latitude",
                "Latitude of PF centroid","time",
                np.float64,"degreesNorth",fileout,
                centrallat1,nl.datadirout+filename)
 
-  fns.write_var("centrallon","Central longitude",
+  mfns.write_var("centrallon","Central longitude",
                "Longitude of PF centroid","time",
                np.float64,"degreesEast",fileout,
                centrallon1,nl.datadirout+filename)
 
-#  fns.write_var("pieces","Pieces",
+#  mfns.write_var("pieces","Pieces",
 #               "Number of pieces that make up the PF",
 #               "time",int,"",fileout,pieces1,
 #               nl.datadirout+filename)
 
-#  fns.write_var("instrain","Instantaneous rain rate",
+#  mfns.write_var("instrain","Instantaneous rain rate",
 #                "IMERG instantaneous rain rates",
 #                ("time","y","x"),np.float64,"mm/hr",
 #                fileout,instrain1,nl.datadirout+filename)
 
   format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time."
 
-  fns.write_group("lats","Latitudes",
+  mfns.write_group("lats","Latitudes",
                  "Latitudes of IMERG grid cell centers for PF",
                  "DegreesNorth",format1,fileout,
                  lats1,nl.datadirout+filename)
 
-  fns.write_group("lons","Longitudes",
+  mfns.write_group("lons","Longitudes",
                  "Longitudes of IMERG grid cell centers for PF",
                  "DegreesEast",format1,fileout,
                  lons1,nl.datadirout+filename)
 
   description = "Instantaneous rain rates at IMERG grid cells corresponding to all latitude and longitude values in PF."
-  fns.write_group("instrain","Instantaneous rain rate",
+  mfns.write_group("instrain","Instantaneous rain rate",
                  description,"mm/hr",format1,fileout,
                  instrain1,nl.datadirout+filename)
 
 #  if (sstd is not None) or (swid is not None):
 #    description = "Smoothed instantaneous rain rates at IMERG grid cells corresponding to all latitude and longitude values in PF"
-#    fns.write_group("instrainS",
+#    mfns.write_group("instrainS",
 #                   "Smoothed instantaneous rain rate",
 #                   description,"mm/hr",format1,fileout,
 #                   instrainS1,nl.datadirout+filename)

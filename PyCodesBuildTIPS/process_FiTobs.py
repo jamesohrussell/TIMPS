@@ -20,11 +20,13 @@ import driver_processFiTobs as dp
 from joblib import Parallel, delayed
 import time as tm
 import os
-import TIPS_functions as fns
 
 #============================================================
 # Namelist
 #============================================================
+
+# Directory for custom functions
+fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
 
 # Directory and filename for input IMERG data
 # Should obtain from create_FiT_input_files.py
@@ -78,6 +80,7 @@ startnow = tm.time()
 
 # Put namelist information in dictionaries
 namelist = {}
+namelist["fnsdir"] = str(fnsdir)
 namelist["datahdf5"] = str(datahdf5)
 namelist["datanc4"] = str(datanc4)
 namelist["datadirFin"] = str(datadirFin)

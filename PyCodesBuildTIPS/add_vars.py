@@ -15,22 +15,23 @@
 #==================================================================
 
 # Import python libraries (do not change)
-import numpy as np
 from netCDF4 import Dataset
 import glob
-import datetime
+import datetime as dt
+import time as tm
 import driver_addvars as da
 from joblib import Parallel, delayed
-import TIPS_functions as fns
-import time as tm
 import os
 
 #==================================================================
 # Namelist
 #==================================================================
 
-# Directory and filename for PF files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
+# Directory for custom functions
+fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
+
+# Directory and filename for TIPS files
+datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_2018_1ds_3hr/"
 fileid  = "TIPS_"
 
 # Subset (for certain range of dates) 
@@ -42,42 +43,42 @@ obid1 = "100000"
 obid2 = "100010"
 
 # Number of processes for parrallelization
-serialorparallel = 1
+serialorparallel = 2
 njobs = 8
 
 # Variables desired
-addmaxrr          = True  # Maximum rain rate
-addmeanrr         = True  # Mean rain rate
-addmedianrr       = True  # Median rain rate
-addstddevrr       = True  # Standard deviation of the rain
+addmaxrr          = False # Maximum rain rate
+addmeanrr         = False # Mean rain rate
+addmedianrr       = False # Median rain rate
+addstddevrr       = False # Standard deviation of the rain
                           #  rates
-addarea           = True  # Area of the PF
-addvrr            = True  # Volumetric rain rate
-addpropagation    = True  # Propagation characteristics
-addTCinfo         = True  # Flags indicating proximity to 
+addarea           = False # Area of the PF
+addvrr            = False # Volumetric rain rate
+addpropagation    = False # Propagation characteristics
+addTCinfo         = False # Flags indicating proximity to 
                           #  TC center
-addlandinfo       = True  # Flags indicating locations over 
+addlandinfo       = False # Flags indicating locations over 
                           #  land
-addboundaryinfo   = True  # Time-series indicating if PF 
+addboundaryinfo   = False # Time-series indicating if PF 
                           #  touching domain boundary
-addlocaltime      = True  # Local solar time of the PF
-addasymmetry      = True # Asymmetry shape parameter 
+addlocaltime      = False # Local solar time of the PF
+addasymmetry      = False # Asymmetry shape parameter 
                           #  (Zick et al. 2016)
-addasymmetryc     = True  # As above for convective pixels
-addfragmentation  = True # Fragmentation shape parameter 
+addasymmetryc     = False # As above for convective pixels
+addfragmentation  = False # Fragmentation shape parameter 
                           #  (Zick et al. 2016)
-addfragmentationc = False  # As above for convective pixels
-addaxesshape      = True # Array of variables based on 
+addfragmentationc = False # As above for convective pixels
+addaxesshape      = True  # Array of variables based on 
                           #  the major and minor axes from 
                           #  eigenvalue/vectors
-addaxesshapec     = False  # As above for convective pixels
+addaxesshapec     = False # As above for convective pixels
 addperimeter      = False # Distance around perimeter of 
                           #  shape (alpha-shape method)
-addconvrain       = True # Flags indicating whether rain 
+addconvrain       = False # Flags indicating whether rain 
                           #  is convective
-addconvarea       = True # Area of the convective region 
+addconvarea       = False # Area of the convective region 
                           #  (addconvrain must also be True)
-addconvvrr        = True # Volume of convective rainfall 
+addconvvrr        = False # Volume of convective rainfall 
                           #  (addconvrain must also be True)
 
 # Inputs for specific variables
@@ -107,6 +108,7 @@ startnow = tm.time()
 
 # Put namelist information in dictionaries
 namelist = {}
+namelist["fnsdir"] = str(fnsdir)
 
 # Add which variables are selected
 namelist["addmaxrr"] = str(addmaxrr)
@@ -163,9 +165,9 @@ if ssdat:
 
   # Generate a list of filenames with dates to search for
   print("Generating filenames to search for")
-  start = datetime.datetime.strptime(date1,"%Y%m%d")
-  end = datetime.datetime.strptime(date2,"%Y%m%d")
-  datearr = (start + datetime.timedelta(days=x) for x in range(0,(end-start).days))
+  start = dt.datetime.strptime(date1,"%Y%m%d")
+  end = dt.datetime.strptime(date2,"%Y%m%d")
+  datearr = (start + dt.timedelta(days=x) for x in range(0,(end-start).days))
   filen = []
   for dateobj in datearr:
     filen.append(datadir+fileid+"*"+dateobj.strftime("%Y%m%d")+"*")

@@ -63,7 +63,7 @@ ax = plt.axes(projection=ccrs.PlateCarree())
 ax.set_extent(extent,crs=ccrs.PlateCarree())
 ax.coastlines(resolution='50m')
 
- # Make plot
+# Make plot
 cs = plt.pcolor(lons,lats,avga,\
                     transform=ccrs.PlateCarree(),\
                     cmap=cmaps.WhiteYellowOrangeRed)#,\

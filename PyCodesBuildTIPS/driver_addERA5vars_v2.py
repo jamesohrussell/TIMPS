@@ -9,14 +9,19 @@ def driver_addvars(fn):
 #==================================================================
 
   # Import libraries
-  import TIPS_functions as fns
-  import ERA5_functions as E5fns
   from netCDF4 import Dataset
   import numpy as np
   import datetime as dt
+  import sys
 
   # Read in namelist variables
   nl = Dataset("namelist_av.nc","r")
+
+  # Import custom libraries
+  sys.path.insert(0,nl.fnsdir)
+  import time_functions as tfns
+  import misc_functions as mfns
+  import ERA5_functions_v2 as E5fns
 
   # Read in filename for PF
   for i, row in enumerate(open("filenames_av.txt")):
@@ -33,6 +38,10 @@ def driver_addvars(fn):
   dataclat = fd.variables["centrallat"][:]
   dataclon = fd.variables["centrallon"][:]
   datadtim = fd.variables["datetime"][:]
+
+#==================================================================
+# Make list of times and get appropriate files for current PS
+#==================================================================
 
   # Define list of times in file
   timestrs = [str(it)[0:4]+"-"+str(it)[4:6]+"-"+str(it)[6:8]+
@@ -54,56 +63,53 @@ def driver_addvars(fn):
                 for it in nl.hoursafter]
 
   # Find range of files and times in those files
-  files,timi,times = E5fns.get_E5_ss_4D_fiti(
-   nl.dataE5dir,nl.fileTCWVE5id,timestrs[0],timestrs[-1])  
+  files = E5fns.get_E5_ss_4D_fiti(
+   nl.dataE5dir,nl.fileTCWVE5id,timestrs[0],timestrs[-1])[0]
+  times = [tfns.time_since(i,fd.variables["time"].units)
+            for i in timestrs]
+
+#==================================================================
+# Get corresponding lists of central latitude and longitude
+#==================================================================
+
+  dataclat = [round(i,2) for i in 
+             [dataclat[0]]*len(nl.hoursbefore) + \
+             [i for i in dataclat] + \
+             [dataclat[-1]]*len(nl.hoursafter)]
+  dataclon = [round(i,2) for i in 
+             [dataclon[0]]*len(nl.hoursbefore) + \
+             [i for i in dataclon] + \
+             [dataclon[-1]]*len(nl.hoursafter)]
 
 #==================================================================
 # Begin loop over times
 #==================================================================
 
   c = 0
-  for k in datadtim:
-
-    # Get data for current time
-    lats[k] = datalat.getncattr(k)
-    lons[k] = datalon.getncattr(k)
-    instrain[k] = datarain.getncattr(k)
-
-    # Get locations of all pixels with nonzero precipitation
-    latsnzk = lats[k][instrain[k]>0]
-    lonsnzk = lons[k][instrain[k]>0]
-    instrainnzk = instrain[k][instrain[k]>0]
+  for k in timestrs:
 
 #==================================================================
 # Get appropriate ERA5 files and times
 #==================================================================
 
-    # Get a filename
-    if nl.addTCWVE5=="True":
-      fileid1 = nl.fileTCWVE5id
-
-    # Set a time string
-    timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
-              " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
-
     # Find file and time indices
-    fh,timi,times = E5fns.get_E5_ss_2D_fiti(
-                     nl.dataE5dir,fileid1,timestr)[0:3]
+    fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                     nl.dataE5dir,nl.fileTCWVE5id,k)
 
 #==================================================================
 # Get coordinates and indices
 #==================================================================
 
     # Find coordinates and indices
-    loni,lati,lonsE5[k],latsE5[k] = \
-     E5fns.get_E5_ss_2D_coords(
-      fh,dataclon[c],dataclat[c],nl.hda)
+    loni,lati,lons,lats = E5fns.get_E5_ss_2D_coords(
+     fh,dataclat,dataclon,nl.hda)[0:2]
+ 
+    # Close file
     fh.close()
 
-    # Create x and y coordinates
-    if addctarea=="True":
-      xE5 = np.linspace(-nl.hda,nl.hda,len(lonsE5[k]))
-      yE5 = np.linspace(-nl.hda,nl.hda,len(latsE5[k]))
+    # Define x coordinate
+    xE5 = np.linspace(-nl.hda,nl.hda,len(lonsE5[k]))
+    yE5 = np.linspace(-nl.hda,nl.hda,len(latsE5[k]))
 
 #==================================================================
 # Assign ERA5 TCWV data
@@ -113,7 +119,7 @@ def driver_addvars(fn):
 
       # Preallocate array
       if c==0:
-        TCWVE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+        TCWVE5 = np.zeros((len(times),len(yE5),len(xE5)))
 
       # Find file and time indices
       fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
@@ -178,11 +184,11 @@ def driver_addvars(fn):
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
 
     description = "longitudes corresponding to ERA5 data"
-    fns.write_group("lonsE5","ERA5 longitudes",description,
+    mfns.write_group("lonsE5","ERA5 longitudes",description,
                     "degreesE",format1,fileout,lonsE5,f)
 
     description = "latitudes corresponding to ERA5 data"
-    fns.write_group("latsE5","ERA5 latitudes",description,
+    mfns.write_group("latsE5","ERA5 latitudes",description,
                     "degreesN",format1,fileout,latsE5,f)
 
     try: xE51 = fileout.createDimension('xE5',len(xE5))
@@ -191,10 +197,10 @@ def driver_addvars(fn):
     except: print("yE5 already defined")
 
     description = "Corresponds to ERA5 data centered on precipitation system centroid. Negative is west. Positive is east."
-    fns.write_var("xE5","ERA5 zonal distance from centroid",
+    mfns.write_var("xE5","ERA5 zonal distance from centroid",
      description,("xE5"),np.float64,"degrees",fileout,xE5,f)
     description = "Corresponds to ERA5 data centered on precipitation system centroid. Negative is south. Positive is north."
-    fns.write_var("yE5","Meridional distance from centroid",
+    mfns.write_var("yE5","Meridional distance from centroid",
      description,("yE5"),np.float64,"degrees",fileout,yE5,f)
 
 #==================================================================
