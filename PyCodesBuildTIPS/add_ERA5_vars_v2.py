@@ -18,10 +18,9 @@
 import numpy as np
 from netCDF4 import Dataset
 import glob
-import datetime
+import datetime as dt
 import driver_addERA5vars_v2 as da
 from joblib import Parallel, delayed
-import TIPS_functions as fns
 import time as tm
 import os
 
@@ -48,18 +47,19 @@ obid2 = "100010"
 serialorparallel = 1
 njobs = 8
 
-# Types of variables desired
-#addctarea         = False # Area centered on TIPS
-addctmean         = True  # Mean of centered area
-#addctarearainchk  = False # As above but checked for pixels that have IMERG rainfall
-addctmeanrainchk  = True  # As above but checked for pixels that have IMERG rainfall
-#addinarea         = False # All points in calculated inflow
-addinmean         = False # Add mean of inflow region
-#addinarearainchk  = False # As above but checked for pixels that have IMERG rainfall
-addinmeanrainchk  = False # As above but checked for pixels that have IMERG rainfall
+# Type of area or mean
+addctarea = False # Area centered on TIPS
+addctmean = True  # Mean of centered area
+addinarea = False # All points in calculated inflow
+addinmean = False # Add mean of inflow region
+
+# Rain check or no rain check
+addrainchk = True
+addnorainchk = False
 
 # Variables desired
 addTCWVE5    = True # ERA5 Total Column Water Vapor
+addCAPEE5    = True # ERA5 Total Column Water Vapor
 
 # ERA5 domain variables
 hda           = 5            # Half data area in degrees
@@ -69,6 +69,7 @@ hoursafter    = [6,12,18,24,48] # Hours after (ascending)
 # Directory and filenames of ERA5 data
 dataE5dir    = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
 fileTCWVE5id = "moisture/ERA5.TCWV."
+fileCAPEE5id = "convparams/ERA5.CAPE."
 fileTCRWE5id = "clouds/ERA5.TCRW."
 
 #==================================================================
@@ -86,11 +87,16 @@ namelist = {}
 namelist["fnsdir"] = str(fnsdir)
 
 # Add which variables are selected
-namelist["addTCWVE5"] = str(addTCWVE5)
+namelist["addctarea"] = str(addctmean)
 namelist["addctmean"] = str(addctmean)
-namelist["addctmeanrainchk"] = str(addctmeanrainchk)
+namelist["addinarea"] = str(addinmean)
 namelist["addinmean"] = str(addinmean)
-namelist["addinmeanrainchk"] = str(addinmeanrainchk)
+
+namelist["addrainchk"]   = str(addrainchk)
+namelist["addnorainchk"] = str(addnorainchk)
+
+namelist["addTCWVE5"] = str(addTCWVE5)
+namelist["addCAPEE5"] = str(addCAPEE5)
 
 namelist["dataE5dir"] = str(dataE5dir)
 
@@ -100,9 +106,7 @@ namelist["hoursbefore"] = hoursbefore
 namelist["hoursafter"] = hoursafter
 
 if addTCWVE5: namelist["fileTCWVE5id"] = str(fileTCWVE5id)
-
-if addctmeanrainchk or addinmeanrainchk:  
-  namelist["fileTCRWE5id"] = str(fileTCRWE5id)
+if addCAPEE5: namelist["fileCAPEE5id"] = str(fileCAPEE5id)
 
 # Write namelist dictionary to netcdf file for reading 
 #  during parallel loop
@@ -123,9 +127,9 @@ if ssdat:
 
   # Generate a list of filenames with dates to search for
   print("Generating filenames to search for")
-  start = datetime.datetime.strptime(date1,"%Y%m%d")
-  end = datetime.datetime.strptime(date2,"%Y%m%d")
-  datearr = (start + datetime.timedelta(days=x) for x in range(0,(end-start).days))
+  start = dt.datetime.strptime(date1,"%Y%m%d")
+  end = dt.datetime.strptime(date2,"%Y%m%d")
+  datearr = (start + dt.timedelta(days=x) for x in range(0,(end-start).days))
   filen = []
   for dateobj in datearr:
     filen.append(datadir+fileid+"*"+dateobj.strftime("%Y%m%d")+"*")

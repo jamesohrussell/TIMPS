@@ -21,7 +21,7 @@ def driver_addvars(fn):
   sys.path.insert(0,nl.fnsdir)
   import time_functions as tfns
   import misc_functions as mfns
-  import ERA5_functions_v2 as E5fns
+  import ERA5_functions as E5fns
 
   # Read in filename for PF
   for i, row in enumerate(open("filenames_av.txt")):
@@ -32,15 +32,16 @@ def driver_addvars(fn):
 
   # Open file and assign data
   fd = Dataset(f)
-  datalat  = fd.groups["lats"].groups["data"]
-  datalon  = fd.groups["lons"].groups["data"]
-  datarain = fd.groups["instrain"].groups["data"]
   dataclat = fd.variables["centrallat"][:]
   dataclon = fd.variables["centrallon"][:]
   datadtim = fd.variables["datetime"][:]
 
+  # Preallocate arrays
+  lonsE5 = {}; latsE5 = {}
+  files = {}
+
 #==================================================================
-# Make list of times and get appropriate files for current PS
+# Make list of times and get list files for current TIPS
 #==================================================================
 
   # Define list of times in file
@@ -62,16 +63,17 @@ def driver_addvars(fn):
              [str(lto+dt.timedelta(hours=int(it))) 
                 for it in nl.hoursafter]
 
-  # Find range of files and times in those files
-  files = E5fns.get_E5_ss_4D_fiti(
-   nl.dataE5dir,nl.fileTCWVE5id,timestrs[0],timestrs[-1])[0]
-  times = [tfns.time_since(i,fd.variables["time"].units)
-            for i in timestrs]
+  # Find files
+  if nl.addTCWVE5=="True": files["CAPE"] = E5fns.get_E5_ss_files(
+    nl.dataE5dir,nl.fileTCWVE5id,timestrs[0],timestrs[-1])
+  if nl.addCAPEE5=="True": files["TCWV"] = E5fns.get_E5_ss_files(
+    nl.dataE5dir,nl.fileCAPEE5id,timestrs[0],timestrs[-1])
 
 #==================================================================
-# Get corresponding lists of central latitude and longitude
+# Get coordinates and their indices
 #==================================================================
 
+  # Get corresponding lists of central latitude and longitude
   dataclat = [round(i,2) for i in 
              [dataclat[0]]*len(nl.hoursbefore) + \
              [i for i in dataclat] + \
@@ -92,44 +94,29 @@ def driver_addvars(fn):
 # Get appropriate ERA5 files and times
 #==================================================================
 
-    # Find file and time indices
-    fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                     nl.dataE5dir,nl.fileTCWVE5id,k)
-
-#==================================================================
-# Get coordinates and indices
-#==================================================================
-
-    # Find coordinates and indices
-    loni,lati,lons,lats = E5fns.get_E5_ss_2D_coords(
-     fh,dataclat,dataclon,nl.hda)[0:2]
- 
-    # Close file
-    fh.close()
-
-    # Define x coordinate
+    # Find coordinates and indices, assign new coords
+    keys = [str(k) for k in files.keys()]
+    loni,lati,lonsE5[k],latsE5[k] = E5fns.get_E5_ss_2D_coords(
+      Dataset(files[keys[0]][0]),dataclon[c],dataclat[c],nl.hda)
     xE5 = np.linspace(-nl.hda,nl.hda,len(lonsE5[k]))
     yE5 = np.linspace(-nl.hda,nl.hda,len(latsE5[k]))
 
-#==================================================================
-# Assign ERA5 TCWV data
-#==================================================================
-
     if nl.addTCWVE5=="True":
-
-      # Preallocate array
-      if c==0:
-        TCWVE5 = np.zeros((len(times),len(yE5),len(xE5)))
 
       # Find file and time indices
       fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileTCWVE5id,timestr)
-      
-      # Get a subset of the CAPE data
-      TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
+                       files["TCWV"],timestrs[c])
+
+      print(fh)
+
+      # Get a subset of the TCWV data
+      if nl.addctarea=="True" or nl.addctmean=="True": 
+        TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime)
-      TCWVE5units = fh.variables["TCWV"].units
+        TCWVE5units = fh.variables["TCWV"].units
+
       fh.close()
+    exit()
 
 #==================================================================
 # Assign ERA5 TCRW data
