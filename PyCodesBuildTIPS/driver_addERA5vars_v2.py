@@ -64,9 +64,11 @@ def driver_addvars(fn):
                 for it in nl.hoursafter]
 
   # Find files
-  if nl.addTCWVE5=="True": files["CAPE"] = E5fns.get_E5_ss_files(
+  if nl.addrainchk=="True": files["TCRW"] = E5fns.get_E5_ss_files(
+    nl.dataE5dir,nl.fileTCRWE5id,timestrs[0],timestrs[-1])
+  if nl.addTCWVE5=="True": files["TCWV"] = E5fns.get_E5_ss_files(
     nl.dataE5dir,nl.fileTCWVE5id,timestrs[0],timestrs[-1])
-  if nl.addCAPEE5=="True": files["TCWV"] = E5fns.get_E5_ss_files(
+  if nl.addCAPEE5=="True": files["CAPE"] = E5fns.get_E5_ss_files(
     nl.dataE5dir,nl.fileCAPEE5id,timestrs[0],timestrs[-1])
 
 #==================================================================
@@ -91,15 +93,42 @@ def driver_addvars(fn):
   for k in timestrs:
 
 #==================================================================
-# Get appropriate ERA5 files and times
+# Get coordinates
 #==================================================================
 
-    # Find coordinates and indices, assign new coords
-    keys = [str(k) for k in files.keys()]
-    loni,lati,lonsE5[k],latsE5[k] = E5fns.get_E5_ss_2D_coords(
-      Dataset(files[keys[0]][0]),dataclon[c],dataclat[c],nl.hda)
-    xE5 = np.linspace(-nl.hda,nl.hda,len(lonsE5[k]))
-    yE5 = np.linspace(-nl.hda,nl.hda,len(latsE5[k]))
+    # Case: Add centered area or centered mean with rain check
+    if nl.addctarea=="True" or \
+       (nl.addctmean=="True" and nl.addrainchk=="True"): 
+  
+      # Find coordinates and indices
+      keys = [str(k) for k in files.keys()]
+      loni,lati,lonsE5[k],latsE5[k] = E5fns.get_E5_ss_2D_coords(
+        Dataset(files[keys[0]][0]),dataclon[c],dataclat[c],nl.hda)
+
+      # Assign new coords
+      xE5 = np.linspace(-nl.hda,nl.hda,len(lonsE5[k]))
+      yE5 = np.linspace(-nl.hda,nl.hda,len(latsE5[k]))
+
+    # Case: Only add centered mean
+    if nl.addctmean=="True" and  nl.addnorainchk=="True":
+  
+      # Find indices
+      keys = [str(k) for k in files.keys()]
+      loni,lati = E5fns.get_E5_ss_coords(
+        Dataset(files[keys[0]][0]),dataclon[c],dataclat[c],nl.hda)
+
+#==================================================================
+# Get rain check data
+#==================================================================
+
+    if nl.addrainchk=="True":
+      # Find file and time indices
+      fhR,timiR,timesR,ctimeR = E5fns.get_E5_ss_2D_fiti(
+                       files["TCRW"],timestrs[c])
+
+#==================================================================
+# Get TCWV data
+#==================================================================
 
     if nl.addTCWVE5=="True":
 
@@ -107,37 +136,63 @@ def driver_addvars(fn):
       fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        files["TCWV"],timestrs[c])
 
-      print(fh)
+      # Get units
+      TCWVE5units = fh.variables["TCWV"].units
 
-      # Get a subset of the TCWV data
-      if nl.addctarea=="True" or nl.addctmean=="True": 
+      # Area centered on PF
+      if nl.addctarea=="True" and nl.addnorainchk=="True": 
+
+        # Preallocate array
+        if c==0:
+          TCWVE5 = np.zeros((len(timestrs),len(yE5),len(xE5)))
+
+        # Get a subset of the TCWV data
         TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime)
-        TCWVE5units = fh.variables["TCWV"].units
 
-      fh.close()
-    exit()
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addnorainchk=="True":
 
-#==================================================================
-# Assign ERA5 TCRW data
-#==================================================================
+        # Preallocate array
+        if c==0:
+          TCWVE5mean = np.zeros(len(timestrs))
 
-    if addctmeanrainchk=="True" or addinmeanrainchk=="True":  
+        # Get a subset of the TCWV data
+        TCWVE5mean[c] = np.mean(E5fns.get_E5_ss_2D_var(
+                 fh,"TCWV",timi,loni,lati,times,ctime))
 
-      # Preallocate array
-      if c==0:
-        TCRWE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+      # Area centered on PF
+      if nl.addctarea=="True" and nl.addrainchk=="True": 
 
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileTCRWE5id,timestr)
+        # Preallocate array
+        if c==0:
+          TCWVE5 = np.zeros((len(timestrs),len(yE5),len(xE5)))
+          TCRWE5 = np.zeros((len(timestrs),len(yE5),len(xE5)))
+
+        # Get a subset of the TCWV data
+        TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
+                 fh,"TCWV",timi,loni,lati,times,ctime)
+        print(TCWVE5[c,:,:])
+
+        TCRWE5[c,:,:] = E5fns.get_E5_ss_2D_var(
+                 fhR,"TCRW",timiR,loni,lati,times,ctime)
+        print(TCRWE5[c,:,:])
+        exit()
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addrainchk=="True":
+
+        # Preallocate array
+        if c==0:
+          TCWVE5mean = np.zeros(len(timestrs))
+
+        # Get a subset of the TCWV data
+        TCWVE5mean[c] = np.mean(E5fns.get_E5_ss_2D_var(
+                 fh,"TCWV",timi,loni,lati,times,ctime))
       
-      # Get a subset of the TCRW data
-      TCRWE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fh,"TCRW",timi,loni,lati,times,ctime)
-      TCRWE5units = fh.variables["TCRW"].units
+      # Close file
       fh.close()
-      
+     
 #==================================================================
 # End loops over objects and times
 #==================================================================
@@ -147,14 +202,8 @@ def driver_addvars(fn):
 
   fd.close()
 
-#==================================================================
-# Calculate mean time-series
-#==================================================================
-      
-  if addctmean=="True":
-
-    if addCAPEE5=="True":
-      TCWVE5mean = np.mean(TCWVE5[c,:,:],axis=(1,2))
+  print(TCWVE5mean)
+  exit()
 
 #==================================================================
 # Open file to write data

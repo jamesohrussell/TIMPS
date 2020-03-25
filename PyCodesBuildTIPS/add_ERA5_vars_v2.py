@@ -48,18 +48,18 @@ serialorparallel = 1
 njobs = 8
 
 # Type of area or mean
-addctarea = False # Area centered on TIPS
+addctarea = True # Area centered on TIPS
 addctmean = True  # Mean of centered area
 addinarea = False # All points in calculated inflow
 addinmean = False # Add mean of inflow region
 
 # Rain check or no rain check
-addrainchk = True
+addrainchk   = True
 addnorainchk = False
 
 # Variables desired
 addTCWVE5    = True # ERA5 Total Column Water Vapor
-addCAPEE5    = True # ERA5 Total Column Water Vapor
+addCAPEE5    = False # ERA5 Total Column Water Vapor
 
 # ERA5 domain variables
 hda           = 5            # Half data area in degrees
@@ -107,6 +107,7 @@ namelist["hoursafter"] = hoursafter
 
 if addTCWVE5: namelist["fileTCWVE5id"] = str(fileTCWVE5id)
 if addCAPEE5: namelist["fileCAPEE5id"] = str(fileCAPEE5id)
+if addrainchk: namelist["fileTCRWE5id"] = str(fileTCRWE5id)
 
 # Write namelist dictionary to netcdf file for reading 
 #  during parallel loop
