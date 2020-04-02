@@ -37,11 +37,11 @@ datanc4    = False
 
 # Directory and filename for FiT input files
 # Should obtain from create_FiT_input_files.py
-datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_2018/"
+datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test/"
 fileidFin  = "IMERG_FiT_tholds_CapVer_"
 
 # Directory and filename for FiT output data files
-datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_output_2018/"
+datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_output_test/"
 fileidFi1  = "IMERG_tracked_"
 fileidFi2  = "_4Dobjects.nc"
 fileidtxt  = "4Dobject_tree.txt"
@@ -53,13 +53,13 @@ fileidout1 = "TIPS_"
 # Only process a set of objects
 subsetobs = True
 ob1       = 100000 # First obid
-ob2       = 100010 # Last obid
+ob2       = 100100 # Last obid
 subsetsztm= True
 nsz       = 10     # Minimum no of pixels
-nt        = 2      # Minimum number of times
+nt        = 6      # Minimum number of times
 
 # Specify merging distance from tracking (number of pixels)
-mergedist = 20
+mergedist = 30
 
 # Specify reference time in format YYYY-MM-DD hh:mm:ss
 reftime = "1900-01-01 00:00:00"

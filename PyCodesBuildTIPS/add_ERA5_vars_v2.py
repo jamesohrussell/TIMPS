@@ -54,8 +54,8 @@ addinarea = False # All points in calculated inflow
 addinmean = False # Add mean of inflow region
 
 # Rain check or no rain check
-addrainchk   = True
-addnorainchk = False
+addrainchk   = False
+addnorainchk = True
 
 # Variables desired
 addTCWVE5    = True # ERA5 Total Column Water Vapor
@@ -63,8 +63,8 @@ addCAPEE5    = False # ERA5 Total Column Water Vapor
 
 # ERA5 domain variables
 hda           = 5            # Half data area in degrees
-hoursbefore   = [48,24,18,12,6] # Hours before (descending)
-hoursafter    = [6,12,18,24,48] # Hours after (ascending)
+hoursbefore   = np.arange(48,3,-3) # Hours before (descending)
+hoursafter    = hoursbefore[::-1] # Hours after (ascending)
 
 # Directory and filenames of ERA5 data
 dataE5dir    = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"

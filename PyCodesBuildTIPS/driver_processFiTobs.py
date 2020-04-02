@@ -147,12 +147,6 @@ def driver_processFiTobs(o):
       lon = lonsub
       del(rainsub,latsub,lonsub)
 
-    if sstd is not None:
-      rainS = ndimage.gaussian_filter(rain,sigma=int(sstd))
-
-    if swid is not None:
-      rainS = ndimage.uniform_filter(rain,size=int(swid))
-
 #============================================================
 # Calculate parameters and assign data at first time
 #============================================================
@@ -160,31 +154,32 @@ def driver_processFiTobs(o):
     # Preallocate arrays for object f
     if t==0:
 
+      # Times in hours since reftime
+      time1           = [0.]* len(times) 
       # Times (YYYYMMDDhhmm)
       datetime1       = [0] * len(times) 
       # No of pieces the object is made of
       pieces1         = [0] * len(times)
-      # Central x-location of object in grid 
-      centrallocx1    = [0] * len(times)
-      # Central y-location of object in grid 
-      centrallocy1    = [0] * len(times)
       # Central latitude of object
       centrallat1     = [0] * len(times) 
       # Central longitude of object
       centrallon1     = [0] * len(times)
-      # Times in hours since reftime
-      time1           = [0.]* len(times) 
- 
+      # Central latitude of object
+      wgtcentlat1     = [0] * len(times) 
+      # Central longitude of object
+      wgtcentlon1     = [0] * len(times)
+
       # Assign some simple values
       datetime1[t]    = int(timenow)
-      pieces1[t]      = int(
-       FiTinfo[indob,7][t].split(':')[1])
-      centrallocx1[t] = int(re.split(':|,',
-                            FiTinfo[indob,6][t])[1])
-      centrallocy1[t] = int(re.split(':|,',
-                            FiTinfo[indob,6][t])[2])
-      centrallat1[t]  = lat[centrallocy1[t]]
-      centrallon1[t]  = lon[centrallocx1[t]]
+      pieces1[t]      = int(FiTinfo[indob,7][t].split(':')[1])
+      centrallat1[t]  = np.mean(lat[locindob[0]])
+      centrallon1[t]  = np.mean(lon[locindob[1]])
+
+      # Calculate weighted (by rainfall) centroid
+      sr = sum(rain[locindob[0],locindob[1]])
+      rw = [r/sr for r in rain[locindob[0],locindob[1]]]
+      wgtcentlat1[t] = np.average(lat[locindob[0]],weights=rw)
+      wgtcentlon1[t] = np.average(lon[locindob[1]],weights=rw)
 
       # Make reference time object and calculate time
       #  in hours since reftime
@@ -200,7 +195,6 @@ def driver_processFiTobs(o):
       lats1   = {str(datetime1[t]): lat[locindob[0]]}
       lons1   = {str(datetime1[t]): lon[locindob[1]]}
       instrain1  = {str(datetime1[t]): rain[locindob[0],locindob[1]]}
-      instrainS1 = {str(datetime1[t]): rainS[locindob[0],locindob[1]]}
 
 #============================================================
 # Calculate parameters and assign data at other times
@@ -212,12 +206,14 @@ def driver_processFiTobs(o):
       datetime1[t]    = int(timenow)
       pieces1[t]      = int(
        FiTinfo[indob,7][t].split(':')[1])
-      centrallocx1[t] = int(re.split(
-       ':|,',FiTinfo[indob,6][t])[1])
-      centrallocy1[t] = int(re.split(
-       ':|,',FiTinfo[indob,6][t])[2])
-      centrallat1[t]  = lat[centrallocy1[t]]
-      centrallon1[t]  = lon[centrallocx1[t]]
+      centrallat1[t]  = np.mean(lat[locindob[0]])
+      centrallon1[t]  = np.mean(lon[locindob[1]])
+
+      # Calculate weighted (by rainfall) centroid
+      sr = sum(rain[locindob[0],locindob[1]])
+      rw = [r/sr for r in rain[locindob[0],locindob[1]]]
+      wgtcentlat1[t] = np.average(lat[locindob[0]],weights=rw)
+      wgtcentlon1[t] = np.average(lon[locindob[1]],weights=rw)
 
       # Calculate time in hours since reftime
       currentdate = dt.datetime.strptime(
@@ -230,8 +226,6 @@ def driver_processFiTobs(o):
       lons1[str(datetime1[t])] = lon[locindob[1]]
       instrain1[str(datetime1[t])]  = \
        rain[locindob[0],locindob[1]]
-      instrainS1[str(datetime1[t])] = \
-       rainS[locindob[0],locindob[1]]
 
   # For PF, if all rain rates at all times are actually zero
   #  move onto the next PF
@@ -266,8 +260,6 @@ def driver_processFiTobs(o):
     del(datetime1[i])
     del(time1[i])
     del(pieces1[i])
-    del(centrallocx1[i])
-    del(centrallocy1[i])
     del(centrallat1[i])
     del(centrallon1[i])
 
@@ -317,42 +309,32 @@ def driver_processFiTobs(o):
 
   # Create variables in file
   mfns.write_var("time","Time","","time",np.float64,
-               "hours since "+nl.reftime,fileout,
-               time1,nl.datadirout+filename)
+                 "hours since "+nl.reftime,fileout,
+                 time1,nl.datadirout+filename,-999.)
 
   mfns.write_var("datetime","Date and time","","time",
-               int,"YYYYMMDDhhmm",fileout,datetime1,
-               nl.datadirout+filename)
-
-#  description = "x-location of PF centroid in tracked domain"
-#  mfns.write_var("centrallocx","Central x-location",
-#               description,"time",int,"",fileout,
-#               centrallocx1,nl.datadirout+filename)
-
-#  description = "y-location of PF centroid in tracked domain"
-#  mfns.write_var("centrallocy","Central y-location",
-#               description,"time",int,"",fileout,
-#               centrallocx1,nl.datadirout+filename)
+                 np.int64,"YYYYMMDDhhmm",fileout,datetime1,
+                 nl.datadirout+filename,-999)
 
   mfns.write_var("centrallat","Central latitude",
-               "Latitude of PF centroid","time",
-               np.float64,"degreesNorth",fileout,
-               centrallat1,nl.datadirout+filename)
+                 "Latitude of PF centroid","time",
+                 np.float64,"degreesNorth",fileout,
+                 centrallat1,nl.datadirout+filename,-999.)
 
   mfns.write_var("centrallon","Central longitude",
-               "Longitude of PF centroid","time",
-               np.float64,"degreesEast",fileout,
-               centrallon1,nl.datadirout+filename)
+                 "Longitude of PF centroid","time",
+                 np.float64,"degreesEast",fileout,
+                 centrallon1,nl.datadirout+filename,-999.)
 
-#  mfns.write_var("pieces","Pieces",
-#               "Number of pieces that make up the PF",
-#               "time",int,"",fileout,pieces1,
-#               nl.datadirout+filename)
+  description = "Latitude of PF centroid weighted by rainfall"
+  mfns.write_var("centlatwgt","Weighted Central Latitude",
+                 description,"time",np.float64,"degreesNorth",fileout,
+                 wgtcentlat1,nl.datadirout+filename,-999.)
 
-#  mfns.write_var("instrain","Instantaneous rain rate",
-#                "IMERG instantaneous rain rates",
-#                ("time","y","x"),np.float64,"mm/hr",
-#                fileout,instrain1,nl.datadirout+filename)
+  description = "Longitude of PF centroid weighted by rainfall"
+  mfns.write_var("centlonwgt","Weighted Central Longitude",
+                 description,"time",np.float64,"degreesEast",fileout,
+                 wgtcentlon1,nl.datadirout+filename,-999.)
 
   format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time."
 
@@ -370,13 +352,6 @@ def driver_processFiTobs(o):
   mfns.write_group("instrain","Instantaneous rain rate",
                  description,"mm/hr",format1,fileout,
                  instrain1,nl.datadirout+filename)
-
-#  if (sstd is not None) or (swid is not None):
-#    description = "Smoothed instantaneous rain rates at IMERG grid cells corresponding to all latitude and longitude values in PF"
-#    mfns.write_group("instrainS",
-#                   "Smoothed instantaneous rain rate",
-#                   description,"mm/hr",format1,fileout,
-#                   instrainS1,nl.datadirout+filename)
 
   # Close file
   fileout.close()

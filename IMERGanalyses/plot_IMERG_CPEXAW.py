@@ -43,7 +43,7 @@ datanc4   = False
 
 # Date and time range
 starttime = "20180701"
-endtime   = "20180815" # Actual last day is day before
+endtime   = "20180816" # Actual last day is day before
 
 # Directory and filename for FiT output data files
 datadirFi = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_102519/out_files/"
@@ -58,7 +58,7 @@ fileidFi3 = "IMERG_tracked_4Dobject_tree.txt"
 # Subset regions (if global set ssreg=False)
 # Should obtain from create_FiT_input_files.py
 ssreg  = True
-latN   = 25
+latN   = 30
 latS   = 0
 lonW   = -45
 lonE   = -5
@@ -92,11 +92,11 @@ tholds  = [0.8,3.0,9.0,27.0]
 # For plotting
 plot  = True # Turn on or off plot (mostly for debugging)
 labnx = 9    # Number of x-labels between/incl. lonW,lonE
-labny = 6    # Number of y-labels between/incl. latS,latN
+labny = 7    # Number of y-labels between/incl. latS,latN
 dx    = 0.1  # Grid-spacing in x (0.1 for IMERG)
 dy    = 0.1  # Grid spacing in y (0.1 for IMERG)
 latmn = 0    # Min lat for plotting
-latmx = 25   # Max lat for plotting
+latmx = 26   # Max lat for plotting
 lonmn = -45  # Min lon for plotting
 lonmx = -5   # Max lon for plotting
 mincl = -0.5 # Min for colorbar

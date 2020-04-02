@@ -35,6 +35,7 @@ def driver_addvars(fn):
   dataclat = fd.variables["centrallat"][:]
   dataclon = fd.variables["centrallon"][:]
   datadtim = fd.variables["datetime"][:]
+  timeunits = fd.variables["time"].units
 
   # Preallocate arrays
   lonsE5 = {}; latsE5 = {}
@@ -62,6 +63,7 @@ def driver_addvars(fn):
               for it in nl.hoursbefore] + timestrs + \
              [str(lto+dt.timedelta(hours=int(it))) 
                 for it in nl.hoursafter]
+  tE5 = [tfns.time_since(i,timeunits) for i in timestrs]
 
   # Find files
   if nl.addrainchk=="True": files["TCRW"] = E5fns.get_E5_ss_files(
@@ -155,10 +157,10 @@ def driver_addvars(fn):
 
         # Preallocate array
         if c==0:
-          TCWVE5mean = np.zeros(len(timestrs))
+          TCWVmeanE5 = np.zeros(len(timestrs))
 
         # Get a subset of the TCWV data
-        TCWVE5mean[c] = np.mean(E5fns.get_E5_ss_2D_var(
+        TCWVmeanE5[c] = np.mean(E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime))
 
       # Area centered on PF
@@ -172,22 +174,22 @@ def driver_addvars(fn):
         # Get a subset of the TCWV data
         TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime)
-        print(TCWVE5[c,:,:])
+        #print(TCWVE5[c,:,:])
 
         TCRWE5[c,:,:] = E5fns.get_E5_ss_2D_var(
                  fhR,"TCRW",timiR,loni,lati,times,ctime)
-        print(TCRWE5[c,:,:])
-        exit()
+        #print(TCRWE5[c,:,:])
+        #exit()
 
       # Mean of area centered on PF
       if nl.addctmean=="True" and nl.addrainchk=="True":
 
         # Preallocate array
         if c==0:
-          TCWVE5mean = np.zeros(len(timestrs))
+          TCWVmeanE5 = np.zeros(len(timestrs))
 
         # Get a subset of the TCWV data
-        TCWVE5mean[c] = np.mean(E5fns.get_E5_ss_2D_var(
+        TCWVmeanE5[c] = np.mean(E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime))
       
       # Close file
@@ -202,9 +204,6 @@ def driver_addvars(fn):
 
   fd.close()
 
-  print(TCWVE5mean)
-  exit()
-
 #==================================================================
 # Open file to write data
 #==================================================================
@@ -215,17 +214,24 @@ def driver_addvars(fn):
 # Write coordinate data for environment information to file
 #==================================================================
 
-  if nl.addTCWVE5=="True":
+  try: tE51 = fileout.createDimension('tE5',len(tE5))
+  except: print("tE5 already defined")
+
+  description = "Corresponds to ERA5 data. Different from time dimension since times are added before and after the TIPS exists."
+  mfns.write_var("tE5","ERA5 time",description,("tE5"),
+    np.float64,timeunits,fileout,tE5,f,float(-999))
+
+  if nl.addctarea=="True":
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
 
     description = "longitudes corresponding to ERA5 data"
     mfns.write_group("lonsE5","ERA5 longitudes",description,
-                    "degreesE",format1,fileout,lonsE5,f)
+                  "degreesE",format1,fileout,lonsE5,f)
 
     description = "latitudes corresponding to ERA5 data"
     mfns.write_group("latsE5","ERA5 latitudes",description,
-                    "degreesN",format1,fileout,latsE5,f)
+                   "degreesN",format1,fileout,latsE5,f)
 
     try: xE51 = fileout.createDimension('xE5',len(xE5))
     except: print("xE5 already defined")
@@ -234,10 +240,13 @@ def driver_addvars(fn):
 
     description = "Corresponds to ERA5 data centered on precipitation system centroid. Negative is west. Positive is east."
     mfns.write_var("xE5","ERA5 zonal distance from centroid",
-     description,("xE5"),np.float64,"degrees",fileout,xE5,f)
+      description,("xE5"),np.float64,"degrees",fileout,xE5,f,
+      float(-999))
+
     description = "Corresponds to ERA5 data centered on precipitation system centroid. Negative is south. Positive is north."
     mfns.write_var("yE5","Meridional distance from centroid",
-     description,("yE5"),np.float64,"degrees",fileout,yE5,f)
+      description,("yE5"),np.float64,"degrees",fileout,yE5,f,
+      float(-999))
 
 #==================================================================
 # Write TCWV information to file
@@ -245,10 +254,17 @@ def driver_addvars(fn):
 
   if nl.addTCWVE5=="True":
 
-    description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("TCWV_E5","ERA5 Total Column Water Vapor",
-     description,("time","yE5","xE5"),np.float64,TCWVE5units,
-     fileout,TCWVE5,f)
+    if nl.addctarea=="True":
+      description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCWV_E5","ERA5 Total Column Water Vapor",
+       description,("tE5","yE5","xE5"),np.float64,TCWVE5units,
+       fileout,TCWVE5,f,float(-999))
+
+    if nl.addctmean=="True":
+      description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCWVmean_E5",
+       "ERA5 Mean Total Column Water Vapor",description,("tE5"),
+       np.float64,TCWVE5units,fileout,TCWVmeanE5,f,float(-999))
 
 #==================================================================
 # Close current file

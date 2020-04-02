@@ -45,7 +45,7 @@ def driver_plotIMERG(i):
 
   print("Working on "+f)
 
-  lenIdir    = len(nl.datadirIM)
+  lenIdir = len(nl.datadirIM)
 
 #==========================================================
 # Read IMERG data (NetCDF4)
@@ -184,7 +184,7 @@ def driver_plotIMERG(i):
                     slice(nl.lonW, nl.lonE + nl.dx, nl.dx)]
 
     # Make figure
-    ax = plt.figure(num=None, figsize=(8, 6), dpi=200, facecolor='w', edgecolor='k')
+    ax = plt.figure(num=None, figsize=(6, 4.5), dpi=150, facecolor='w', edgecolor='k')
     #ax = plt.subplot()
   
     # set up a map
@@ -210,20 +210,21 @@ def driver_plotIMERG(i):
     cbar.set_label("IMERG Precipitation (mm/hr)")
 
     tt = np.linspace(0, 2*np.pi, 1000)
-    circle4 = np.stack((10.73*np.cos(tt), 10.73*np.sin(tt)))
-    circle6 = np.stack((16.07*np.cos(tt), 16.07*np.sin(tt)))
-    #circle8 = np.stack((13.32*np.cos(tt), 13.32*np.sin(tt)))
+    circle2 = np.stack((6.78*np.cos(tt), 6.78*np.sin(tt)))
+    circle4 = np.stack((13.56*np.cos(tt), 13.56*np.sin(tt)))
+    circle6 = np.stack((20.33*np.cos(tt), 20.33*np.sin(tt)))
+
     sallat=16.7266; sallon=-22.9297
+    frx2 = circle2[0]+sallon
+    fry2 = circle2[1]+sallat
     frx4 = circle4[0]+sallon
     fry4 = circle4[1]+sallat
     frx6 = circle6[0]+sallon
     fry6 = circle6[1]+sallat
-    #frx8 = circle8[0]+sallon
-    #fry8 = circle8[1]+sallat
 
+    fr2 = plt.plot(frx2,fry2,"k--")
     fr4 = plt.plot(frx4,fry4,"k--")
     fr6 = plt.plot(frx6,fry6,"k--")
-    #fr8 = plt.plot(frx8,fry8,"k--")
 
     # Contour outline of objects
     if nl.plotobj=="True":
@@ -249,8 +250,12 @@ def driver_plotIMERG(i):
 
     plt.xlim(nl.lonmn, nl.lonmx)
     plt.ylim(nl.latmn, nl.latmx)
-    plt.annotate(ye+"/"+mo+"/"+da+" "+ho+":"+mi, xy=(0.01, 0.01), xycoords='axes fraction')
-    plt.annotate("2 and 3 hr flight radii", xy=(0.4, 0.96), xycoords='axes fraction')
+    plt.title(ye+"/"+mo+"/"+da+" "+ho+":"+mi)
+    plt.annotate("1 hr", xy=(frx2[450]+0.5,fry2[450]-0.5))
+    plt.annotate("2 hr", xy=(frx4[450]+0.5,fry4[450]-0.5))
+    plt.annotate("3 hr", xy=(frx6[450]+0.5,fry6[450]-0.5))
+    plt.annotate("Sal", xy=(sallon+0.25,sallat+0.25))
+    plt.annotate("DC8 flight radii", xy=(0.3, 0.95), xycoords='axes fraction')
     plt.savefig('figs/IMERG_'+nl.ssname+"_"+ye+mo+da+ho+mi+"_"+str(i).zfill(5)+'.png')
     plt.close()
 

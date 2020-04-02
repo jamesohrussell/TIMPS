@@ -13,7 +13,7 @@ def driver_addvars(fn):
   import numpy as np
   import pandas as pd
   from scipy.spatial import ConvexHull
-  from scipy.spatial import KDTree
+#  from scipy.spatial import KDTree
   import sys
 
   # Read in namelist variables
@@ -40,6 +40,8 @@ def driver_addvars(fn):
   datarain = fd.groups["instrain"].groups["data"]
   dataclat = fd.variables["centrallat"][:]
   dataclon = fd.variables["centrallon"][:]
+  datacwlat = fd.variables["centlatwgt"][:]
+  datacwlon = fd.variables["centlonwgt"][:]
   datadtim = fd.variables["datetime"][:]
   datatim  = fd.variables["time"][:]
 
@@ -50,37 +52,31 @@ def driver_addvars(fn):
 # Preallocate arrays
 #==================================================================
 
-  # Preallocate arrays
-  if nl.addmaxrr=="True":
-    maxrainrate  = [0.]*len(datakeys)
+  if nl.addmaxrr=="True": maxrainrate  = [-999.]*len(datakeys)
 
-  if nl.addmeanrr=="True":
-    meanrainrate = [0.]*len(datakeys)
+  if nl.addmeanrr=="True": meanrainrate = [-999.]*len(datakeys)
 
-  if nl.addmedianrr=="True":
-    medianrainrate = [0.]*len(datakeys)
+  if nl.addmedianrr=="True": medianrainrate = [-999.]*len(datakeys)
 
-  if nl.addstddevrr=="True":
-    stddevrainrate = [0.]*len(datakeys)
+  if nl.addstddevrr=="True": stddevrainrate = [-999.]*len(datakeys)
 
-  if nl.addarea=="True":
-    area = [0.]*len(datakeys)
+  if nl.addarea=="True": area = [-999.]*len(datakeys)
 
-  if nl.addvrr=="True":
-    volrainrate = [0.]*len(datakeys)
+  if nl.addvrr=="True": volrainrate = [-999.]*len(datakeys)
 
   if nl.addpropagation=="True":
-    propspd = [0.]*len(datakeys)
-    propdir = [0.]*len(datakeys)
+    propspd = [-999.]*len(datakeys)
+    propdir = [-999.]*len(datakeys)
+    propspdw = [-999.]*len(datakeys)
+    propdirw = [-999.]*len(datakeys)
 
-  if nl.addlocaltime=="True":
-    localsolartime = [""]*len(datakeys)
+  if nl.addlocaltime=="True": localsolartime = [""]*len(datakeys)
 
   if nl.addTCinfo=="True":
-    dist_cPF_cTC = [0.]*len(datakeys)
-    cPF_in_TC    = [0]*len(datakeys)
+    dist_cPF_cTC = [-999.]*len(datakeys)
+    cPF_in_TC    = [-999]*len(datakeys)
     TCname_cPF   = [""]*len(datakeys) 
-    TCrad_cPF    = [0.]*len(datakeys)
+    TCrad_cPF    = [-999.]*len(datakeys)
     lPF_in_TC    = {}
     dist_lPF_cTC = {}
     TCname_lPF   = {}
@@ -88,7 +84,7 @@ def driver_addvars(fn):
     writeTCdata   = False
 
   if nl.addlandinfo=="True":
-    cPF_over_land = [0]*len(datakeys)
+    cPF_over_land = [-999]*len(datakeys)
     lPF_over_land = {}
 
   if nl.addboundaryinfo=="True":
@@ -96,43 +92,41 @@ def driver_addvars(fn):
     blatS = float(fd.track_dom_latS)
     blonE = float(fd.track_dom_lonE)
     blonW = float(fd.track_dom_lonW)
-    touchesdombound = [0]*len(datakeys)
+    touchesdombound = [-999]*len(datakeys)
 
   if nl.addconvrain=="True":
     is_conv_rain = {}
-    convarea = [0]*len(datakeys)
-    convvrr  = [0]*len(datakeys)
+    convarea = [-999.]*len(datakeys)
+    convvrr  = [-999.]*len(datakeys)
 
   if nl.addaxesshape=="True":
-    ellipticity_lp = [-999]*len(datakeys)
+    ellipticity_lp = [-999.]*len(datakeys)
     center_lp      = np.zeros((len(datakeys),2))
-    center_lp[:,:] = -999
+    center_lp[:,:] = -999.
     axlen_lp       = np.zeros((len(datakeys),2))
-    axlen_lp[:,:]  = -999
+    axlen_lp[:,:]  = -999.
     axang_lp       = np.zeros((len(datakeys),2))
-    axang_lp[:,:]  = -999
+    axang_lp[:,:]  = -999.
 
   if nl.addaxesshapec=="True":
-    ellipticity_lp_c = [-999]*len(datakeys)
+    ellipticity_lp_c = [-999.]*len(datakeys)
     center_lp_c      = np.zeros((len(datakeys),2))
-    center_lp_c[:,:] = -999
+    center_lp_c[:,:] = -999.
     axlen_lp_c       = np.zeros((len(datakeys),2))
-    axlen_lp_c[:,:]  = -999
+    axlen_lp_c[:,:]  = -999.
     axang_lp_c       = np.zeros((len(datakeys),2))
-    axang_lp_c[:,:]  = -999
+    axang_lp_c[:,:]  = -999.
 
-  if nl.addasymmetry=="True":
-    asymmetry_lp    = [0]*len(datakeys)
+  if nl.addasymmetry=="True": asymmetry_lp = [-999.]*len(datakeys)
 
   if nl.addfragmentation=="True":
-    fragmentation  = [0]*len(datakeys)
-    solidity       = [0]*len(datakeys)
-    connectivity   = [0]*len(datakeys)
+    fragmentation  = [-999.]*len(datakeys)
+    solidity       = [-999.]*len(datakeys)
+    connectivity   = [-999.]*len(datakeys)
 
-  if nl.addperimeter=="True":
-    perimeter_lp = [0]*len(datakeys)
+  if nl.addperimeter=="True": perimeter_lp = [-999.]*len(datakeys)
   
-    TIPStime = 0
+  #TIPStime = 0
 
 #==================================================================
 # Begin loop over times
@@ -323,6 +317,8 @@ def driver_addvars(fn):
         # If only one time in PF, set as 0
         propspd[c] = 0
         propdir[c] = 0
+        propspdw[c] = 0
+        propdirw[c] = 0
 
       else:
 
@@ -332,9 +328,17 @@ def driver_addvars(fn):
             str(datadtim[c]*100),  dataclon[c],  dataclat[c],
             str(datadtim[c+1]*100),dataclon[c+1],dataclat[c+1])
 
+          propspdw[c],propdirw[c] = gfns.calc_propagation(
+            str(datadtim[c]*100),  datacwlon[c],  datacwlat[c],
+            str(datadtim[c+1]*100),datacwlon[c+1],datacwlat[c+1])
+
         # Backward difference for last time
         elif c==len(dataclon)-1:
           propspd[c],propdir[c] = gfns.calc_propagation(
+            str(datadtim[c-1]*100),dataclon[c-1],dataclat[c-1],
+            str(datadtim[c]*100),  dataclon[c],  dataclat[c])
+
+          propspdw[c],propdirw[c] = gfns.calc_propagation(
             str(datadtim[c-1]*100),dataclon[c-1],dataclat[c-1],
             str(datadtim[c]*100),  dataclon[c],  dataclat[c])
 
@@ -343,6 +347,10 @@ def driver_addvars(fn):
           propspd[c],propdir[c] = gfns.calc_propagation(
             str(datadtim[c-1]*100),dataclon[c-1],dataclat[c-1],
             str(datadtim[c+1]*100),dataclon[c+1],dataclat[c+1])
+
+          propspdw[c],propdirw[c] = gfns.calc_propagation(
+            str(datadtim[c-1]*100),datacwlon[c-1],datacwlat[c-1],
+            str(datadtim[c+1]*100),datacwlon[c+1],datacwlat[c+1])
 
 #==================================================================
 # Convective shape prepwork
@@ -752,7 +760,8 @@ def driver_addvars(fn):
     localsolartime = [int(i) for i in localsolartime]
     description = "Calculated as the UTC time plus an offset based on the longitude. The offset is calculated by multiplying the longitude by 24/360. Note: This is not the actual local time. This should typically only be used to calculate times for the diurnal cycle."
     mfns.write_var("localsolartime","Local solar time",
-      description,"time",int,"",fileout,localsolartime,f)
+      description,"time",np.int64,"",fileout,localsolartime,
+      f,int(-999))
 
 #==================================================================
 # Write max rain rate to file
@@ -763,7 +772,7 @@ def driver_addvars(fn):
     description = "Maximum rain rate within PF"
     mfns.write_var("maxrainrate","Max rain rate",
       description,"time",np.float64,"mm/hr",fileout,
-      maxrainrate,f)
+      maxrainrate,f,float(-999))
 
 #==================================================================
 # Write mean rain rate to file
@@ -774,7 +783,7 @@ def driver_addvars(fn):
     description = "Mean rain rate within PF excluding pixels with zero rain rate"
     mfns.write_var("meanrainrate","Mean rain rate",
       description,"time",np.float64,"mm/hr",fileout,
-      meanrainrate,f)
+      meanrainrate,f,float(-999))
 
 #==================================================================
 # Write median rain rate to file
@@ -785,7 +794,7 @@ def driver_addvars(fn):
     description = "Median rain rate within PF excluding pixels with zero rain rate"
     mfns.write_var("medianrainrate","Median rain rate",
       description,"time",np.float64,"mm/hr",fileout,
-      medianrainrate,f)
+      medianrainrate,f,float(-999))
 
 #==================================================================
 # Write standard deviation rate to file
@@ -796,7 +805,7 @@ def driver_addvars(fn):
     description = "Standard deviation of rain rate within PF excluding pixels with zero rain rate"
     mfns.write_var("stddevrainrate",
       "Standard deviation of rain rate",description,"time",
-      np.float64,"mm/hr",fileout,stddevrainrate,f)
+      np.float64,"mm/hr",fileout,stddevrainrate,f,float(-999))
 
 #==================================================================
 # Write area to file
@@ -806,7 +815,7 @@ def driver_addvars(fn):
 
     description = "Area within PF excluding pixels with zero rain rate"
     mfns.write_var("area","Area",description,"time",np.float64,
-                 "km^2",fileout,area,f)
+                 "km^2",fileout,area,f,float(-999))
 
 #==================================================================
 # Write volumetric rain rate to file
@@ -817,7 +826,7 @@ def driver_addvars(fn):
     description = "Volumetric rain rate within PF excluding pixels with zero rain rate"
     mfns.write_var("volrainrate","Volumetric rain rate",
       description,"time",np.float64,"mm hr^-1 km^2",
-      fileout,volrainrate,f)
+      fileout,volrainrate,f,float(-999))
 
 #==================================================================
 # Write propagation to file
@@ -825,15 +834,25 @@ def driver_addvars(fn):
 
   if nl.addpropagation=="True":
 
-    description = "Calculated as the geodesic distance travelled by centroid divided by time taken"
+    description = "Calculated as the geodesic distance travelled by centroid divided by time"
     mfns.write_var("propspd","Propagation speed",
       description,"time",np.float64,"m/s",fileout,
-      propspd,f)
+      propspd,f,float(-999))
 
     description = "Calculated as direction centroid is moving toward from north (clockwise)"
     mfns.write_var("propdir","Propagation direction",
       description,"time",np.float64,"degrees",fileout,
-      propdir,f)
+      propdir,f,float(-999))
+
+    description = "Calculated as the geodesic distance travelled by precipitation weighted centroid divided by time"
+    mfns.write_var("propspdw","Propagation speed (weighted)",
+      description,"time",np.float64,"m/s",fileout,
+      propspdw,f,float(-999))
+
+    description = "Calculated as direction precipitation weighted centroid is moving toward from north (clockwise)"
+    mfns.write_var("propdirw","Propagation direction (weighted)",
+      description,"time",np.float64,"degrees",fileout,
+      propdirw,f,float(-999))
 
 #==================================================================
 # Write convective information to file
@@ -846,14 +865,14 @@ def driver_addvars(fn):
     if nl.addconvarea=="True":
       description = "Area of locations with rain rates greater than convective rain rate threshold"
       mfns.write_var("conv_area","Convective area",
-        description,"time",np.float64,"",fileout,
-        convarea,f)
+        description,"time",np.float64,"",fileout,convarea,
+        f,float(-999))
 
     if nl.addconvvrr=="True":
       description = "Volumetric rain rate of locations with rain rates greater than convective rain rate threshold"
-      mfns.write_var("conv_vrr",
-        "Convective volumetric rain rate",description,
-        "time",np.float64,"",fileout,convvrr,f)
+      mfns.write_var("conv_vrr","Convective volumetric rain rate",
+      description,"time",np.float64,"",fileout,convvrr,
+      f,float(-999))
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
     description = "Binary indicating if a PF location has a convective rain rate (1 = convective, 0 = not convective)"
@@ -869,7 +888,7 @@ def driver_addvars(fn):
 
     description = "Perimeter of largest piece within the PF. Calculated using alphashapes."
     mfns.write_var("perimeter_lp","Perimeter",description,
-      "time",np.float64,"m",fileout,perimeter_lp,f)
+      "time",np.float64,"m",fileout,perimeter_lp,f,float(-999))
 
 #==================================================================
 # Write asymmetry to file
@@ -879,7 +898,7 @@ def driver_addvars(fn):
 
     description = "Asymmetry factor for largest piece within PF. 0 = symmetrical (circle). 1 = Highly asymmetrical, non-circular."
     mfns.write_var("asymmetry_lp","Asymmetry factor",description,
-      "time",np.float64,"",fileout,asymmetry_lp,f)
+      "time",np.float64,"",fileout,asymmetry_lp,f,float(-999))
 
 #==================================================================
 # Write fragmentation to file
@@ -889,7 +908,8 @@ def driver_addvars(fn):
 
     description = "Fragmentation factor. 0 = One solid piece. 1 = multiple highly fragmented pieces"
     mfns.write_var("fragmentation","Fragmentation factor",
-      description,"time",np.float64,"",fileout,fragmentation,f)
+      description,"time",np.float64,"",fileout,fragmentation,
+      f,float(-999))
 
 #==================================================================
 # Write ellipticity to file
@@ -899,7 +919,8 @@ def driver_addvars(fn):
 
     description = "Ellipticity factor for largest piece of PF. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
     mfns.write_var("ellipticity_lp","Ellipticity factor",
-      description,"time",np.float64,"",fileout,ellipticity_lp,f)
+      description,"time",np.float64,"",fileout,ellipticity_lp,
+      f,float(-999))
 
 #==================================================================
 # Write coordinates of centroid of largest piece
@@ -912,12 +933,14 @@ def driver_addvars(fn):
     description = "Longitude of centroid of largest piece"
     mfns.write_var("lon_center_lp",
       "Longitude of centroid of largest piece",description,
-      "time",np.float64,"degreesE",fileout,lon_center_lp,f)
+      "time",np.float64,"degreesE",fileout,lon_center_lp,
+      f,float(-999))
 
     description = "Latitude of centroid of largest piece"
     mfns.write_var("lat_center_lp",
       "Latitude of centroid of largest piece",description,
-      "time",np.float64,"degreesN",fileout,lat_center_lp,f)
+      "time",np.float64,"degreesN",fileout,lat_center_lp,
+      f,float(-999))
 
 #==================================================================
 # Write length of axes
@@ -928,11 +951,13 @@ def driver_addvars(fn):
 
     description = "Length of major axis"
     mfns.write_var("mjrax_length_lp","Major axis length",
-     description,"time",np.float64,"m",fileout,mjrax_length_lp,f)
+     description,"time",np.float64,"m",fileout,mjrax_length_lp,
+     f,float(-999))
 
     description = "Length of minor axis"
     mfns.write_var("mnrax_length_lp","Minor axis length",
-     description,"time",np.float64,"m",fileout,mnrax_length_lp,f)
+     description,"time",np.float64,"m",fileout,mnrax_length_lp,
+     f,float(-999))
 
 #==================================================================
 # Write angle major axis makes from north
@@ -944,12 +969,12 @@ def driver_addvars(fn):
     description = "Angle major axis makes with northward vector"
     mfns.write_var("mjrax_angle_lp","Major axis angle",
      description,"time",np.float64,"degrees",fileout,
-     mjrax_angle_lp,f)
+     mjrax_angle_lp,f,float(-999))
 
     description = "Angle minor axis makes with northward vector"
     mfns.write_var("mnrax_angle_lp","Minor axis angle",
      description,"time",np.float64,"degrees",fileout,
-     mnrax_angle_lp,f)
+     mnrax_angle_lp,f,float(-999))
 
 #==================================================================
 # Write boundary information to file
@@ -959,8 +984,8 @@ def driver_addvars(fn):
     
     description = "1 if any part of PF is within a pixel of the tracking domain boundary. Else 0."
     mfns.write_var("touchesdombound",
-     "PF touches domain boundary",description,"time",int,"",
-      fileout,touchesdombound,f)
+     "PF touches domain boundary",description,"time",np.int64,"",
+      fileout,touchesdombound,f,int(-999))
 
 #==================================================================
 # Write land information to file
@@ -969,7 +994,7 @@ def driver_addvars(fn):
   if nl.addlandinfo=="True":
     description = "1 if center of PF is over land. 0 if not."
     mfns.write_var("cPF_over_land","Center of PF over land",
-      description,"time",int,"",fileout,cPF_over_land,f)
+      description,"time",np.int64,"",fileout,cPF_over_land,f,int(-999))
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
     description = "Binary indicating if a PF location is over land (1 = over land, 0 = not over land)"
@@ -993,19 +1018,19 @@ def driver_addvars(fn):
       description = "If PF center is within a maximum radius of TC center this is 1, if not, this is 0."
       mfns.write_var("cPF_in_TC",
         "Proximity of PF center to TC",description,"time",
-        int,"",fileout,cPF_in_TC,f)
+        np.int64,"",fileout,cPF_in_TC,f,int(-999))
 
       # Write dist_cPF_cTC
       description = "Calculated as the geodesic distance of the PF center to TC center"
       mfns.write_var("dist_cPF_cTC",
         "Distance of PF center to TC center",description,
-        "time",np.float64,"km",fileout,dist_cPF_cTC,f)
+        "time",np.float64,"km",fileout,dist_cPF_cTC,f,float(-999))
 
       # Write TCradius
       description = "Calculated by finding the largest radius of a TC from IBtracs and doubling."
       mfns.write_var("TCrad_cPF","Radius of TC",
         description,"time",np.float64,"km",fileout,
-        TCrad_cPF,f)
+        TCrad_cPF,f,float(-999))
 
       # Write list of TCname_cPF as an attribute of PF file
       fileout.TCname_cPF = TCname_cPF
