@@ -120,13 +120,38 @@ def driver_addvars(fn):
         Dataset(files[keys[0]][0]),dataclon[c],dataclat[c],nl.hda)
 
 #==================================================================
+# Preallocate arrays
+#==================================================================
+
+    if c==0:
+
+      if nl.addctarea=="True" and nl.addnorainchk=="True": 
+        TCWV_area_E5 = np.zeros((len(timestrs),len(yE5),len(xE5)))  
+
+      if nl.addctmean=="True" and nl.addnorainchk=="True": 
+        TCWV_mean_E5 = np.zeros(len(timestrs))
+
+      if nl.addctarea=="True" and nl.addrainchk=="True": 
+        TCWV_area_nr_E5 = np.zeros((len(timestrs),len(yE5),len(xE5)))  
+
+      if nl.addctmean=="True" and nl.addrainchk=="True": 
+        TCWV_mean_nr_E5 = np.zeros(len(timestrs))  
+
+      TCRW_area_E5 = np.zeros((len(timestrs),len(yE5),len(xE5)))  
+
+#==================================================================
 # Get rain check data
 #==================================================================
 
     if nl.addrainchk=="True":
       # Find file and time indices
       fhR,timiR,timesR,ctimeR = E5fns.get_E5_ss_2D_fiti(
-                       files["TCRW"],timestrs[c])
+       files["TCRW"],timestrs[c])
+
+      TCRWE5 = E5fns.get_E5_ss_2D_var(fhR,"TCRW",timiR,loni,lati,
+       timesR,ctimeR)
+
+      TCRW_area_E5[c,:,:] = TCRWE5
 
 #==================================================================
 # Get TCWV data
@@ -141,56 +166,31 @@ def driver_addvars(fn):
       # Get units
       TCWVE5units = fh.variables["TCWV"].units
 
-      # Area centered on PF
-      if nl.addctarea=="True" and nl.addnorainchk=="True": 
-
-        # Preallocate array
-        if c==0:
-          TCWVE5 = np.zeros((len(timestrs),len(yE5),len(xE5)))
-
-        # Get a subset of the TCWV data
-        TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
+      # Get an area
+      if nl.addctarea=="True" or nl.addctmean=="True":
+        TCWVE5 = E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime)
+
+      # Assign to area centered on PF
+      if nl.addctarea=="True" and nl.addnorainchk=="True":
+        TCWV_area_E5[c,:,:] = TCWVE5
 
       # Mean of area centered on PF
       if nl.addctmean=="True" and nl.addnorainchk=="True":
+        TCWV_mean_E5[c] = np.mean(TCWVE5)
 
-        # Preallocate array
-        if c==0:
-          TCWVmeanE5 = np.zeros(len(timestrs))
+      # Calculate without raining pixels
+      if (nl.addctarea=="True" or addctmean=="True") \
+        and nl.addrainchk=="True": 
+        TCWVE5_nr = np.where(TCRWE5>0.001,np.nan,TCWVE5)
 
-        # Get a subset of the TCWV data
-        TCWVmeanE5[c] = np.mean(E5fns.get_E5_ss_2D_var(
-                 fh,"TCWV",timi,loni,lati,times,ctime))
-
-      # Area centered on PF
-      if nl.addctarea=="True" and nl.addrainchk=="True": 
-
-        # Preallocate array
-        if c==0:
-          TCWVE5 = np.zeros((len(timestrs),len(yE5),len(xE5)))
-          TCRWE5 = np.zeros((len(timestrs),len(yE5),len(xE5)))
-
-        # Get a subset of the TCWV data
-        TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fh,"TCWV",timi,loni,lati,times,ctime)
-        #print(TCWVE5[c,:,:])
-
-        TCRWE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fhR,"TCRW",timiR,loni,lati,times,ctime)
-        #print(TCRWE5[c,:,:])
-        #exit()
+      # Area centered on PF without rain
+      if nl.addctarea=="True" and nl.addrainchk=="True":
+        TCWV_area_nr_E5[c,:,:] = TCWVE5_nr 
 
       # Mean of area centered on PF
       if nl.addctmean=="True" and nl.addrainchk=="True":
-
-        # Preallocate array
-        if c==0:
-          TCWVmeanE5 = np.zeros(len(timestrs))
-
-        # Get a subset of the TCWV data
-        TCWVmeanE5[c] = np.mean(E5fns.get_E5_ss_2D_var(
-                 fh,"TCWV",timi,loni,lati,times,ctime))
+        TCWV_mean_nr_E5[c] = np.nanmean(TCWVE5_nr)
       
       # Close file
       fh.close()
@@ -248,6 +248,14 @@ def driver_addvars(fn):
       description,("yE5"),np.float64,"degrees",fileout,yE5,f,
       float(-999))
 
+    print(np.shape(TCRW_area_E5))
+    print(np.shape(TCWV_area_E5))
+
+    description = "Total column rain water from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    mfns.write_var("TCRW_area_E5","ERA5 Total Column Rain Water",
+     description,("tE5","yE5","xE5"),np.float64,TCWVE5units,
+     fileout,TCRW_area_E5,f,float(-999))
+
 #==================================================================
 # Write TCWV information to file
 #==================================================================
@@ -256,15 +264,28 @@ def driver_addvars(fn):
 
     if nl.addctarea=="True":
       description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-      mfns.write_var("TCWV_E5","ERA5 Total Column Water Vapor",
+      mfns.write_var("TCWV_area_E5","ERA5 Total Column Water Vapor",
        description,("tE5","yE5","xE5"),np.float64,TCWVE5units,
-       fileout,TCWVE5,f,float(-999))
+       fileout,TCWV_area_E5,f,float(-999))
 
     if nl.addctmean=="True":
       description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-      mfns.write_var("TCWVmean_E5",
+      mfns.write_var("TCWV_mean_E5",
        "ERA5 Mean Total Column Water Vapor",description,("tE5"),
-       np.float64,TCWVE5units,fileout,TCWVmeanE5,f,float(-999))
+       np.float64,TCWVE5units,fileout,TCWV_mean_E5,f,float(-999))
+
+    if nl.addctarea=="True":
+      TCWV_area_nr_E5 = np.where(np.isnan(TCWV_area_nr_E5),float(-999),TCWV_area_nr_E5)
+      description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCWV_area_nr_E5","ERA5 Total Column Water Vapor",
+       description,("tE5","yE5","xE5"),np.float64,TCWVE5units,
+       fileout,TCWV_area_nr_E5,f,float(-999))
+
+    if nl.addctmean=="True":
+      description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCWV_mean_nr_E5",
+       "ERA5 Mean Total Column Water Vapor",description,("tE5"),
+       np.float64,TCWVE5units,fileout,TCWV_mean_nr_E5,f,float(-999))
 
 #==================================================================
 # Close current file

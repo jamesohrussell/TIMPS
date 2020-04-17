@@ -1,12 +1,12 @@
+# Import python libraries
+import numpy as np
+from netCDF4 import Dataset
+import scipy.ndimage as ndimage
+import h5py
+import time
+
 def driver_createinfiles(i):
   "i corresponds to the imerg file"
-
-  # Import python libraries
-  import numpy as np
-  from netCDF4 import Dataset
-  import scipy.ndimage as ndimage
-  import h5py
-  import time
 
 #==========================================================
 # Read files output by main script
@@ -36,10 +36,7 @@ def driver_createinfiles(i):
     rain = datasetIM["/Grid/precipitationCal"][:,:,:]
 
   # Change dimension order of variable
-  raint = np.transpose(rain, (0, 2, 1))
-  del(rain)
-  rain = raint
-  del(raint)
+  rain = np.transpose(rain, (0, 2, 1))
 
   # Obtain time and date, compile into string in format:
   #   YYYYMMDDhhmm
@@ -76,16 +73,9 @@ def driver_createinfiles(i):
     idxE = (np.abs(lon - nl.lonE)).argmin()
 
     # Subset main dataset by indices
-    latsub  = lat[idyS:idyN]
-    lonsub  = lon[idxW:idxE]
-    rainsub = rain[:,idyS:idyN,idxW:idxE]
-
-    # Replace old vars with new subsetting vars
-    del(rain,lat,lon)
-    rain = rainsub
-    lat = latsub
-    lon = lonsub
-    del(rainsub,latsub,lonsub)
+    lat  = lat[idyS:idyN]
+    lon  = lon[idxW:idxE]
+    rain = rain[:,idyS:idyN,idxW:idxE]
 
   # Get subset dimensions and set x and y coordinates
   szrain = np.shape(rain)

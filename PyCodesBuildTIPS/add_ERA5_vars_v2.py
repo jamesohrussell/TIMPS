@@ -54,7 +54,7 @@ addinarea = False # All points in calculated inflow
 addinmean = False # Add mean of inflow region
 
 # Rain check or no rain check
-addrainchk   = False
+addrainchk   = True
 addnorainchk = True
 
 # Variables desired

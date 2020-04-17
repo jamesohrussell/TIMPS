@@ -1,3 +1,11 @@
+# Import libraries
+from netCDF4 import Dataset
+import numpy as np
+import pandas as pd
+from scipy.spatial import ConvexHull
+#  from scipy.spatial import KDTree
+import sys
+
 def driver_addvars(fn):
   """
   Driver to calculate various variables for a single PF.
@@ -7,14 +15,6 @@ def driver_addvars(fn):
 #==================================================================
 # Begin script
 #==================================================================
-
-  # Import libraries
-  from netCDF4 import Dataset
-  import numpy as np
-  import pandas as pd
-  from scipy.spatial import ConvexHull
-#  from scipy.spatial import KDTree
-  import sys
 
   # Read in namelist variables
   nl = Dataset("namelist_av.nc","r")
@@ -687,7 +687,6 @@ def driver_addvars(fn):
 
         # Assign scalar/list to key (time) in dictionary
         lPF_over_land[k] = latlonland
-        del(latlonland)   
      
 #==================================================================
 # Add TC information
