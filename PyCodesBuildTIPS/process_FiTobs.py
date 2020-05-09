@@ -65,8 +65,8 @@ mergedist = 30
 reftime = "1900-01-01 00:00:00"
 
 # Number of processes for parallelization
-serialorparallel = 1
-njobs = 8
+serialorparallel = 2
+njobs = 16
 
 #============================================================
 # Initialize timer

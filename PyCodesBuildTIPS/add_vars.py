@@ -43,42 +43,47 @@ obid1 = "100000"
 obid2 = "100010"
 
 # Number of processes for parrallelization
-serialorparallel = 2
-njobs = 8
+serialorparallel = 1
+njobs = 16
 
 # Variables desired
-addmaxrr          = True # Maximum rain rate
-addmeanrr         = True # Mean rain rate
-addmedianrr       = True # Median rain rate
-addstddevrr       = True # Standard deviation of the rain
+addmaxrr          = False # Maximum rain rate
+addmeanrr         = False # Mean rain rate
+addmedianrr       = False # Median rain rate
+addstddevrr       = False # Standard deviation of the rain
                           #  rates
-addarea           = True # Area of the PF
-addvrr            = True # Volumetric rain rate
-addpropagation    = True # Propagation characteristics
-addTCinfo         = True # Flags indicating proximity to 
+addpieces         = True # Number of pieces 
+addpiecesc        = False # As above but for convective rain pixels
+addarea           = False # Area of the PF
+addvrr            = False # Volumetric rain rate
+addpropagation    = False # Propagation characteristics
+addTCinfo         = False # Flags indicating proximity to 
                           #  TC center
-addlandinfo       = True # Flags indicating locations over 
+addlandinfo       = False # Flags indicating locations over 
                           #  land
-addboundaryinfo   = True # Time-series indicating if PF 
+addboundaryinfo   = False # Time-series indicating if PF 
                           #  touching domain boundary
-addlocaltime      = True # Local solar time of the PF
-addasymmetry      = True # Asymmetry shape parameter 
+addlocaltime      = False # Local solar time of the PF
+addasymmetry      = False # Asymmetry shape parameter 
                           #  (Zick et al. 2016)
 addasymmetryc     = False # As above for convective pixels
-addfragmentation  = True # Fragmentation shape parameter 
+addfragmentation  = False # Fragmentation shape parameter 
                           #  (Zick et al. 2016)
 addfragmentationc = False # As above for convective pixels
-addaxesshape      = True  # Array of variables based on 
+adddispersion     = False # Dispersion shape parameter 
+                          #  (Zick et al. 2016)
+adddispersionc    = True # As above for convective pixels
+addaxesshape      = True # Array of variables based on 
                           #  the major and minor axes from 
                           #  eigenvalue/vectors
-addaxesshapec     = False # As above for convective pixels
-addperimeter      = True # Distance around perimeter of 
+addaxesshapec     = True # As above for convective pixels
+addperimeter      = False # Distance around perimeter of 
                           #  shape (alpha-shape method)
-addconvrain       = True # Flags indicating whether rain 
+addconvrain       = False # Flags indicating whether rain 
                           #  is convective
-addconvarea       = True # Area of the convective region 
+addconvarea       = False # Area of the convective region 
                           #  (addconvrain must also be True)
-addconvvrr        = True # Volume of convective rainfall 
+addconvvrr        = False # Volume of convective rainfall 
                           #  (addconvrain must also be True)
 
 # Inputs for specific variables
@@ -95,6 +100,14 @@ fileTCid  = "IBTrACS.ALL.v04r00.nc"
 
 # Convective rain rate threshold (mm/hr)
 convrainthold = 10
+
+# Shape metric indexes
+minshapesize  = 30   # Minimum number of pixels for PF shape
+minshapefrag  = 0.35 # Minimum fragmentation for PF shape
+minshapedisp  = 0.7  # Minimum dispersion for PF shape
+minshapesizec = 30   # Minimum number of pixels for PF shape
+minshapefragc = 0.5 # Minimum fragmentation for convective shape
+minshapedispc = 1.0  # Minimum dispersion for convective shape
 
 #==================================================================
 # Initialize timer
@@ -115,6 +128,8 @@ namelist["addmaxrr"] = str(addmaxrr)
 namelist["addmeanrr"] = str(addmeanrr)
 namelist["addmedianrr"] = str(addmedianrr)
 namelist["addstddevrr"] = str(addstddevrr)
+namelist["addpieces"] = str(addpieces)
+namelist["addpiecesc"] = str(addpiecesc)
 namelist["addarea"] = str(addarea)
 namelist["addvrr"] = str(addvrr)
 namelist["addpropagation"] = str(addpropagation)
@@ -132,18 +147,33 @@ namelist["addasymmetry"] = str(addasymmetry)
 namelist["addasymmetryc"] = str(addasymmetryc)
 namelist["addfragmentation"] = str(addfragmentation)
 namelist["addfragmentationc"] = str(addfragmentationc)
+namelist["adddispersion"] = str(adddispersion)
+namelist["adddispersionc"] = str(adddispersionc)
 
 if addarea or addvrr or addconvarea or addconvvrr or \
    addperimeter or addasymmetry or addfragmentation or \
    addaxesshape or addboundaryinfo or addasymmetryc or \
-   addaxesshapec or addfragmentationc:
+   addaxesshapec or addfragmentationc or adddispersion or \
+   adddispersionc or addpieces:
   namelist["dx"] = dx
   namelist["dy"] = dy
+if addasymmetry or addfragmentation or adddispersion or \
+   addaxeshape:
+  namelist["minshapesize"] = minshapesize
+if addasymmetryc or addfragmentationc or adddispersionc or \
+   addaxeshapec:
+  namelist["minshapesizec"] = minshapesizec
+if addfragmentation or adddispersion:
+  namelist["minshapefrag"] = minshapefrag
+  namelist["minshapedisp"] = minshapedisp
+if addfragmentationc or adddispersionc:
+  namelist["minshapefragc"] = minshapefragc
+  namelist["minshapedispc"] = minshapedispc
 if addTCinfo:
   namelist["dataTCdir"] = str(dataTCdir)
   namelist["fileTCid"] = str(fileTCid)
 if addconvrain or addconvarea or addconvvrr or addasymmetryc or \
-   addfragmentationc or addaxesshapec:
+   addfragmentationc or addaxesshapec or adddispersionc:
   namelist["convrainthold"] = convrainthold
 
 # Write namelist dictionary to netcdf file for reading 
