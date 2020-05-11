@@ -55,7 +55,7 @@ subsetobs = True
 ob1       = 100000 # First obid
 ob2       = 100100 # Last obid
 subsetsztm= True
-nsz       = 10     # Minimum no of pixels
+nsz       = 30     # Minimum no of pixels (30 advised)
 nt        = 6      # Minimum number of times
 
 # Specify merging distance from tracking (number of pixels)

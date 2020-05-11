@@ -450,125 +450,125 @@ def driver_addvars(fn):
             centersx[i-1] = np.mean([x for x,y in indpairs])
             centersy[i-1] = np.mean([y for x,y in indpairs])
 
-      # Calculate dispersion
-      if (nl.adddispersion=="True" or nl.addaxesshape=="True") \
-        and numL>1:
+        # Calculate dispersion
+        if (nl.adddispersion=="True" or nl.addaxesshape=="True") \
+          and numL>1:
 
-        # Calculate distance to center
-        dists = np.zeros([numL,numL])
-        for i in range(0,numL):
-          for j in range(0,numL): 
-            dists[i-1,j-1] = gfns.calc_distance(centersx[i-1],
-             centersy[i-1],centersx[j-1],centersy[j-1])
-        dists = np.ma.array(dists,mask=np.where(dists==0,1,0))
-        mdists = np.amin(dists,axis=0)
+          # Calculate distance to center
+          dists = np.zeros([numL,numL])
+          for i in range(0,numL):
+            for j in range(0,numL): 
+              dists[i-1,j-1] = gfns.calc_distance(centersx[i-1],
+               centersy[i-1],centersx[j-1],centersy[j-1])
+          dists = np.ma.array(dists,mask=np.where(dists==0,1,0))
+          mdists = np.amin(dists,axis=0)
 
-        areafac = [a/sum(areas) for a in areas]
-        distfac = [d/(4*np.sqrt(sum(areas)/math.pi)) \
-         for d in mdists]
-        dispersion[c] = sum([a*b for a,b in 
+          areafac = [a/sum(areas) for a in areas]
+          distfac = [d/(4*np.sqrt(sum(areas)/math.pi)) \
+           for d in mdists]
+          dispersion[c] = sum([a*b for a,b in 
                                list(zip(areafac,distfac))])
 
-      elif (nl.adddispersion=="True" or nl.addaxesshape=="True") \
-        and numL==1: dispersion[c]=0
+        elif (nl.adddispersion=="True" or nl.addaxesshape=="True") \
+          and numL==1: dispersion[c]=0
 
 #==================================================================
 # Perimeter and asymmetry prepwork
 #==================================================================
 
-      if nl.addperimeter=="True" or \
-         nl.addasymmetry=="True":
+        if nl.addperimeter=="True" or \
+           nl.addasymmetry=="True":
 
-        # Find largest piece and all corner coordinates
-        largelabel  = areas.index(max(areas))+1
-        indpairslrg = [(round(float(z[1]),2),round(float(z[0]),2))
-           for z in df1[df1==largelabel].stack().index.tolist()]
-        corners = sfns.find_corners(indpairslrg,nl.dx,nl.dy)
+          # Find largest piece and all corner coordinates
+          largelabel  = areas.index(max(areas))+1
+          indpairslrg = [(round(float(z[1]),2),round(float(z[0]),2))
+             for z in df1[df1==largelabel].stack().index.tolist()]
+          corners = sfns.find_corners(indpairslrg,nl.dx,nl.dy)
 
-        # Find largest piece and all coordinates
-        lonslatslrg = [[x for x, y in corners],
-                       [y for x, y in corners]]
+          # Find largest piece and all coordinates
+          lonslatslrg = [[x for x, y in corners],
+                         [y for x, y in corners]]
 
 #==================================================================
 # Add perimeter - only for largest piece
 # Uses alpha shapes to define the concave hull with alpha=10 
 #==================================================================
 
-      if nl.addperimeter=="True":
+        if nl.addperimeter=="True":
         
-        # Define the perimeter coordinates
-        import alphashape
-        hull = alphashape.alphashape(corners, 10)
-        hull_pts = hull.exterior.coords.xy
+          # Define the perimeter coordinates
+          import alphashape
+          hull = alphashape.alphashape(corners, 10)
+          hull_pts = hull.exterior.coords.xy
 
-        # Calculate perimeter by summing lengths of all edges
-        # Divide by 1000 to get result in km
-        perimeter_lp[c] = sum([gfns.calc_distance(
-                             hull_pts[0][i],hull_pts[1][i],
-                             hull_pts[0][i+1],hull_pts[1][i+1])
-                for i in range(0,len(hull_pts[0])-1)])/1000
+          # Calculate perimeter by summing lengths of all edges
+          # Divide by 1000 to get result in km
+          perimeter_lp[c] = sum([gfns.calc_distance(
+                               hull_pts[0][i],hull_pts[1][i],
+                               hull_pts[0][i+1],hull_pts[1][i+1])
+                  for i in range(0,len(hull_pts[0])-1)])/1000
 
 #==================================================================
 # Add asymmetry
 #==================================================================
 
-      if nl.addasymmetry=="True":
+        if nl.addasymmetry=="True":
 
-        # Fit a convex hull to the data points
-        hull = ConvexHull(corners)
-        verts = [(v[0],v[1]) for v in 
-                   hull.points[hull.vertices]]
+          # Fit a convex hull to the data points
+          hull = ConvexHull(corners)
+          verts = [(v[0],v[1]) for v in 
+                     hull.points[hull.vertices]]  
 
-        # Calculate perimeter
-        verts.append(verts[0])
-        perim = sum([gfns.calc_distance(verts[v][0] ,verts[v][1],
-                                     verts[v+1][0],verts[v+1][1]) 
+          # Calculate perimeter
+          verts.append(verts[0])
+          perim = sum([gfns.calc_distance(verts[v][0] ,verts[v][1],
+                                       verts[v+1][0],verts[v+1][1]) 
                         for v in range(0,len(verts)-1)])
 
-        # Define Asymmetry
-        asymmetry_lp[c] = (4*np.pi*areas[largelabel-1])/\
-                              (perim**2)
+          # Define Asymmetry
+          asymmetry_lp[c] = (4*np.pi*areas[largelabel-1])/\
+                                (perim**2)
 
 #==================================================================
 # Add fragmentation
 #==================================================================
 
-      if nl.addfragmentation=="True" or nl.addaxesshape=="True":
+        if nl.addfragmentation=="True" or nl.addaxesshape=="True":
 
-        # Calculate metrics related to fragmentation
-        connectivity[c]  = 1.-(numL-1.)/(numL+np.log10(
-         gfns.calc_area(lonsnzk,latsnzk,nl.dx,nl.dy)))
-        solidity[c] = np.mean(solid)
-        fragmentation[c] = 1. - (solidity[c]*connectivity[c])
+          # Calculate metrics related to fragmentation
+          connectivity[c]  = 1.-(numL-1.)/(numL+np.log10(
+           gfns.calc_area(lonsnzk,latsnzk,nl.dx,nl.dy)))
+          solidity[c] = np.mean(solid)
+          fragmentation[c] = 1. - (solidity[c]*connectivity[c])
      
 #==================================================================
 # Add major/minor axes shape
 #==================================================================
 
-      if nl.addaxesshape=="True":
+        if nl.addaxesshape=="True":
 
-        print("d="+str(dispersion[c]))
-        print("f="+str(fragmentation[c]))
+          #print("d="+str(dispersion[c]))
+          #print("f="+str(fragmentation[c]))
         
-        # Only assign shape if fragmentation and dispersion are low
-        if fragmentation[c]<float(nl.minshapefrag) and \
-              dispersion[c]<float(nl.minshapedisp):
-          center,axang[c,:],axlen[c,:],fit = \
-           sfns.fit_ellipse_svd(lonsnzk,latsnzk,fit=True)#[1:3]
+          # Only assign shape if f and d are low
+          if fragmentation[c]<float(nl.minshapefrag) and \
+                dispersion[c]<float(nl.minshapedisp):
+            axang[c,:],axlen[c,:] = \
+             sfns.fit_ellipse_svd(lonsnzk,latsnzk)[1:3]
 
-          ellipticity[c] = 1-(axlen[c,1]/axlen[c,0])
+            ellipticity[c] = 1-(axlen[c,1]/axlen[c,0])
 
-        ### Plotting for test
-        
-          xm,ym = np.meshgrid([x-0.05 for x in nx],
-                              [y-0.05 for y in ny])
-          sfns.plot_pf_ellipse(xm,ym,df.values,center,
-           axang[c,:],axlen[c,:],fit)
-        else:
-
-          xm,ym = np.meshgrid([x-0.05 for x in nx],
-                              [y-0.05 for y in ny])
-          sfns.plot_pf(xm,ym,df.values)
+          ### Plotting for test
+          #
+          #  xm,ym = np.meshgrid([x-0.05 for x in nx],
+          #                      [y-0.05 for y in ny])
+          #  sfns.plot_pf_ellipse(xm,ym,df.values,center,
+          #   axang[c,:],axlen[c,:],fit)
+          #else:
+          #
+          #  xm,ym = np.meshgrid([x-0.05 for x in nx],
+          #                      [y-0.05 for y in ny])
+          #  sfns.plot_pf(xm,ym,df.values)
 
 #==================================================================
 # Convective shape prepwork
@@ -584,25 +584,27 @@ def driver_addvars(fn):
       lonsc = lons[k][instrain[k]>nl.convrainthold]
       latsc = lats[k][instrain[k]>nl.convrainthold]
       rainc = instrain[k][instrain[k]>nl.convrainthold]
-      center_c[c,0]= np.mean(lonsc)
-      center_c[c,1]= np.mean(latsc)
 
-      # Generate dataframe for object
-      dfc = mfns.create_2d_dataframe(lonsc,latsc,
-       nl.dx,nl.dy,rainc)
+      if len(latsc)>float(nl.minshapesizec):
 
-      # Find and label all contiguous areas within object
-      labelsc, numLc = sfns.label_wdiags(dfc)
-      nyc = [float(i) for i in dfc.index]
-      nxc = [float(i) for i in dfc.columns]
-      dfc1 = pd.DataFrame(labelsc,[str(i) for i in nyc],
-                                  [str(i) for i in nxc])
+        # Define center of convection
+        center_c[c,0]= np.mean(lonsc)
+        center_c[c,1]= np.mean(latsc)
 
-      # assign number of pieces to pieces
-      if nl.addpiecesc=="True":
-        pieces_c[c] = numLc
+        # Generate dataframe for object
+        dfc = mfns.create_2d_dataframe(lonsc,latsc,
+         nl.dx,nl.dy,rainc)
 
-      if len(latsc)>9:
+        # Find and label all contiguous areas within object
+        labelsc, numLc = sfns.label_wdiags(dfc)
+        nyc = [float(i) for i in dfc.index]
+        nxc = [float(i) for i in dfc.columns]
+        dfc1 = pd.DataFrame(labelsc,[str(i) for i in nyc],
+                                    [str(i) for i in nxc])
+
+        # assign number of pieces to pieces
+        if nl.addpiecesc=="True":
+          pieces_c[c] = numLc
 
         # Fragmentation prepwork
         if nl.addfragmentationc=="True" or \
@@ -715,8 +717,9 @@ def driver_addvars(fn):
           # Calculate perimeter
           vertsc.append(vertsc[0])
           perimc = sum([gfns.calc_distance(
-           vertsc[v][0],vertsc[v][1],vertsc[v+1][0],vertsc[v+1][1]) 
-                          for v in range(0,len(vertsc)-1)])
+           vertsc[v][0],vertsc[v][1],
+           vertsc[v+1][0],vertsc[v+1][1]) 
+           for v in range(0,len(vertsc)-1)])
 
           # Define Asymmetry
           asymmetry_lp_c[c] = (4*np.pi*areasc[largelabelc-1])/\
@@ -726,7 +729,8 @@ def driver_addvars(fn):
 # Add fragmentation
 #==================================================================
 
-        if nl.addfragmentationc=="True" or nl.addaxesshapec=="True":
+        if nl.addfragmentationc=="True" or \
+           nl.addaxesshapec=="True":
 
           # Calculate metrics related to fragmentation
           connectivity_c[c]  = 1.-(numLc-1.)/(numLc+np.log10(
@@ -740,27 +744,27 @@ def driver_addvars(fn):
 
         if nl.addaxesshapec=="True":
 
-          print("dc="+str(dispersion_c[c]))
-          print("fc="+str(fragmentation_c[c]))
+          #print("dc="+str(dispersion_c[c]))
+          #print("fc="+str(fragmentation_c[c]))
         
           if fragmentation_c[c]<float(nl.minshapefragc) and \
                 dispersion_c[c]<float(nl.minshapedispc):
-            axang_c[c,:],axlen_c[c,:],fitc = \
-             sfns.fit_ellipse_svd(lonsc,latsc,fit=True)[1:]
+            axang_c[c,:],axlen_c[c,:] = \
+             sfns.fit_ellipse_svd(lonsc,latsc)[1:3]
 
             ellipticity_c[c] = 1-(axlen_c[c,1]/axlen_c[c,0])
 
           ### Plotting for test
-            if len(latsnzk)>9:
-              print("Ellipse: yes")
-              sfns.plot_pf_ellipse(xm,ym,df.values,center_c[c,:],
-               axang_c[c,:],axlen_c[c,:],fitc)          
-
-          else:
-
-            if len(latsnzk)>9:
-              print("Ellipse: no")
-              sfns.plot_pf(xm,ym,df.values)
+          #  if len(latsnzk)>float(nl.minshapesize):
+          #    print("Ellipse: yes")
+          #    sfns.plot_pf_ellipse(xm,ym,df.values,center_c[c,:],
+          #     axang_c[c,:],axlen_c[c,:],fitc)          
+          #
+          #else:
+          #
+          #  if len(latsnzk)>float(nl.minshapesize):
+          #    print("Ellipse: no")
+          #    sfns.plot_pf(xm,ym,df.values)
 
 #==================================================================
 # Add boundary information
@@ -1030,13 +1034,13 @@ def driver_addvars(fn):
  
   if nl.addconvarea=="True":
     description = "Area of locations with rain rates greater than convective rain rate threshold"
-    mfns.write_var("conv_area","Convective area",
+    mfns.write_var("area_c","Convective area",
      description,"time",np.float64,"",fileout,convarea,f,
      float(-999))
 
   if nl.addconvvrr=="True":
     description = "Volumetric rain rate of locations with rain rates greater than convective rain rate threshold"
-    mfns.write_var("conv_vrr","Convective volumetric rain rate",
+    mfns.write_var("vrr_c","Convective volumetric rain rate",
     description,"time",np.float64,"",fileout,convvrr,f,
     float(-999))
 
@@ -1076,7 +1080,7 @@ def driver_addvars(fn):
     description = "Asymmetry factor for largest convective piece within PF. 0 = symmetrical (circle). 1 = Highly asymmetrical, non-circular."
     mfns.write_var("asymmetry_lp_c",
      "Asymmetry factor for convective pixels",description,"time",
-     np.float64,"",fileout,asymmetry_lp,f,float(-999))
+     np.float64,"",fileout,asymmetry_lp_c,f,float(-999))
 
 #==================================================================
 # Write fragmentation to file
@@ -1137,35 +1141,68 @@ def driver_addvars(fn):
 # Write length of axes
 #==================================================================
 
-    mjrax_length = axlen[:,0]
-    mnrax_length = axlen[:,1]
-
     description = "Length of major axis"
     mfns.write_var("mjrax_length","Major axis length",
-     description,"time",np.float64,"m",fileout,mjrax_length,
+     description,"time",np.float64,"m",fileout,axlen[:,0],
      f,float(-999))
 
     description = "Length of minor axis"
     mfns.write_var("mnrax_length","Minor axis length",
-     description,"time",np.float64,"m",fileout,mnrax_length,
+     description,"time",np.float64,"m",fileout,axlen[:,1],
      f,float(-999))
 
 #==================================================================
 # Write angle major axis makes from north
 #==================================================================
 
-    mjrax_angle = axang[:,0]
-    mnrax_angle = axang[:,1]
-
     description = "Angle major axis makes with northward vector"
     mfns.write_var("mjrax_angle","Major axis angle",
      description,"time",np.float64,"degrees",fileout,
-     mjrax_angle,f,float(-999))
+     axang[:,0],f,float(-999))
 
     description = "Angle minor axis makes with northward vector"
     mfns.write_var("mnrax_angle","Minor axis angle",
      description,"time",np.float64,"degrees",fileout,
-     mnrax_angle,f,float(-999))
+     axang[:,1],f,float(-999))
+
+#==================================================================
+# Write ellipticity to file
+#==================================================================
+
+  if nl.addaxesshapec=="True":
+
+    description = "Ellipticity factor for convective pixels. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
+    mfns.write_var("ellipticity_c","Convective ellipticity factor",
+      description,"time",np.float64,"",fileout,ellipticity_c,
+      f,float(-999))
+
+#==================================================================
+# Write length of axes
+#==================================================================
+
+    description = "Length of major axis for convective pixels"
+    mfns.write_var("mjrax_length_c","Convective major axis length",
+     description,"time",np.float64,"m",fileout,axlen_c[:,0],
+     f,float(-999))
+
+    description = "Length of minor axis for convective pixels"
+    mfns.write_var("mnrax_length_c","Convective minor axis length",
+     description,"time",np.float64,"m",fileout,axlen_c[:,1],
+     f,float(-999))
+
+#==================================================================
+# Write angle major axis makes from north
+#==================================================================
+
+    description = "Angle major axis for convective pixels makes with northward vector"
+    mfns.write_var("mjrax_angle_c","Convective major axis angle",
+     description,"time",np.float64,"degrees",fileout,
+     axang_c[:,0],f,float(-999))
+
+    description = "Angle minor axis for convective pixels makes with northward vector"
+    mfns.write_var("mnrax_angle_c","Convective minor axis angle",
+     description,"time",np.float64,"degrees",fileout,
+     axang_c[:,1],f,float(-999))
 
 #==================================================================
 # Write boundary information to file
