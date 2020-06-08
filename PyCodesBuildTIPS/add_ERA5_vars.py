@@ -18,10 +18,9 @@
 import numpy as np
 from netCDF4 import Dataset
 import glob
-import datetime
+import datetime as dt
 import driver_addERA5vars as da
 from joblib import Parallel, delayed
-import TIPS_functions as fns
 import time as tm
 import os
 
@@ -29,8 +28,11 @@ import os
 # Namelist
 #==================================================================
 
+# Directory for custom functions
+fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
+
 # Directory and filename for PF files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
+datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_2014/"
 fileid  = "TIPS_"
 
 # Subset (for certain range of dates) 
@@ -38,50 +40,44 @@ ssdat = False
 date1 = "20180601"
 date2 = "20180602"
 ssobs = False
-obid1 = "100000"
-obid2 = "100010"
+obid1 = "100521"
+obid2 = "100523"
 
 # Number of processes for parrallelization
-serialorparallel = 1
+serialorparallel = 2
 njobs = 8
 
-# Types of variables desired
-addctarea         = False # Area centered on TIPS
-addctmean         = True  # Mean of centered area
-addctarearainchk  = False # As above but checked for pixels that have IMERG rainfall
-addctmeanrainchk  = True  # As above but checked for pixels that have IMERG rainfall
-addinarea         = False # All points in calculated inflow
-addinmean         = False # Add mean of inflow region
-addinarearainchk  = False # As above but checked for pixels that have IMERG rainfall
-addinmeanrainchk  = False # As above but checked for pixels that have IMERG rainfall
+# Type of area or mean
+addctarea = True # Area centered on TIPS
+addctmean = True  # Mean of centered area
+addinarea = False # All points in calculated inflow
+addinmean = False # Add mean of inflow region
+
+# Rain check or no rain check
+addrainchk   = True
+addnorainchk = False
 
 # Variables desired
-addCAPEE5    = True # ERA5 Convective Available 
-                     #  Potential Energy
 addTCWVE5    = True # ERA5 Total Column Water Vapor
-addSPHFE5    = True # ERA5 850-200 hPa specific humidity
-                     #  (free troposphere)
-addSPHBE5    = True # ERA5 1000-850 hPa specific humidity 
-                     #  (boundary layer)
-addSHRFE5    = True # ERA5 850-200 hPa wind shear 
-                     #  (free troposphere)
-addSHRBE5    = True # ERA5 1000-850 hPa wind shear 
-                     #  (boundary layer)
+addCAPEE5    = False # ERA5 Convective Available Potential Energy
+addSR18E5    = False # ERA5 Boundary Layer Shear
+addSR82E5    = False # ERA5 Free-troposphere Shear
 
-# Half data area in degrees
-hda          = 5 
+# ERA5 domain variables
+hda           = 2.5 # Half data area in degrees
+hoursbefore   = np.arange(48,0,-3) # Hours before (descending)
+hoursafter    = hoursbefore[::-1] # Hours after (ascending)
+avgmissfrac   = 0.8 # fraction of domain missing before average is not carried out
 
 # Directory and filenames of ERA5 data
 dataE5dir    = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
-fileCAPEE5id = "convparams/ERA5.CAPE."
 fileTCWVE5id = "moisture/ERA5.TCWV."
+fileCAPEE5id = "convparams/ERA5.CAPE."
+fileUSR18E5id = "shear/ERA5.USHR_1000-850hPamean."
+fileVSR18E5id = "shear/ERA5.VSHR_1000-850hPamean."
+fileUSR82E5id = "shear/ERA5.USHR_850-200hPamean."
+fileVSR82E5id = "shear/ERA5.VSHR_850-200hPamean."
 fileTCRWE5id = "clouds/ERA5.TCRW."
-fileUSRFE5id = "shear/ERA5.USHR_850-200hPamean."
-fileUSRBE5id = "shear/ERA5.USHR_1000-850hPamean."
-fileVSRFE5id = "shear/ERA5.VSHR_850-200hPamean."
-fileVSRBE5id = "shear/ERA5.VSHR_1000-850hPamean."
-fileSPHFE5id = "moisture/ERA5.SPHU_850-200hPamean."
-fileSPHBE5id = "moisture/ERA5.SPHU_1000-850hPamean."
 
 #==================================================================
 # Initialize timer
@@ -95,42 +91,38 @@ startnow = tm.time()
 
 # Put namelist information in dictionaries
 namelist = {}
+namelist["fnsdir"] = str(fnsdir)
 
 # Add which variables are selected
-namelist["addCAPEE5"] = str(addCAPEE5)
-namelist["addTCWVE5"] = str(addTCWVE5)
-namelist["addTCRWE5"] = str(addTCRWE5)
-namelist["addSHRBE5"] = str(addSHRBE5)
-namelist["addSHRFE5"] = str(addSHRFE5)
-namelist["addSPHBE5"] = str(addSPHBE5)
-namelist["addSPHFE5"] = str(addSPHFE5)
-
 namelist["addctarea"] = str(addctarea)
 namelist["addctmean"] = str(addctmean)
-namelist["addctarearainchk"] = str(addctarearainchk)
-namelist["addctmeanrainchk"] = str(addctmeanrainchk)
 namelist["addinarea"] = str(addinarea)
 namelist["addinmean"] = str(addinmean)
-namelist["addinarearainchk"] = str(addinarearainchk)
-namelist["addinmeanrainchk"] = str(addinmeanrainchk)
+
+namelist["addrainchk"]   = str(addrainchk)
+namelist["addnorainchk"] = str(addnorainchk)
+
+namelist["addTCWVE5"] = str(addTCWVE5)
+namelist["addCAPEE5"] = str(addCAPEE5)
+namelist["addSR18E5"] = str(addSR18E5)
+namelist["addSR82E5"] = str(addSR82E5)
 
 namelist["dataE5dir"] = str(dataE5dir)
 
-if addctarea or addctmean:
-  namelist["hda"] = hda
+namelist["hda"] = hda
+namelist["avgmissfrac"] = avgmissfrac
+namelist["hoursbefore"] = hoursbefore
+namelist["hoursafter"] = hoursafter
 
-if addCAPEE5: namelist["fileCAPEE5id"] = str(fileCAPEE5id)
 if addTCWVE5: namelist["fileTCWVE5id"] = str(fileTCWVE5id)
-if addSHRBE5: namelist["fileUSRBE5id"] = str(fileUSRBE5id)
-if addSHRFE5: namelist["fileUSRFE5id"] = str(fileUSRFE5id)
-if addSHRBE5: namelist["fileVSRBE5id"] = str(fileVSRBE5id)
-if addSHRFE5: namelist["fileVSRFE5id"] = str(fileVSRFE5id)
-if addSPHBE5: namelist["fileSPHBE5id"] = str(fileSPHBE5id)
-if addSPHFE5: namelist["fileSPHFE5id"] = str(fileSPHFE5id)
-
-if addctarearainchk or addctmeanrainchk or \
-   addinarearainchk or addinmeanrainchk:  
-  namelist["fileTCRWE5id"] = str(fileTCRWE5id)
+if addCAPEE5: namelist["fileCAPEE5id"] = str(fileCAPEE5id)
+if addSR18E5: 
+  namelist["fileUSR18E5id"] = str(fileUSR18E5id)
+  namelist["fileVSR18E5id"] = str(fileVSR18E5id)
+if addSR82E5: 
+  namelist["fileUSR82E5id"] = str(fileUSR82E5id)
+  namelist["fileVSR82E5id"] = str(fileVSR82E5id)
+if addrainchk: namelist["fileTCRWE5id"] = str(fileTCRWE5id)
 
 # Write namelist dictionary to netcdf file for reading 
 #  during parallel loop
@@ -151,9 +143,9 @@ if ssdat:
 
   # Generate a list of filenames with dates to search for
   print("Generating filenames to search for")
-  start = datetime.datetime.strptime(date1,"%Y%m%d")
-  end = datetime.datetime.strptime(date2,"%Y%m%d")
-  datearr = (start + datetime.timedelta(days=x) for x in range(0,(end-start).days))
+  start = dt.datetime.strptime(date1,"%Y%m%d")
+  end = dt.datetime.strptime(date2,"%Y%m%d")
+  datearr = (start + dt.timedelta(days=x) for x in range(0,(end-start).days))
   filen = []
   for dateobj in datearr:
     filen.append(datadir+fileid+"*"+dateobj.strftime("%Y%m%d")+"*")

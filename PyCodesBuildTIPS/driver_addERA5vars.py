@@ -9,13 +9,19 @@ def driver_addvars(fn):
 #==================================================================
 
   # Import libraries
-  import TIPS_functions as fns
-  import ERA5_functions as E5fns
   from netCDF4 import Dataset
   import numpy as np
+  import datetime as dt
+  import sys
 
   # Read in namelist variables
   nl = Dataset("namelist_av.nc","r")
+
+  # Import custom libraries
+  sys.path.insert(0,nl.fnsdir)
+  import time_functions as tfns
+  import misc_functions as mfns
+  import ERA5_functions as E5fns
 
   # Read in filename for PF
   for i, row in enumerate(open("filenames_av.txt")):
@@ -26,240 +32,349 @@ def driver_addvars(fn):
 
   # Open file and assign data
   fd = Dataset(f)
-  datalat  = fd.groups["lats"].groups["data"]
-  datalon  = fd.groups["lons"].groups["data"]
-  datarain = fd.groups["instrain"].groups["data"]
   dataclat = fd.variables["centrallat"][:]
   dataclon = fd.variables["centrallon"][:]
+  datadtim = fd.variables["datetime"][:]
+  timeunits = fd.variables["time"].units
 
-  # Get all times 
-  datakeys = datalat.__dict__.keys()
+  # Preallocate arrays
+  lonsE5 = {}; latsE5 = {}
+  files = {}
 
 #==================================================================
-# Preallocate arrays
+# Make list of times and get list files for current TIPS
 #==================================================================
 
-  # Dictionaries for lats and lons
-  lonsE5 = {}
-  latsE5 = {}
-  lats = {}
-  lons = {}
-  instrain = {}
+  # Define list of times in file
+  timestrs = [str(it)[0:4]+"-"+str(it)[4:6]+"-"+str(it)[6:8]+
+              " "+str(it)[8:10]+":"+str(it)[10:12]+":00" 
+              for it in datadtim]
+
+  # Define datetime objects for first and last times
+  fto = dt.datetime(int(timestrs[0][0:4]),int(timestrs[0][5:7]),
+   int(timestrs[0][8:10]),hour=int(timestrs[0][11:13]),
+   minute=int(timestrs[0][14:16]),second=int(timestrs[0][17:19]))
+  lto = dt.datetime(int(timestrs[-1][0:4]),int(timestrs[-1][5:7]),
+   int(timestrs[-1][8:10]),hour=int(timestrs[-1][11:13]),
+   minute=int(timestrs[-1][14:16]),second=int(timestrs[-1][17:19]))
+  
+  # Find times before and after and add to time list
+  timestrs = [str(fto-dt.timedelta(hours=int(it))) 
+              for it in nl.hoursbefore] + timestrs + \
+             [str(lto+dt.timedelta(hours=int(it))) 
+              for it in nl.hoursafter]
+  tE5 = [tfns.time_since(i,timeunits) for i in timestrs]
+
+  # Find files
+  if nl.addrainchk=="True": files["TCRW"] = E5fns.get_E5_ss_files(
+    nl.dataE5dir,nl.fileTCRWE5id,timestrs[0],timestrs[-1])
+  if nl.addTCWVE5=="True": files["TCWV"] = E5fns.get_E5_ss_files(
+    nl.dataE5dir,nl.fileTCWVE5id,timestrs[0],timestrs[-1])
+  if nl.addCAPEE5=="True": files["CAPE"] = E5fns.get_E5_ss_files(
+    nl.dataE5dir,nl.fileCAPEE5id,timestrs[0],timestrs[-1])
+  if nl.addSR18E5=="True": 
+    files["USR18"] = E5fns.get_E5_ss_files(
+     nl.dataE5dir,nl.fileUSR18E5id,timestrs[0],timestrs[-1])
+    files["VSR18"] = E5fns.get_E5_ss_files(
+     nl.dataE5dir,nl.fileVSR18E5id,timestrs[0],timestrs[-1])
+  if nl.addSR82E5=="True": 
+    files["USR82"] = E5fns.get_E5_ss_files(
+     nl.dataE5dir,nl.fileUSR82E5id,timestrs[0],timestrs[-1])
+    files["VSR82"] = E5fns.get_E5_ss_files(
+     nl.dataE5dir,nl.fileVSR82E5id,timestrs[0],timestrs[-1])
+
+#==================================================================
+# Get coordinates and their indices
+#==================================================================
+
+  # Get corresponding lists of central latitude and longitude
+  dataclat = [round(i,2) for i in 
+             [dataclat[0]]*len(nl.hoursbefore) + \
+             [i for i in dataclat] + \
+             [dataclat[-1]]*len(nl.hoursafter)]
+  dataclon = [round(i,2) for i in 
+             [dataclon[0]]*len(nl.hoursbefore) + \
+             [i for i in dataclon] + \
+             [dataclon[-1]]*len(nl.hoursafter)]
 
 #==================================================================
 # Begin loop over times
 #==================================================================
 
   c = 0
-  for k in datakeys:
-
-    # Get data for current time
-    lats[k] = datalat.getncattr(k)
-    lons[k] = datalon.getncattr(k)
-    instrain[k] = datarain.getncattr(k)
-
-    # Get locations of all pixels with nonzero precipitation
-    latsnzk = lats[k][instrain[k]>0]
-    lonsnzk = lons[k][instrain[k]>0]
-    instrainnzk = instrain[k][instrain[k]>0]
+  for k in timestrs:
 
 #==================================================================
-# Get appropriate ERA5 files and times
+# Get coordinates
 #==================================================================
 
-    # Get a filename
-    if nl.addCAPEE5=="True":
-      fileid1 = nl.fileCAPEE5id
-    elif nl.addTCWVE5=="True":
-      fileid1 = nl.fileTCWVE5id
-    elif nl.addCCTOE5=="True":
-      fileid1 = nl.fileCCTOE5id
-    elif nl.addSHRFE5=="True":
-      fileid1 = nl.fileUSRFE5id
-    elif nl.addSHRBE5=="True":
-      fileid1 = nl.fileUSRBE5id
-    elif nl.addSPHFE5=="True":
-      fileid1 = nl.fileSPHFE5id
-    elif nl.addSPHBE5=="True":
-      fileid1 = nl.fileSPHBE5id
+    # Case: Add centered area or centered mean with rain check
+    if nl.addctarea=="True" or \
+      (nl.addctmean=="True" and nl.addrainchk=="True"):
+  
+      # Find coordinates and indices
+      keys = [str(k) for k in files.keys()]
+      loni,lati,lonsE5[k],latsE5[k] = E5fns.get_E5_ss_2D_coords(
+        Dataset(files[keys[0]][0]),dataclon[c],dataclat[c],nl.hda)
 
-    # Set a time string
-    timestr = str(k)[0:4]+"-"+str(k)[4:6]+"-"+str(k)[6:8]+\
-              " "+str(k)[8:10]+":"+str(k)[10:12]+":00"
-
-    # Find file and time indices
-    fh,timi,times = E5fns.get_E5_ss_2D_fiti(
-                     nl.dataE5dir,fileid1,timestr)[0:3]
-
-#==================================================================
-# Get coordinates and indices
-#==================================================================
-
-    # Find coordinates and indices
-    loni,lati,lonsE5[k],latsE5[k] = \
-     E5fns.get_E5_ss_2D_coords(
-      fh,dataclon[c],dataclat[c],nl.hda)
-    fh.close()
-
-    # Create x and y coordinates
-    if addctarea=="True":
+      # Assign new coords
       xE5 = np.linspace(-nl.hda,nl.hda,len(lonsE5[k]))
       yE5 = np.linspace(-nl.hda,nl.hda,len(latsE5[k]))
 
+    # Case: Only add centered mean
+    elif nl.addctmean=="True" and nl.addnorainchk=="True":
+  
+      # Find indices
+      keys = [str(k) for k in files.keys()]
+      loni,lati = E5fns.get_E5_ss_coords(
+        Dataset(files[keys[0]][0]),dataclon[c],dataclat[c],nl.hda)
+
 #==================================================================
-# Assign ERA5 CAPE data
+# Preallocate arrays
 #==================================================================
 
-    if nl.addCAPEE5=="True":
+    if c==0:
 
-      # Preallocate array
-      if c==0:
-        CAPEE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+      if nl.addTCWVE5=="True":
 
+        if nl.addctarea=="True" and nl.addnorainchk=="True":
+          TCWV_area_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addnorainchk=="True": 
+          TCWV_mean_E5 = [-999]*len(timestrs)
+  
+        if nl.addctarea=="True" and nl.addrainchk=="True": 
+          TCWV_area_nr_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addrainchk=="True": 
+          TCWV_mean_nr_E5 = [-999]*len(timestrs)
+
+      if nl.addCAPEE5=="True":
+
+        if nl.addctarea=="True" and nl.addnorainchk=="True":
+          CAPE_area_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addnorainchk=="True": 
+          CAPE_mean_E5 = [-999]*len(timestrs)
+  
+        if nl.addctarea=="True" and nl.addrainchk=="True": 
+          CAPE_area_nr_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addrainchk=="True": 
+          CAPE_mean_nr_E5 = [-999]*len(timestrs)
+
+      if nl.addSR18E5=="True":
+
+        if nl.addctarea=="True" and nl.addnorainchk=="True":
+          USR18_area_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5))) 
+          VSR18_area_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))
+
+        if nl.addctmean=="True" and nl.addnorainchk=="True": 
+          USR18_mean_E5 = [-999]*len(timestrs)
+          VSR18_mean_E5 = [-999]*len(timestrs)
+  
+        if nl.addctarea=="True" and nl.addrainchk=="True": 
+          USR18_area_nr_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+          VSR18_area_nr_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addrainchk=="True": 
+          USR18_mean_nr_E5 = [-999]*len(timestrs)
+          VSR18_mean_nr_E5 = [-999]*len(timestrs)
+
+      if nl.addSR82E5=="True":
+
+        if nl.addctarea=="True" and nl.addnorainchk=="True":
+          USR82_area_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5))) 
+          VSR82_area_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))
+
+        if nl.addctmean=="True" and nl.addnorainchk=="True": 
+          USR82_mean_E5 = [-999]*len(timestrs)
+          VSR82_mean_E5 = [-999]*len(timestrs)
+  
+        if nl.addctarea=="True" and nl.addrainchk=="True": 
+          USR82_area_nr_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+          VSR82_area_nr_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addrainchk=="True": 
+          USR82_mean_nr_E5 = [-999]*len(timestrs)
+          VSR82_mean_nr_E5 = [-999]*len(timestrs)
+
+      if nl.addrainchk=="True":
+        TCRW_area_E5 = np.zeros((
+         len(timestrs),len(yE5),len(xE5)))  
+
+#==================================================================
+# Get rain check data
+#==================================================================
+
+    if nl.addrainchk=="True":
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileCAPEE5id,timestr)
-      
-      # Get a subset of the CAPE data
-      CAPEE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fh,"CAPE",timi,loni,lati,times,ctime)
-      CAPEE5units = fh.variables["CAPE"].units
+      fhR,timiR,timesR,ctimeR = E5fns.get_E5_ss_2D_fiti(
+       files["TCRW"],timestrs[c])
 
-      fh.close()
+      TCRWE5 = E5fns.get_E5_ss_2D_var(
+       fhR,"TCRW",timiR,loni,lati,timesR,ctimeR)
+
+      if nl.addctarea=="True":
+        TCRW_area_E5[c,:,:] = TCRWE5
+        TCRWE5units = fhR[0].variables["TCRW"].units
 
 #==================================================================
-# Assign ERA5 TCWV data
+# Get TCWV data
 #==================================================================
 
     if nl.addTCWVE5=="True":
 
-      # Preallocate array
-      if c==0:
-        TCWVE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
-
       # Find file and time indices
       fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileTCWVE5id,timestr)
-      
-      # Get a subset of the CAPE data
-      TCWVE5[c,:,:] = E5fns.get_E5_ss_2D_var(
+                       files["TCWV"],timestrs[c])
+
+      # Get units
+      TCWVE5units = fh[0].variables["TCWV"].units
+
+      # Get an area
+      if nl.addctarea=="True" or nl.addctmean=="True":
+        TCWVE5 = E5fns.get_E5_ss_2D_var(
                  fh,"TCWV",timi,loni,lati,times,ctime)
-      TCWVE5units = fh.variables["TCWV"].units
-      fh.close()
+
+      # Assign to area centered on PF
+      if nl.addctarea=="True" and nl.addnorainchk=="True":
+        TCWV_area_E5[c,:,:] = TCWVE5
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addnorainchk=="True":
+        TCWV_mean_E5[c] = np.mean(TCWVE5)
+
+      # Calculate without raining pixels
+      if (nl.addctarea=="True" or nl.addctmean=="True") \
+        and nl.addrainchk=="True": 
+        TCWVE5_nr = np.where(TCRWE5>0.001,np.nan,TCWVE5)
+
+      # Area centered on PF without rain
+      if nl.addctarea=="True" and nl.addrainchk=="True":
+        TCWV_area_nr_E5[c,:,:] = TCWVE5_nr
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addrainchk=="True":
+        varnan = TCWVE5_nr.flatten()
+        if np.isnan(varnan).sum()/len(varnan)<nl.avgmissfrac:
+          TCWV_mean_nr_E5[c] = np.nanmean(TCWVE5_nr)
+      
+      # Close file
+      fh[0].close()
 
 #==================================================================
-# Assign ERA5 SPHF data
+# Get CAPE data
 #==================================================================
 
-    if nl.addSPHFE5=="True":
-
-      # Preallocate array
-      if c==0:
-        SPHFE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+    if nl.addCAPEE5=="True":
 
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileSPHFE5id,timestr)
+      fh[0],timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files["CAPE"],timestrs[c])
+
+      # Get units
+      CAPEE5units = fh[0].variables["CAPE"].units
+
+      # Get an area
+      if nl.addctarea=="True" or nl.addctmean=="True":
+        CAPEE5 = E5fns.get_E5_ss_2D_var(
+                 fh[0],"CAPE",timi,loni,lati,times,ctime)
+
+      # Assign to area centered on PF
+      if nl.addctarea=="True" and nl.addnorainchk=="True":
+        CAPE_area_E5[c,:,:] = CAPEE5
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addnorainchk=="True":
+        CAPE_mean_E5[c] = np.mean(CAPEE5)
+
+      # Calculate without raining pixels
+      if (nl.addctarea=="True" or nl.addctmean=="True") \
+        and nl.addrainchk=="True": 
+        CAPEE5_nr = np.where(TCRWE5>0.001,np.nan,CAPEE5)
+
+      # Area centered on PF without rain
+      if nl.addctarea=="True" and nl.addrainchk=="True":
+        CAPE_area_nr_E5[c,:,:] = CAPEE5_nr
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addrainchk=="True":
+        varnan = CAPEE5_nr.flatten()
+        if np.isnan(varnan).sum()/len(varnan)<nl.avgmissfrac:
+          CAPE_mean_nr_E5[c] = np.nanmean(CAPEE5_nr)
       
-      # Get a subset of the SPHF data
-      SPHFE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fh,"Q",timi,loni,lati,times,ctime)
-      SPHFE5units = fh.variables["Q"].units
-      fh.close()
+      # Close file
+      fh[0].close()
 
 #==================================================================
-# Assign ERA5 SPHB data
+# Get USR18 data
 #==================================================================
 
-    if nl.addSPHBE5=="True":
-
-      # Preallocate array
-      if c==0:
-        SPHBE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
+    if nl.addSR18E5=="True":
 
       # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileSPHBE5id,timestr)
+      fhU,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files["USR18"],timestrs[c])
+      fhV,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files["VSR18"],timestrs[c])
+
+      # Get units
+      SR18E5units = fhU.variables["USHR"].units
+
+      # Get an area
+      if nl.addctarea=="True" or nl.addctmean=="True":
+        USR18E5 = E5fns.get_E5_ss_2D_var(
+                 fhU,"USHR",timi,loni,lati,times,ctime)
+        VSR18E5 = E5fns.get_E5_ss_2D_var(
+                 fhV,"VSHR",timi,loni,lati,times,ctime)
+
+      # Assign to area centered on PF
+      if nl.addctarea=="True" and nl.addnorainchk=="True":
+        USR18_area_E5[c,:,:] = USR18E5
+        VSR18_area_E5[c,:,:] = VSR18E5
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addnorainchk=="True":
+        USR18_mean_E5[c] = np.mean(USR18E5)
+        VSR18_mean_E5[c] = np.mean(VSR18E5)
+
+      # Calculate without raining pixels
+      if (nl.addctarea=="True" or nl.addctmean=="True") \
+        and nl.addrainchk=="True":
+        USR18E5_nr = np.where(TCRWE5>0.001,np.nan,USR18E5)
+        VSR18E5_nr = np.where(TCRWE5>0.001,np.nan,VSR18E5)
+
+      # Area centered on PF without rain
+      if nl.addctarea=="True" and nl.addrainchk=="True":
+        USR18_area_nr_E5[c,:,:] = USR18E5_nr
+        VSR18_area_nr_E5[c,:,:] = VSR18E5_nr
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addrainchk=="True":
+        varnan = USR18E5_nr.flatten()
+        if np.isnan(varnan).sum()/len(varnan)<nl.avgmissfrac:
+          USR18_mean_nr_E5[c] = np.nanmean(USR18E5_nr)
+        varnan = VSR18E5_nr.flatten()
+        if np.isnan(varnan).sum()/len(varnan)<nl.avgmissfrac:
+          VSR18_mean_nr_E5[c] = np.nanmean(VSR18E5_nr)
       
-      # Get a subset of the SPHF data
-      SPHBE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fh,"Q",timi,loni,lati,times,ctime)
-      SPHBE5units = fh.variables["Q"].units
-      fh.close()
-
-#==================================================================
-# Assign ERA5 SHRF data
-#==================================================================
-
-    if nl.addSHRFE5=="True":
-
-      # Preallocate array
-      if c==0:
-        USRFE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
-        VSRFE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
-      
-      # Find file and time indices
-      fhU,timiU,timesU,ctimeU = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileUSRFE5id,timestr)
-      fhV,timiV,timesV,ctimeV = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileVSRFE5id,timestr)
-
-      # Get a subset of the SPHF data
-      USRFE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fhU,"USHR",timiU,loni,lati,timesU,ctimeU)
-      VSRFE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fhV,"VSHR",timiV,loni,lati,timesV,ctimeV)
-      SHRFE5units = fhU.variables["USHR"].units
+      # Close file
       fhU.close()
       fhV.close()
-
-#==================================================================
-# Assign ERA5 SHRB data
-#==================================================================
-
-    if nl.addSHRBE5=="True":
-
-      # Preallocate array
-      if c==0:
-        USRBE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
-        VSRBE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
-      
-      # Find file and time indices
-      fhU,timiU,timesU,ctimeU = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileUSRBE5id,timestr)
-      fhV,timiV,timesV,ctimeV = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileVSRBE5id,timestr)
-
-      # Get a subset of the SPHB data
-      USRBE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fhU,"USHR",timiU,loni,lati,timesU,ctimeU)
-      VSRBE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fhV,"VSHR",timiV,loni,lati,timesV,ctimeV)
-      SHRBE5units = fhU.variables["USHR"].units
-      fhU.close()
-      fhV.close()
-
-#==================================================================
-# Assign ERA5 TCRW data
-#==================================================================
-
-    if addctarearainchk=="True" or addctmeanrainchk=="True" or \
-       addinarearainchk=="True" or add addinmeanrainchk=="True":  
-
-      # Preallocate array
-      if c==0:
-        TCRWE5 = np.zeros((len(datakeys),len(yE5),len(xE5)))
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       nl.dataE5dir,nl.fileTCRWE5id,timestr)
-      
-      # Get a subset of the TCRW data
-      TCRWE5[c,:,:] = E5fns.get_E5_ss_2D_var(
-                 fh,"TCRW",timi,loni,lati,times,ctime)
-      TCRWE5units = fh.variables["TCRW"].units
-      fh.close()
-      
+     
 #==================================================================
 # End loops over objects and times
 #==================================================================
@@ -268,33 +383,6 @@ def driver_addvars(fn):
     c = c + 1
 
   fd.close()
-
-
-#==================================================================
-# Calculate mean time-series
-#==================================================================
-      
-  if addctmean=="True":
-
-    if addCAPEE5=="True":
-      CAPEE5mean = np.mean(CAPEE5[c,:,:],axis=(1,2))
-
-    if addSPHFE5=="True":
-      SPHFE5mean = np.mean(SPHFE5[c,:,:],axis=(1,2))
-
-    if addSPHBE5=="True":
-      SPHBE5mean = np.mean(SPHBE5[c,:,:],axis=(1,2))
-
-    if addSHRFE5=="True":
-      USRFE5mean = np.mean(USRFE5[c,:,:],axis=(1,2))
-      VSRFE5mean = np.mean(VSRFE5[c,:,:],axis=(1,2))
-
-    if addSHRBE5=="True":
-      USRBE5mean = np.mean(USRBE5[c,:,:],axis=(1,2))
-      VSRBE5mean = np.mean(VSRBE5[c,:,:],axis=(1,2))
-
-    if addCCTOE5=="True":
-      CCTOE5mean = np.mean(CCTOE5[c,:,:],axis=(1,2))
 
 #==================================================================
 # Open file to write data
@@ -306,20 +394,24 @@ def driver_addvars(fn):
 # Write coordinate data for environment information to file
 #==================================================================
 
-  if nl.addCAPEE5=="True" or nl.addTCWVE5=="True" or \
-     nl.addCCTOE5=="True" or nl.addSHRFE5=="True" or \
-     nl.addSHRBE5=="True" or nl.addSPHFE5=="True" or \
-     nl.addSPHFE5=="True":
+  try: tE51 = fileout.createDimension('tE5',len(tE5))
+  except: print("tE5 already defined")
+
+  description = "Corresponds to ERA5 data. Different from time dimension since times are added before and after the TIPS exists."
+  mfns.write_var("tE5","ERA5 time",description,("tE5"),
+    np.float64,timeunits,fileout,tE5,f,float(-999))
+
+  if nl.addctarea=="True":
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
 
     description = "longitudes corresponding to ERA5 data"
-    fns.write_group("lonsE5","ERA5 longitudes",description,
-                    "degreesE",format1,fileout,lonsE5,f)
+    mfns.write_group("lonsE5","ERA5 longitudes",description,
+                  "degreesE",format1,fileout,lonsE5,f)
 
     description = "latitudes corresponding to ERA5 data"
-    fns.write_group("latsE5","ERA5 latitudes",description,
-                    "degreesN",format1,fileout,latsE5,f)
+    mfns.write_group("latsE5","ERA5 latitudes",description,
+                   "degreesN",format1,fileout,latsE5,f)
 
     try: xE51 = fileout.createDimension('xE5',len(xE5))
     except: print("xE5 already defined")
@@ -327,22 +419,21 @@ def driver_addvars(fn):
     except: print("yE5 already defined")
 
     description = "Corresponds to ERA5 data centered on precipitation system centroid. Negative is west. Positive is east."
-    fns.write_var("xE5","ERA5 zonal distance from centroid",
-     description,("xE5"),np.float64,"degrees",fileout,xE5,f)
+    mfns.write_var("xE5","ERA5 zonal distance from centroid",
+      description,("xE5"),np.float64,"degrees",fileout,xE5,f,
+      float(-999))
+
     description = "Corresponds to ERA5 data centered on precipitation system centroid. Negative is south. Positive is north."
-    fns.write_var("yE5","Meridional distance from centroid",
-     description,("yE5"),np.float64,"degrees",fileout,yE5,f)
+    mfns.write_var("yE5","Meridional distance from centroid",
+      description,("yE5"),np.float64,"degrees",fileout,yE5,f,
+      float(-999))
 
-#==================================================================
-# Write CAPE information to file
-#==================================================================
+    if nl.addrainchk=="True" and nl.addctarea=="True":
 
-  if nl.addCAPEE5=="True":
-
-    description = "Surface-based CAPE from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("CAPE_E5",
-     "ERA5 Convective Available Potential Energy",description,
-     ("time","yE5","xE5"),np.float64,CAPEE5units,fileout,CAPEE5,f)
+      description = "Total column rain water from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCRW_area_E5","ERA5 Total Column Rain Water",
+       description,("tE5","yE5","xE5"),np.float64,TCRWE5units,
+       fileout,TCRW_area_E5,f,float(-999))
 
 #==================================================================
 # Write TCWV information to file
@@ -350,75 +441,121 @@ def driver_addvars(fn):
 
   if nl.addTCWVE5=="True":
 
-    description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("TCWV_E5","ERA5 Total Column Water Vapor",
-     description,("time","yE5","xE5"),np.float64,TCWVE5units,
-     fileout,TCWVE5,f)
+    if nl.addctarea=="True" and nl.addnorainchk=="True":
+      description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCWV_area_E5","ERA5 Total Column Water Vapor",
+       description,("tE5","yE5","xE5"),np.float64,TCWVE5units,
+       fileout,TCWV_area_E5,f,float(-999))
+
+    if nl.addctmean=="True"and nl.addnorainchk=="True":
+      description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCWV_mean_E5",
+       "ERA5 Mean Total Column Water Vapor",description,("tE5"),
+       np.float64,TCWVE5units,fileout,TCWV_mean_E5,f,float(-999))
+
+    if nl.addctarea=="True"and nl.addrainchk=="True":
+      TCWV_area_nr_E5 = np.where(np.isnan(TCWV_area_nr_E5),float(-999),TCWV_area_nr_E5)
+      description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCWV_area_nr_E5",
+       "ERA5 Rain-Checked Total Column Water Vapor",
+       description,("tE5","yE5","xE5"),np.float64,TCWVE5units,
+       fileout,TCWV_area_nr_E5,f,float(-999))
+
+    if nl.addctmean=="True"and nl.addrainchk=="True":
+      description = "Total column water vapor from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("TCWV_mean_nr_E5",
+       "ERA5 Rain-Checked Mean Total Column Water Vapor",
+       description,("tE5"),np.float64,TCWVE5units,
+       fileout,TCWV_mean_nr_E5,f,float(-999))
 
 #==================================================================
-# Write SPHF information to file
+# Write CAPE information to file
 #==================================================================
 
-  if nl.addSPHFE5=="True":
+  if nl.addCAPEE5=="True":
 
-    description = "Specific humidity between 850-200 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("SPHU_850-200_E5",
-     "ERA5 850-200 hPa mean specific humidity",description,
-     ("time","yE5","xE5"),np.float64,SPHFE5units,fileout,SPHFE5,f)
+    if nl.addctarea=="True" and nl.addnorainchk=="True":
+      description = "Convective Available Potential Energy from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("CAPE_area_E5","ERA5 CAPE",
+       description,("tE5","yE5","xE5"),np.float64,CAPEE5units,
+       fileout,CAPE_area_E5,f,float(-999))
 
-#==================================================================
-# Write SPHB information to file
-#==================================================================
+    if nl.addctmean=="True"and nl.addnorainchk=="True":
+      description = "Convective Available Potential Energy from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("CAPE_mean_E5","ERA5 Mean CAPE",
+       description,("tE5"),np.float64,CAPEE5units,fileout,
+       CAPE_mean_E5,f,float(-999))
 
-  if nl.addSPHBE5=="True":
+    if nl.addctarea=="True"and nl.addrainchk=="True":
+      CAPE_area_nr_E5 = np.where(np.isnan(CAPE_area_nr_E5),float(-999),CAPE_area_nr_E5)
+      description = "Convective Available Potential Energy from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("CAPE_area_nr_E5","ERA5 Rain-Checked CAPE",
+       description,("tE5","yE5","xE5"),np.float64,CAPEE5units,
+       fileout,CAPE_area_nr_E5,f,float(-999))
 
-    description = "Specific humidity between 1000-850 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("SPHU_1000-850_E5",
-     "ERA5 1000-850 hPa mean specific humidity",description,
-     ("time","yE5","xE5"),np.float64,SPHBE5units,fileout,SPHBE5,f)
-
-#==================================================================
-# Write SHRF information to file
-#==================================================================
-
-  if nl.addSHRFE5=="True":
-
-    description = "Zonal wind shear between 850-200 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("USHR_850-200_E5",
-     "ERA5 850-200 hPa zonal wind shear",description,
-     ("time","yE5","xE5"),np.float64,SHRFE5units,fileout,USRFE5,f)
-
-    description = "Meridional wind shear between 850-200 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("VSHR_850-200_E5",
-     "ERA5 850-200 hPa meridional wind shear",description,
-     ("time","yE5","xE5"),np.float64,SHRFE5units,fileout,VSRFE5,f)
+    if nl.addctmean=="True"and nl.addrainchk=="True":
+      description = "Convective Available Potential Energy from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("CAPE_mean_nr_E5",
+       "ERA5 Rain-checked Mean CAPE",description,("tE5"),
+       np.float64,CAPEE5units,fileout,CAPE_mean_nr_E5,
+       f,float(-999))
 
 #==================================================================
-# Write SHRB information to file
+# Write SR18 information to file
 #==================================================================
 
-  if nl.addSHRBE5=="True":
+  if nl.addSR18E5=="True":
 
-    description = "Zonal wind shear between 1000-850 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("USHR_1000-850_E5",
-     "ERA5 1000-850 hPa zonal wind shear",description,
-     ("time","yE5","xE5"),np.float64,SHRBE5units,fileout,USRBE5,f)
+    if nl.addctarea=="True" and nl.addnorainchk=="True":
+      description = "1000-850 hPa zonal shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("USR18_area_E5",
+      "ERA5 1000-850 hPa zonal shear",description,
+      ("tE5","yE5","xE5"),np.float64,SR18E5units,
+       fileout,USR18_area_E5,f,float(-999))
+      description = "1000-850 hPa meridional shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("VSR18_area_E5",
+      "ERA5 1000-850 hPa meridional shear",description,
+      ("tE5","yE5","xE5"),np.float64,SR18E5units,
+       fileout,VSR18_area_E5,f,float(-999))
 
-    description = "Meridional wind shear between 1000-850 hPa from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("VSHR_1000-850_E5",
-     "ERA5 1000-850 hPa meridional wind shear",description,
-     ("time","yE5","xE5"),np.float64,SHRBE5units,fileout,VSRBE5,f)
+    if nl.addctmean=="True"and nl.addnorainchk=="True":
+      description = "1000-850 hPa zonal shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("USR18_mean_E5",
+       "ERA5 Mean 1000-850 hPa zonal shear",description,("tE5"),
+       np.float64,SR18E5units,fileout,USR18_mean_E5,f,float(-999))
+      description = "1000-850 hPa meridional shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("VSR18_mean_E5",
+       "ERA5 Mean 1000-850 hPa Meridional Shear",description,
+       ("tE5"),np.float64,SR18E5units,fileout,VSR18_mean_E5,
+       f,float(-999))
 
-#==================================================================
-# Write CCTO information to file
-#==================================================================
+    if nl.addctarea=="True"and nl.addrainchk=="True":
+      USR18_area_nr_E5 = np.where(np.isnan(USR18_area_nr_E5),
+       float(-999),USR18_area_nr_E5)
+      description = "1000-850 hPa zonal shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("USR18_area_nr_E5",
+       "ERA5 Rain-Checked 1000-850 Zonal Shear",description,
+       ("tE5","yE5","xE5"),np.float64,SR18E5units,
+       fileout,USR18_area_nr_E5,f,float(-999))
+      description = "1000-850 hPa meridional shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("VSR18_area_nr_E5",
+       "ERA5 Rain-Checked 1000-850 Meridional Shear",description,
+       ("tE5","yE5","xE5"),np.float64,SR18E5units,
+       fileout,VSR18_area_nr_E5,f,float(-999))
 
-  if nl.addCCTOE5=="True":
+    if nl.addctmean=="True"and nl.addrainchk=="True":
+      description = "1000-850 hPa zonal shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("USR18_mean_nr_E5",
+       "ERA5 Rain-Checked Mean 1000-850 hPa Zonal Shear",
+       description,("tE5"),np.float64,SR18E5units,fileout,
+       USR18_mean_nr_E5,f,float(-999))
+      description = "1000-850 hPa meridional shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("VSR18_mean_nr_E5",
+       "ERA5 Rain-Checked Mean 1000-850 hPa Meridional Shear",
+       description,("tE5"),np.float64,SR18E5units,fileout,
+       VSR18_mean_nr_E5,f,float(-999))
 
-    description = "Total cloud cover from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    fns.write_var("CCTO_E5","ERA5 Total Cloud Cover",
-     description,("time","yE5","xE5"),np.float64,CCTOE5units,
-     fileout,CCTOE5,f)
+
 
 #==================================================================
 # Close current file

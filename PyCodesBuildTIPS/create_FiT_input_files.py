@@ -33,10 +33,10 @@ starttime = "20180601"
 endtime   = "20180610" # Actual last day is day before
 
 # Thresholds for rain rates (lowest to highest)
-tholds  = [0.5,1.5,4.5,13.5]
+tholds  = [1.0,3.0,9.0]
 
 # Directory and filename for output FiT input data
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_013120/FiT_input_2018/"
+datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test/"
 fileidout  = "IMERG_FiT_tholds_"
 
 # Subset regions (ranges have no affect if ssreg=False)
@@ -45,17 +45,17 @@ latN   = 30
 latS   = -10
 lonW   = -70
 lonE   = 0
-ssname = "CapVer"
+ssname = "Atl"
 
 # Smoothing
 smooth   = True
 gaussian = False
 stddev   = 1.5  # Standard deviation for gaussian smoothing
 uniform  = True
-width    = 3    # Number of points to spread running average
+width    = 5    # Number of points to spread running average
 
 # Parallelization
-serialorparallel = 1 # serial=1 parallel=2
+serialorparallel = 2 # serial=1 parallel=2
 njobs = 8 # Number of cores for parallelization
 
 #==========================================================

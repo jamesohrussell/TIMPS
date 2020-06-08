@@ -44,7 +44,7 @@ obid2 = "100010"
 
 # Number of processes for parrallelization
 serialorparallel = 2
-njobs = 16
+njobs = 32
 
 # Variables desired
 addmaxrr          = True # Maximum rain rate

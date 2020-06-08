@@ -38,7 +38,7 @@ datanc4    = False
 # Directory and filename for FiT input files
 # Should obtain from create_FiT_input_files.py
 datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test/"
-fileidFin  = "IMERG_FiT_tholds_CapVer_"
+fileidFin  = "IMERG_FiT_tholds_Atl_"
 
 # Directory and filename for FiT output data files
 datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_output_test/"
@@ -66,7 +66,7 @@ reftime = "1900-01-01 00:00:00"
 
 # Number of processes for parallelization
 serialorparallel = 2
-njobs = 16
+njobs = 32
 
 #============================================================
 # Initialize timer
