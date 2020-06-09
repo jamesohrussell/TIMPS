@@ -32,7 +32,7 @@ import os
 fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
 
 # Directory and filename for PF files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_2014/"
+datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
 fileid  = "TIPS_"
 
 # Subset (for certain range of dates) 
@@ -40,12 +40,12 @@ ssdat = False
 date1 = "20180601"
 date2 = "20180602"
 ssobs = False
-obid1 = "100521"
-obid2 = "100523"
+obid1 = "100043"
+obid2 = "100044"
 
 # Number of processes for parrallelization
 serialorparallel = 2
-njobs = 8
+njobs = 20
 
 # Type of area or mean
 addctarea = True # Area centered on TIPS
@@ -55,13 +55,15 @@ addinmean = False # Add mean of inflow region
 
 # Rain check or no rain check
 addrainchk   = True
-addnorainchk = False
+addnorainchk = True
 
 # Variables desired
 addTCWVE5    = True # ERA5 Total Column Water Vapor
-addCAPEE5    = False # ERA5 Convective Available Potential Energy
-addSR18E5    = False # ERA5 Boundary Layer Shear
-addSR82E5    = False # ERA5 Free-troposphere Shear
+addCAPEE5    = True # ERA5 Convective Available Potential Energy
+addSR18E5    = True # ERA5 Boundary Layer Shear
+addSR82E5    = True # ERA5 Free-troposphere Shear
+addSH18E5    = True # ERA5 Boundary Layer Specific Humidity
+addSH82E5    = True # ERA5 Free-troposphere Specific Humidity
 
 # ERA5 domain variables
 hda           = 2.5 # Half data area in degrees
@@ -70,14 +72,16 @@ hoursafter    = hoursbefore[::-1] # Hours after (ascending)
 avgmissfrac   = 0.8 # fraction of domain missing before average is not carried out
 
 # Directory and filenames of ERA5 data
-dataE5dir    = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
-fileTCWVE5id = "moisture/ERA5.TCWV."
-fileCAPEE5id = "convparams/ERA5.CAPE."
+dataE5dir     = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
+fileTCWVE5id  = "moisture/ERA5.TCWV."
+fileCAPEE5id  = "convparams/ERA5.CAPE."
 fileUSR18E5id = "shear/ERA5.USHR_1000-850hPamean."
 fileVSR18E5id = "shear/ERA5.VSHR_1000-850hPamean."
 fileUSR82E5id = "shear/ERA5.USHR_850-200hPamean."
 fileVSR82E5id = "shear/ERA5.VSHR_850-200hPamean."
-fileTCRWE5id = "clouds/ERA5.TCRW."
+fileSH18E5id  = "moisture/ERA5.SPHU_1000-850hPamean."
+fileSH82E5id  = "moisture/ERA5.SPHU_850-200hPamean."
+fileTCRWE5id  = "clouds/ERA5.TCRW."
 
 #==================================================================
 # Initialize timer
@@ -106,6 +110,8 @@ namelist["addTCWVE5"] = str(addTCWVE5)
 namelist["addCAPEE5"] = str(addCAPEE5)
 namelist["addSR18E5"] = str(addSR18E5)
 namelist["addSR82E5"] = str(addSR82E5)
+namelist["addSH18E5"] = str(addSH18E5)
+namelist["addSH82E5"] = str(addSH82E5)
 
 namelist["dataE5dir"] = str(dataE5dir)
 
@@ -122,6 +128,8 @@ if addSR18E5:
 if addSR82E5: 
   namelist["fileUSR82E5id"] = str(fileUSR82E5id)
   namelist["fileVSR82E5id"] = str(fileVSR82E5id)
+if addSH18E5: namelist["fileSH18E5id"] = str(fileSH18E5id)
+if addSH82E5: namelist["fileSH82E5id"] = str(fileSH82E5id)
 if addrainchk: namelist["fileTCRWE5id"] = str(fileTCRWE5id)
 
 # Write namelist dictionary to netcdf file for reading 

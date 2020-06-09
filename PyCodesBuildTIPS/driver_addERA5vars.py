@@ -82,6 +82,10 @@ def driver_addvars(fn):
      nl.dataE5dir,nl.fileUSR82E5id,timestrs[0],timestrs[-1])
     files["VSR82"] = E5fns.get_E5_ss_files(
      nl.dataE5dir,nl.fileVSR82E5id,timestrs[0],timestrs[-1])
+  if nl.addSH18E5=="True": files["SH18"] = E5fns.get_E5_ss_files(
+    nl.dataE5dir,nl.fileSH18E5id,timestrs[0],timestrs[-1])
+  if nl.addSH82E5=="True": files["SH82"] = E5fns.get_E5_ss_files(
+    nl.dataE5dir,nl.fileSH82E5id,timestrs[0],timestrs[-1])
 
 #==================================================================
 # Get coordinates and their indices
@@ -211,6 +215,38 @@ def driver_addvars(fn):
           USR82_mean_nr_E5 = [-999]*len(timestrs)
           VSR82_mean_nr_E5 = [-999]*len(timestrs)
 
+      if nl.addSH18E5=="True":
+
+        if nl.addctarea=="True" and nl.addnorainchk=="True":
+          SH18_area_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addnorainchk=="True": 
+          SH18_mean_E5 = [-999]*len(timestrs)
+  
+        if nl.addctarea=="True" and nl.addrainchk=="True": 
+          SH18_area_nr_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addrainchk=="True": 
+          SH18_mean_nr_E5 = [-999]*len(timestrs)
+
+      if nl.addSH82E5=="True":
+
+        if nl.addctarea=="True" and nl.addnorainchk=="True":
+          SH82_area_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addnorainchk=="True": 
+          SH82_mean_E5 = [-999]*len(timestrs)
+  
+        if nl.addctarea=="True" and nl.addrainchk=="True": 
+          SH82_area_nr_E5 = np.zeros((
+           len(timestrs),len(yE5),len(xE5)))  
+
+        if nl.addctmean=="True" and nl.addrainchk=="True": 
+          SH82_mean_nr_E5 = [-999]*len(timestrs)
+
       if nl.addrainchk=="True":
         TCRW_area_E5 = np.zeros((
          len(timestrs),len(yE5),len(xE5)))  
@@ -230,6 +266,10 @@ def driver_addvars(fn):
       if nl.addctarea=="True":
         TCRW_area_E5[c,:,:] = TCRWE5
         TCRWE5units = fhR[0].variables["TCRW"].units
+
+      # Close file
+      for fii in fhR:
+        fii.close()
 
 #==================================================================
 # Get TCWV data
@@ -273,7 +313,8 @@ def driver_addvars(fn):
           TCWV_mean_nr_E5[c] = np.nanmean(TCWVE5_nr)
       
       # Close file
-      fh[0].close()
+      for fii in fh:
+        fii.close()
 
 #==================================================================
 # Get CAPE data
@@ -282,7 +323,7 @@ def driver_addvars(fn):
     if nl.addCAPEE5=="True":
 
       # Find file and time indices
-      fh[0],timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
                        files["CAPE"],timestrs[c])
 
       # Get units
@@ -291,7 +332,7 @@ def driver_addvars(fn):
       # Get an area
       if nl.addctarea=="True" or nl.addctmean=="True":
         CAPEE5 = E5fns.get_E5_ss_2D_var(
-                 fh[0],"CAPE",timi,loni,lati,times,ctime)
+                 fh,"CAPE",timi,loni,lati,times,ctime)
 
       # Assign to area centered on PF
       if nl.addctarea=="True" and nl.addnorainchk=="True":
@@ -317,7 +358,8 @@ def driver_addvars(fn):
           CAPE_mean_nr_E5[c] = np.nanmean(CAPEE5_nr)
       
       # Close file
-      fh[0].close()
+      for fii in fh:
+        fii.close()
 
 #==================================================================
 # Get USR18 data
@@ -332,7 +374,7 @@ def driver_addvars(fn):
                        files["VSR18"],timestrs[c])
 
       # Get units
-      SR18E5units = fhU.variables["USHR"].units
+      SR18E5units = fhU[0].variables["USHR"].units
 
       # Get an area
       if nl.addctarea=="True" or nl.addctmean=="True":
@@ -372,9 +414,159 @@ def driver_addvars(fn):
           VSR18_mean_nr_E5[c] = np.nanmean(VSR18E5_nr)
       
       # Close file
-      fhU.close()
-      fhV.close()
+      for fii in fhU:
+        fii.close()
+      for fii in fhV:
+        fii.close()
+
+#==================================================================
+# Get USR82 data
+#==================================================================
+
+    if nl.addSR82E5=="True":
+
+      # Find file and time indices
+      fhU,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files["USR82"],timestrs[c])
+      fhV,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files["VSR82"],timestrs[c])
+
+      # Get units
+      SR82E5units = fhU[0].variables["USHR"].units
+
+      # Get an area
+      if nl.addctarea=="True" or nl.addctmean=="True":
+        USR82E5 = E5fns.get_E5_ss_2D_var(
+                 fhU,"USHR",timi,loni,lati,times,ctime)
+        VSR82E5 = E5fns.get_E5_ss_2D_var(
+                 fhV,"VSHR",timi,loni,lati,times,ctime)
+
+      # Assign to area centered on PF
+      if nl.addctarea=="True" and nl.addnorainchk=="True":
+        USR82_area_E5[c,:,:] = USR82E5
+        VSR82_area_E5[c,:,:] = VSR82E5
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addnorainchk=="True":
+        USR82_mean_E5[c] = np.mean(USR82E5)
+        VSR82_mean_E5[c] = np.mean(VSR82E5)
+
+      # Calculate without raining pixels
+      if (nl.addctarea=="True" or nl.addctmean=="True") \
+        and nl.addrainchk=="True":
+        USR82E5_nr = np.where(TCRWE5>0.001,np.nan,USR82E5)
+        VSR82E5_nr = np.where(TCRWE5>0.001,np.nan,VSR82E5)
+
+      # Area centered on PF without rain
+      if nl.addctarea=="True" and nl.addrainchk=="True":
+        USR82_area_nr_E5[c,:,:] = USR82E5_nr
+        VSR82_area_nr_E5[c,:,:] = VSR82E5_nr
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addrainchk=="True":
+        varnan = USR82E5_nr.flatten()
+        if np.isnan(varnan).sum()/len(varnan)<nl.avgmissfrac:
+          USR82_mean_nr_E5[c] = np.nanmean(USR82E5_nr)
+        varnan = VSR82E5_nr.flatten()
+        if np.isnan(varnan).sum()/len(varnan)<nl.avgmissfrac:
+          VSR82_mean_nr_E5[c] = np.nanmean(VSR82E5_nr)
+      
+      # Close file
+      for fii in fhU:
+        fii.close()
+      for fii in fhV:
+        fii.close()
+
+#==================================================================
+# Get SH18 data
+#==================================================================
+
+    if nl.addSH18E5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files["SH18"],timestrs[c])
+
+      # Get units
+      SH18E5units = fh[0].variables["Q"].units
+
+      # Get an area
+      if nl.addctarea=="True" or nl.addctmean=="True":
+        SH18E5 = E5fns.get_E5_ss_2D_var(
+                 fh,"Q",timi,loni,lati,times,ctime)
+
+      # Assign to area centered on PF
+      if nl.addctarea=="True" and nl.addnorainchk=="True":
+        SH18_area_E5[c,:,:] = SH18E5
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addnorainchk=="True":
+        SH18_mean_E5[c] = np.mean(SH18E5)
+
+      # Calculate without raining pixels
+      if (nl.addctarea=="True" or nl.addctmean=="True") \
+        and nl.addrainchk=="True": 
+        SH18E5_nr = np.where(TCRWE5>0.001,np.nan,SH18E5)
+
+      # Area centered on PF without rain
+      if nl.addctarea=="True" and nl.addrainchk=="True":
+        SH18_area_nr_E5[c,:,:] = SH18E5_nr
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addrainchk=="True":
+        varnan = SH18E5_nr.flatten()
+        if np.isnan(varnan).sum()/len(varnan)<nl.avgmissfrac:
+          SH18_mean_nr_E5[c] = np.nanmean(SH18E5_nr)
+      
+      # Close file
+      for fii in fh:
+        fii.close()
      
+#==================================================================
+# Get SH82 data
+#==================================================================
+
+    if nl.addSH82E5=="True":
+
+      # Find file and time indices
+      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files["SH82"],timestrs[c])
+
+      # Get units
+      SH82E5units = fh[0].variables["Q"].units
+
+      # Get an area
+      if nl.addctarea=="True" or nl.addctmean=="True":
+        SH82E5 = E5fns.get_E5_ss_2D_var(
+                 fh,"Q",timi,loni,lati,times,ctime)
+
+      # Assign to area centered on PF
+      if nl.addctarea=="True" and nl.addnorainchk=="True":
+        SH82_area_E5[c,:,:] = SH82E5
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addnorainchk=="True":
+        SH82_mean_E5[c] = np.mean(SH82E5)
+
+      # Calculate without raining pixels
+      if (nl.addctarea=="True" or nl.addctmean=="True") \
+        and nl.addrainchk=="True": 
+        SH82E5_nr = np.where(TCRWE5>0.001,np.nan,SH82E5)
+
+      # Area centered on PF without rain
+      if nl.addctarea=="True" and nl.addrainchk=="True":
+        SH82_area_nr_E5[c,:,:] = SH82E5_nr
+
+      # Mean of area centered on PF
+      if nl.addctmean=="True" and nl.addrainchk=="True":
+        varnan = SH82E5_nr.flatten()
+        if np.isnan(varnan).sum()/len(varnan)<nl.avgmissfrac:
+          SH82_mean_nr_E5[c] = np.nanmean(SH82E5_nr)
+      
+      # Close file
+      for fii in fh:
+        fii.close()
+
 #==================================================================
 # End loops over objects and times
 #==================================================================
@@ -555,7 +747,124 @@ def driver_addvars(fn):
        description,("tE5"),np.float64,SR18E5units,fileout,
        VSR18_mean_nr_E5,f,float(-999))
 
+#==================================================================
+# Write SR82 information to file
+#==================================================================
 
+  if nl.addSR82E5=="True":
+
+    if nl.addctarea=="True" and nl.addnorainchk=="True":
+      description = "850-200 hPa zonal shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("USR82_area_E5",
+      "ERA5 850-200 hPa zonal shear",description,
+      ("tE5","yE5","xE5"),np.float64,SR82E5units,
+       fileout,USR82_area_E5,f,float(-999))
+      description = "850-200 hPa meridional shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("VSR82_area_E5",
+      "ERA5 850-200 hPa meridional shear",description,
+      ("tE5","yE5","xE5"),np.float64,SR82E5units,
+       fileout,VSR82_area_E5,f,float(-999))
+
+    if nl.addctmean=="True"and nl.addnorainchk=="True":
+      description = "850-200 hPa zonal shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("USR82_mean_E5",
+       "ERA5 Mean 850-200 hPa zonal shear",description,("tE5"),
+       np.float64,SR82E5units,fileout,USR82_mean_E5,f,float(-999))
+      description = "850-200 hPa meridional shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("VSR82_mean_E5",
+       "ERA5 Mean 850-200 hPa Meridional Shear",description,
+       ("tE5"),np.float64,SR82E5units,fileout,VSR82_mean_E5,
+       f,float(-999))
+
+    if nl.addctarea=="True"and nl.addrainchk=="True":
+      USR82_area_nr_E5 = np.where(np.isnan(USR82_area_nr_E5),
+       float(-999),USR82_area_nr_E5)
+      description = "850-200 hPa zonal shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("USR82_area_nr_E5",
+       "ERA5 Rain-Checked 850-200 Zonal Shear",description,
+       ("tE5","yE5","xE5"),np.float64,SR82E5units,
+       fileout,USR82_area_nr_E5,f,float(-999))
+      description = "850-200 hPa meridional shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("VSR82_area_nr_E5",
+       "ERA5 Rain-Checked 850-200 Meridional Shear",description,
+       ("tE5","yE5","xE5"),np.float64,SR82E5units,
+       fileout,VSR82_area_nr_E5,f,float(-999))
+
+    if nl.addctmean=="True"and nl.addrainchk=="True":
+      description = "850-200 hPa zonal shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("USR82_mean_nr_E5",
+       "ERA5 Rain-Checked Mean 850-200 hPa Zonal Shear",
+       description,("tE5"),np.float64,SR82E5units,fileout,
+       USR82_mean_nr_E5,f,float(-999))
+      description = "850-200 hPa meridional shear from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("VSR82_mean_nr_E5",
+       "ERA5 Rain-Checked Mean 850-200 hPa Meridional Shear",
+       description,("tE5"),np.float64,SR82E5units,fileout,
+       VSR82_mean_nr_E5,f,float(-999))
+
+#==================================================================
+# Write SH18 information to file
+#==================================================================
+
+  if nl.addSH18E5=="True":
+
+    if nl.addctarea=="True" and nl.addnorainchk=="True":
+      description = "1000-850 hPa specific humidity from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("SH18_area_E5","ERA5 SH18",
+       description,("tE5","yE5","xE5"),np.float64,SH18E5units,
+       fileout,SH18_area_E5,f,float(-999))
+
+    if nl.addctmean=="True"and nl.addnorainchk=="True":
+      description = "1000-850 hPa specific humidity from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("SH18_mean_E5","ERA5 Mean SH18",
+       description,("tE5"),np.float64,SH18E5units,fileout,
+       SH18_mean_E5,f,float(-999))
+
+    if nl.addctarea=="True"and nl.addrainchk=="True":
+      SH18_area_nr_E5 = np.where(np.isnan(SH18_area_nr_E5),float(-999),SH18_area_nr_E5)
+      description = "1000-850 hPa specific humidity from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("SH18_area_nr_E5","ERA5 Rain-Checked SH18",
+       description,("tE5","yE5","xE5"),np.float64,SH18E5units,
+       fileout,SH18_area_nr_E5,f,float(-999))
+
+    if nl.addctmean=="True"and nl.addrainchk=="True":
+      description = "1000-850 hPa specific humidity from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("SH18_mean_nr_E5",
+       "ERA5 Rain-checked Mean SH18",description,("tE5"),
+       np.float64,SH18E5units,fileout,SH18_mean_nr_E5,
+       f,float(-999))
+
+#==================================================================
+# Write SH82 information to file
+#==================================================================
+
+  if nl.addSH82E5=="True":
+
+    if nl.addctarea=="True" and nl.addnorainchk=="True":
+      description = "850-200 hPa specific humidity from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("SH82_area_E5","ERA5 SH82",
+       description,("tE5","yE5","xE5"),np.float64,SH82E5units,
+       fileout,SH82_area_E5,f,float(-999))
+
+    if nl.addctmean=="True"and nl.addnorainchk=="True":
+      description = "850-200 hPa specific humidity from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("SH82_mean_E5","ERA5 Mean SH82",
+       description,("tE5"),np.float64,SH82E5units,fileout,
+       SH82_mean_E5,f,float(-999))
+
+    if nl.addctarea=="True"and nl.addrainchk=="True":
+      SH82_area_nr_E5 = np.where(np.isnan(SH82_area_nr_E5),float(-999),SH82_area_nr_E5)
+      description = "850-200 hPa specific humidity from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("SH82_area_nr_E5","ERA5 Rain-Checked SH82",
+       description,("tE5","yE5","xE5"),np.float64,SH82E5units,
+       fileout,SH82_area_nr_E5,f,float(-999))
+
+    if nl.addctmean=="True"and nl.addrainchk=="True":
+      description = "850-200 hPa specific humidity from the ERA5 dataset for a 10x10 degree area centered on the precipitation system centroid. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+      mfns.write_var("SH82_mean_nr_E5",
+       "ERA5 Rain-checked Mean SH82",description,("tE5"),
+       np.float64,SH82E5units,fileout,SH82_mean_nr_E5,
+       f,float(-999))
 
 #==================================================================
 # Close current file
