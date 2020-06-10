@@ -32,7 +32,7 @@ import os
 fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
 
 # Directory and filename for PF files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
+datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_2014/"
 fileid  = "TIPS_"
 
 # Subset (for certain range of dates) 
@@ -40,22 +40,22 @@ ssdat = False
 date1 = "20180601"
 date2 = "20180602"
 ssobs = False
-obid1 = "100043"
-obid2 = "100044"
+obid1 = "103231"
+obid2 = "103233"
 
 # Number of processes for parrallelization
 serialorparallel = 2
 njobs = 20
 
 # Type of area or mean
-addctarea = True # Area centered on TIPS
+addctarea = False # Area centered on TIPS
 addctmean = True  # Mean of centered area
 addinarea = False # All points in calculated inflow
 addinmean = False # Add mean of inflow region
 
 # Rain check or no rain check
 addrainchk   = True
-addnorainchk = True
+addnorainchk = False
 
 # Variables desired
 addTCWVE5    = True # ERA5 Total Column Water Vapor
