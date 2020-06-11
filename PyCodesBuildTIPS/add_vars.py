@@ -31,7 +31,7 @@ import os
 fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
 
 # Directory and filename for TIPS files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
+datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test2/"
 fileid  = "TIPS_"
 
 # Subset (for certain range of dates) 

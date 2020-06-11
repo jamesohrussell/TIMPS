@@ -26,18 +26,18 @@ output_file_type=2
 # On Linux system using the bash shell the following command can usually be used to create CCCCC.dat  
 # links to a sequence of files with different filenames located in the same folder:
 # a=0;for i in $(ls); do new=$(printf "%05d.dat" ${a});  ln -sf ${i} ${new};   let a=a+1; done
-input_file_prefix = /uufs/chpc.utah.edu/common/home/u0816744/varb2/FiT_CPEX-AW/FiT_input_test2/IMERG_FiT_tholds_Atl_
+input_file_prefix = sample_files/sample_input_field1_
 
 # The location with file prefix for output files. 
-output_file_prefix = /uufs/chpc.utah.edu/common/home/u0816744/varb2/FiT_CPEX-AW/FiT_output_test2/IMERG_tracked_
+output_file_prefix = out_sample_files/out1_
 
 # The dimensions of 3D field in input files
-dimx = 700
-dimy = 400
+dimx = 379
+dimy = 100
 dimz = 1
 
 # Number of timesteps to analyze
-number_of_timesteps = 432
+number_of_timesteps = 16
 	
 # The number of cascading thresholds to be used. The regions with values below the lowest 
 # threshold should have value 0 in the input field. The regions with values between 
@@ -55,7 +55,7 @@ number_of_thresholds = 3
 # is smaller than the prescribed value. The value represents the horizontal Euclidian 
 # distance in x and y dimensions (distance in z dimension is ignored) which is expressed with the number of 
 # grid points (e.g. value of 200 represents the distance of 200 gridpoints). 
-horizontal_distance_limit_for_merging = 30
+horizontal_distance_limit_for_merging = -1
 
 # Should the software write output files related to 3D objects (object not matched in time)?
 # 0=no, 1=yes

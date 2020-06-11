@@ -37,17 +37,17 @@ datanc4    = False
 
 # Directory and filename for FiT input files
 # Should obtain from create_FiT_input_files.py
-datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test/"
+datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test2/"
 fileidFin  = "IMERG_FiT_tholds_Atl_"
 
 # Directory and filename for FiT output data files
-datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_output_test/"
+datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_output_test2/"
 fileidFi1  = "IMERG_tracked_"
 fileidFi2  = "_4Dobjects.nc"
 fileidtxt  = "4Dobject_tree.txt"
 
 # Directory and filename for output PF nc files
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/"
+datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test2/"
 fileidout1 = "TIPS_"
 
 # Only process a set of objects

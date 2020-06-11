@@ -36,7 +36,7 @@ endtime   = "20180610" # Actual last day is day before
 tholds  = [1.0,3.0,9.0]
 
 # Directory and filename for output FiT input data
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test/"
+datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test2/"
 fileidout  = "IMERG_FiT_tholds_"
 
 # Subset regions (ranges have no affect if ssreg=False)
