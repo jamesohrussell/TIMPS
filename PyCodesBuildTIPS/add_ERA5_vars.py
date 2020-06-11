@@ -135,7 +135,7 @@ if addrainchk: namelist["fileTCRWE5id"] = str(fileTCRWE5id)
 # Write namelist dictionary to netcdf file for reading 
 #  during parallel loop
 print("Writing namelist to netcdf file")
-nlfileout = Dataset("namelist_av.nc","w",format="NETCDF4")
+nlfileout = Dataset("namelist_av_E5.nc","w",format="NETCDF4")
 for k,v in namelist.items():
   setattr(nlfileout, k,  v)
 nlfileout.close()
@@ -196,7 +196,7 @@ else:
 # Write file names to a text file for reading during 
 #  parallel loop
 print("Writing filenames to text file")
-ffn = open("filenames_av.txt","w")
+ffn = open("filenames_av_E5.txt","w")
 for i in range(len(filenamesrun)):
   ffn.write(filenamesrun[i]+"\n")
 ffn.close()
@@ -206,13 +206,13 @@ ffn.close()
 #==================================================================
 
 if serialorparallel==1:
-  print("Begin serial loop over objects")
+  print("Begin serial loop over TIPS")
   for fn in range(len(filenamesrun)):
     da.driver_addvars(fn)
 
 # Parrallel loop over PFs
 if serialorparallel==2:
-  print("Begin parrallel loop over IPFs")
+  print("Begin parrallel loop over TIPS")
   Parallel(n_jobs=njobs)(delayed(da.driver_addvars)(fn) \
     for fn in range(len(filenamesrun)))
 
@@ -222,8 +222,8 @@ if serialorparallel==2:
 
 # Remove namelist and filename files
 print("Cleaning up")
-os.system("rm filenames_av.txt")
-os.system("rm namelist_av.nc")
+os.system("rm filenames_av_E5.txt")
+os.system("rm namelist_av_E5.nc")
 os.system("rm -rf __pycache__")
 
 # End timer

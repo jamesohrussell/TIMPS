@@ -15,7 +15,7 @@ def driver_addvars(fn):
   import sys
 
   # Read in namelist variables
-  nl = Dataset("namelist_av.nc","r")
+  nl = Dataset("namelist_av_E5.nc","r")
 
   # Import custom libraries
   sys.path.insert(0,nl.fnsdir)
@@ -24,7 +24,7 @@ def driver_addvars(fn):
   import ERA5_functions as E5fns
 
   # Read in filename for PF
-  for i, row in enumerate(open("filenames_av.txt")):
+  for i, row in enumerate(open("filenames_av_E5.txt")):
     if i==fn:
       f = row[:-1]
 
