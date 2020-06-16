@@ -4,9 +4,10 @@ from netCDF4 import Dataset
 import scipy.ndimage as ndimage
 import h5py
 import time
+import sys
 
 def driver_createinfiles(i):
-  "i corresponds to the imerg file"
+  "i corresponds to the file"
 
 #==========================================================
 # Read files output by main script
@@ -14,6 +15,11 @@ def driver_createinfiles(i):
 
   # Read in namelist
   nl = Dataset("namelist_ci.nc","r")
+
+  # Import custom libraries
+  sys.path.insert(0,nl.fnsdir)
+  import shape_functions as sfns
+  import misc_functions as mfns
 
   # Read in filename
   fn = open("filenames_ci.txt")
@@ -97,14 +103,55 @@ def driver_createinfiles(i):
 #==========================================================
 
   print("Creating thresholded data")
+
+  # Constant thresholds
+  if nl.tholdtype==1:
   
-  for j in (range(len(nl.tholds)+1)):
-    if j==0:
-      value1 = np.where(rain<nl.tholds[0],j,rain)
-    elif j>0 and j<len(nl.tholds):
-      value1 = np.where((rain>=nl.tholds[j-1]) & (rain<nl.tholds[j]),j,value1)
-    elif j==len(nl.tholds):
-      value1 = np.where(rain>=nl.tholds[j-1],j,value1)
+    # Loop over all thresholds
+    for j in (range(len(nl.tholds)+1)):
+      if j==0:
+        value1 = np.where(rain<nl.tholds[0],j,rain)
+      elif j>0 and j<len(nl.tholds):
+        value1 = np.where((rain>=nl.tholds[j-1]) & \
+                          (rain<nl.tholds[j]),j,value1)
+      elif j==len(nl.tholds):
+        value1 = np.where(rain>=nl.tholds[j-1],j,value1)
+
+  # Normalized thresholds
+  elif nl.tholdtype==2:
+    
+    # Remove all precip below minthold
+    rain = np.where(rain>=nl.minthold,rain-nl.minthold,0)
+
+    # Find all contiguous objects
+    rainlabs,numobs = sfns.label_wdiags(rain)
+    labels = np.arange(1,numobs+1)
+
+    # Get max information for each object and
+    # make new array with max of each object
+    objmax = ndimage.labeled_comprehension(
+     rain,rainlabs,labels,np.max,np.double,0)
+    rainobjmax = rainlabs
+    for il in labels:
+      rainobjmax[rainobjmax==il] = objmax[il-1]
+    
+    # Normalize precip
+    nrain = np.divide(rain,rainobjmax,
+     out=np.zeros_like(rain),where=rainobjmax!=0)    
+
+    # Do thresholding
+    for j in (range(len(nl.tholds)+1)):
+      if j==0:
+        value1 = np.where((nrain>0.) & \
+         (nrain<nl.tholds[0]),j+1,nrain)
+      elif j>0 and j<len(nl.tholds):
+        value1 = np.where((nrain>=nl.tholds[j-1]) & \
+                          (nrain<nl.tholds[j]),j+1,value1)
+      elif j==len(nl.tholds):
+        value1 = np.where(nrain>=nl.tholds[j-1],j+1,value1)
+
+  else:
+    raise ValueError("Incorrect option for threshold")
 
 #==========================================================
 # Write thresholds to netcdf file
@@ -112,11 +159,16 @@ def driver_createinfiles(i):
 
   # Creating netcdf file to write to
   if nl.ssreg=="True": 
-    print("Creating file: "+nl.datadirout+nl.fileidout+nl.ssname+"_"+str(i).zfill(5)+".nc")
-    fileout = Dataset(nl.datadirout+nl.fileidout+nl.ssname+"_"+str(i).zfill(5)+".nc",'w',format='NETCDF4_CLASSIC')
+    print("Creating file: "+nl.datadirout+nl.fileidout+ \
+     nl.ssname+"_"+str(i).zfill(5)+".nc")
+    fileout = Dataset(nl.datadirout+nl.fileidout+ \
+     nl.ssname+"_"+str(i).zfill(5)+".nc",'w',
+     format='NETCDF4_CLASSIC')
   else:
-    print("Creating file: "+nl.datadirout+nl.fileidout+str(i).zfill(5)+".nc")
-    fileout = Dataset(nl.datadirout+nl.fileidout+str(i).zfill(5)+".nc",'w',format='NETCDF4_CLASSIC')
+    print("Creating file: "+nl.datadirout+ \
+     nl.fileidout+str(i).zfill(5)+".nc")
+    fileout = Dataset(nl.datadirout+nl.fileidout+ \
+     str(i).zfill(5)+".nc",'w',format='NETCDF4_CLASSIC')
 
   # Global Attributes
   fileout.description = 'IMERG thresholds for FiT Tracking'
@@ -146,7 +198,8 @@ def driver_createinfiles(i):
   x = fileout.createDimension('x', len(x))
 
   # Create variables in file
-  value  = fileout.createVariable('value' , np.float64, ('z','y','x'))
+  value  = fileout.createVariable('value',
+           np.float64, ('z','y','x'))
 
   # Write Variables
   value[:] = value1

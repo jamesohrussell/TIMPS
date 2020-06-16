@@ -22,6 +22,9 @@ import os
 # Namelist
 #==========================================================
 
+# Directory for custom functions
+fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions"
+
 # Directory and filename for input IMERG data
 datadirin = "/uufs/chpc.utah.edu/common/home/varble-group2/IMERG/"
 fileidin  = "3B-HHR.MS.MRG.3IMERG."
@@ -32,11 +35,14 @@ datanc4   = False
 starttime = "20180601"
 endtime   = "20180610" # Actual last day is day before
 
-# Thresholds for rain rates (lowest to highest)
-tholds  = [1.0,3.0,9.0]
+# Thresholds
+tholdtype = 2 # Threshold type (1 = precip, 2 = normalized)
+tholds = [0.25,0.5] # Thresholds
+#tholds  = [1.0,3.0,9.0]
+minthold = 1. # Min precip threshold. Only required for tholdtype=2.
 
 # Directory and filename for output FiT input data
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test2/"
+datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test/"
 fileidout  = "IMERG_FiT_tholds_"
 
 # Subset regions (ranges have no affect if ssreg=False)
@@ -56,7 +62,7 @@ width    = 5    # Number of points to spread running average
 
 # Parallelization
 serialorparallel = 2 # serial=1 parallel=2
-njobs = 8 # Number of cores for parallelization
+njobs = 32 # Number of cores for parallelization
 
 #==========================================================
 # Write namelist to a dictionary
@@ -64,13 +70,16 @@ njobs = 8 # Number of cores for parallelization
 
 # Put namelist information in dictionaries
 namelist = {}
+namelist["fnsdir"] = str(fnsdir)
 namelist["datadirin"] = str(datadirin)
 namelist["fileidin"] = str(fileidin)
 namelist["datahdf5"] = str(datahdf5)
 namelist["datanc4"] = str(datanc4)
 namelist["starttime"] = str(starttime)
 namelist["endtime"] = str(endtime)
+namelist["tholdtype"] = tholdtype
 namelist["tholds"] = tholds
+if tholdtype==2: namelist["minthold"] = minthold
 namelist["datadirout"] = str(datadirout)
 namelist["fileidout"] = str(fileidout)
 namelist["ssreg"] = str(ssreg)
