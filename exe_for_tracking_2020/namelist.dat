@@ -26,10 +26,10 @@ output_file_type=2
 # On Linux system using the bash shell the following command can usually be used to create CCCCC.dat  
 # links to a sequence of files with different filenames located in the same folder:
 # a=0;for i in $(ls); do new=$(printf "%05d.dat" ${a});  ln -sf ${i} ${new};   let a=a+1; done
-input_file_prefix = /uufs/chpc.utah.edu/common/home/u0816744/varb2/FiT_CPEX-AW/FiT_input_test2/IMERG_FiT_tholds_Atl_
+input_file_prefix = /uufs/chpc.utah.edu/common/home/u0816744/varb2/FiT_CPEX-AW/FiT_input_test/IMERG_FiT_tholds_Atl_
 
 # The location with file prefix for output files. 
-output_file_prefix = /uufs/chpc.utah.edu/common/home/u0816744/varb2/FiT_CPEX-AW/FiT_output_test2/IMERG_tracked_
+output_file_prefix = /uufs/chpc.utah.edu/common/home/u0816744/varb2/FiT_CPEX-AW/FiT_output_test/IMERG_tracked_
 
 # The dimensions of 3D field in input files
 dimx = 700

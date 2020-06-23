@@ -1,7 +1,8 @@
 #============================================================
-# Import python libraries
+# Import libraries
 #============================================================
 
+# Import python libraries
 import numpy as np
 import h5py
 import csv
@@ -11,6 +12,13 @@ from netCDF4 import Dataset
 import datetime as dt
 import time as tm
 import sys
+
+# Import namelist
+import namelist_TIPS as nl
+
+# Load custom libraries
+sys.path.insert(0,nl.fnsdir)
+import misc_functions as mfns
 
 #============================================================
 # Begin function
@@ -22,13 +30,6 @@ def driver_processFiTobs(o):
 #============================================================
 # Read files output by main script
 #============================================================
-
-  # Read in namelist
-  nl = Dataset("namelist_po.nc","r")
-
-  # Load custom libraries
-  sys.path.insert(0,nl.fnsdir)
-  import misc_functions as mfns
 
   # Read text file
   f       = open(nl.datadirFi+nl.fileidFi1+nl.fileidtxt,'r') 
@@ -123,7 +124,7 @@ def driver_processFiTobs(o):
 # Read IMERG data and process for specific object
 #============================================================
    
-    if nl.datanc4=="True":
+    if nl.datanc4:
       # Open file
       datasetIM = Dataset(filenames[times[t]])
 
@@ -132,7 +133,7 @@ def driver_processFiTobs(o):
       QI1  = datasetIM.variables[
        "precipitationQualityIndex"][:,:,:]
 
-    if nl.datahdf5=="True":
+    if nl.datahdf5:
       # Open file
       datasetIM = h5py.File(filenames[times[t]],'r')
       # Read variables
@@ -148,11 +149,11 @@ def driver_processFiTobs(o):
     if ssreg:
 
       # Read in coordinate variables
-      if nl.datanc4=="True":
+      if nl.datanc4:
         lat = datasetIM.variables["lat"][:]
         lon = datasetIM.variables["lon"][:]
       
-      if nl.datahdf5=="True":
+      if nl.datahdf5:
         lat = datasetIM["Grid/lat"][:]
         lon = datasetIM["Grid/lon"][:]
         
@@ -239,13 +240,13 @@ def driver_processFiTobs(o):
 #============================================================
 
   # Creating netcdf file to write to
-  filename = nl.fileidout1+str(objs[o])+"_"+ \
+  filename = nl.fileidTIPS+str(objs[o])+"_"+ \
    str(datetime[0])+"_"+ \
    str(int(round(centrallat[0]))).zfill(2)+"_"+ \
    str(int(round(centrallon[0]))).zfill(2)+".nc"
 
-  print("Creating file: "+nl.datadirout+filename)
-  fileout = Dataset(nl.datadirout+filename,
+  print("Creating file: "+nl.datadirTIPS+filename)
+  fileout = Dataset(nl.datadirTIPS+filename,
    'w',format='NETCDF4')
 
   # Global Attributes
@@ -281,53 +282,53 @@ def driver_processFiTobs(o):
   # Create variables in file
   mfns.write_var("time","Time","","time",np.float64,
                  "hours since "+nl.reftime,fileout,
-                 time1,nl.datadirout+filename,-999.)
+                 time1,nl.datadirTIPS+filename,-999.)
 
   mfns.write_var("datetime","Date and time","","time",
                  np.int64,"YYYYMMDDhhmm",fileout,datetime,
-                 nl.datadirout+filename,-999)
+                 nl.datadirTIPS+filename,-999)
 
   mfns.write_var("centrallat","Central latitude",
                  "Latitude of PF centroid","time",
                  np.float64,"degreesNorth",fileout,
-                 centrallat,nl.datadirout+filename,-999.)
+                 centrallat,nl.datadirTIPS+filename,-999.)
 
   mfns.write_var("centrallon","Central longitude",
                  "Longitude of PF centroid","time",
                  np.float64,"degreesEast",fileout,
-                 centrallon,nl.datadirout+filename,-999.)
+                 centrallon,nl.datadirTIPS+filename,-999.)
 
   description = "Latitude of PF centroid weighted by rainfall"
   mfns.write_var("centlatwgt","Weighted Central Latitude",
                  description,"time",np.float64,"degreesNorth",fileout,
-                 wgtcentlat,nl.datadirout+filename,-999.)
+                 wgtcentlat,nl.datadirTIPS+filename,-999.)
 
   description = "Longitude of PF centroid weighted by rainfall"
   mfns.write_var("centlonwgt","Weighted Central Longitude",
                  description,"time",np.float64,"degreesEast",fileout,
-                 wgtcentlon,nl.datadirout+filename,-999.)
+                 wgtcentlon,nl.datadirTIPS+filename,-999.)
 
   format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time."
 
   mfns.write_group("lats","Latitudes",
                  "Latitudes of IMERG grid cell centers for PF",
                  "DegreesNorth",format1,fileout,
-                 lats,nl.datadirout+filename)
+                 lats,nl.datadirTIPS+filename)
 
   mfns.write_group("lons","Longitudes",
                  "Longitudes of IMERG grid cell centers for PF",
                  "DegreesEast",format1,fileout,
-                 lons,nl.datadirout+filename)
+                 lons,nl.datadirTIPS+filename)
 
   description = "Instantaneous rain rates at IMERG grid cells corresponding to all latitude and longitude values in PF."
   mfns.write_group("instrain","Instantaneous rain rate",
                  description,"mm/hr",format1,fileout,
-                 instrain,nl.datadirout+filename)
+                 instrain,nl.datadirTIPS+filename)
 
   description = "Quality index for rain rates at IMERG grid cells corresponding to all latitude and longitude values in PF. 0 is bad. 1 is good. Rule of thumb from IMERG team: Below 0.3 is bad."
   mfns.write_group("QI","Quality index",
                  description,"mm/hr",format1,fileout,
-                 QI,nl.datadirout+filename)
+                 QI,nl.datadirTIPS+filename)
 
   # Close file
   fileout.close()

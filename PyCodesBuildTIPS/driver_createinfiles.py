@@ -6,6 +6,14 @@ import h5py
 import time
 import sys
 
+# Import namelist
+import namelist_TIPS as nl
+
+# Import custom libraries
+sys.path.insert(0,nl.fnsdir)
+import shape_functions as sfns
+import misc_functions as mfns
+
 def driver_createinfiles(i):
   "i corresponds to the file"
 
@@ -13,28 +21,20 @@ def driver_createinfiles(i):
 # Read files output by main script
 #==========================================================
 
-  # Read in namelist
-  nl = Dataset("namelist_ci.nc","r")
-
-  # Import custom libraries
-  sys.path.insert(0,nl.fnsdir)
-  import shape_functions as sfns
-  import misc_functions as mfns
-
   # Read in filename
   fn = open("filenames_ci.txt")
   filenames = fn.read().split(',')
 
   print("Reading data from "+filenames[i])
 
-  if nl.datanc4=="True":
+  if nl.datanc4:
     # Open file
     dataset = Dataset(filenames[i])
 
     # Read variables
     rain = dataset.variables["precipitationCal"][:,:,:]
 
-  if nl.datahdf5=="True":
+  if nl.datahdf5:
     # Open file
     datasetIM = h5py.File(filenames[i],'r')
 
@@ -58,16 +58,16 @@ def driver_createinfiles(i):
 # Subset data
 #==========================================================
 
-  if nl.ssreg=="True":
+  if nl.ssreg:
 
     print("Subsetting variable by area")
 
-    if nl.datanc4=="True":
+    if nl.datanc4:
       # Read in coordinate variables
       lat = dataset.variables["lat"][:]
       lon = dataset.variables["lon"][:]
 
-    if nl.datahdf5=="True":
+    if nl.datahdf5:
       # Read in coordinate variables
       lat = datasetIM["Grid/lat"][:]
       lon = datasetIM["Grid/lon"][:]
@@ -92,10 +92,10 @@ def driver_createinfiles(i):
 # Smooth data
 #==========================================================
 
-  if nl.smooth=="True":
-    if nl.gaussian=="True":
+  if nl.smooth:
+    if nl.gaussian:
       rain = ndimage.gaussian_filter(rain,sigma=nl.stddev)
-    elif nl.uniform=="True":
+    elif nl.uniform:
       rain = ndimage.uniform_filter(rain,size=nl.width)
     
 #==========================================================
@@ -131,9 +131,9 @@ def driver_createinfiles(i):
     # make new array with max of each object
     objmax = ndimage.labeled_comprehension(
      rain,rainlabs,labels,np.max,np.double,0)
-    rainobjmax = rainlabs
+    rainobjmax = np.copy(rainlabs)
     for il in labels:
-      rainobjmax[rainobjmax==il] = objmax[il-1]
+      rainobjmax[rainlabs==il] = objmax[il-1]
     
     # Normalize precip
     nrain = np.divide(rain,rainobjmax,
@@ -158,16 +158,16 @@ def driver_createinfiles(i):
 #==========================================================
 
   # Creating netcdf file to write to
-  if nl.ssreg=="True": 
-    print("Creating file: "+nl.datadirout+nl.fileidout+ \
+  if nl.ssreg: 
+    print("Creating file: "+nl.datadiroutc+nl.fileidoutc+ \
      nl.ssname+"_"+str(i).zfill(5)+".nc")
-    fileout = Dataset(nl.datadirout+nl.fileidout+ \
+    fileout = Dataset(nl.datadiroutc+nl.fileidoutc+ \
      nl.ssname+"_"+str(i).zfill(5)+".nc",'w',
      format='NETCDF4_CLASSIC')
   else:
-    print("Creating file: "+nl.datadirout+ \
-     nl.fileidout+str(i).zfill(5)+".nc")
-    fileout = Dataset(nl.datadirout+nl.fileidout+ \
+    print("Creating file: "+nl.datadiroutc+ \
+     nl.fileidoutc+str(i).zfill(5)+".nc")
+    fileout = Dataset(nl.datadiroutc+nl.fileidoutc+ \
      str(i).zfill(5)+".nc",'w',format='NETCDF4_CLASSIC')
 
   # Global Attributes
@@ -178,7 +178,7 @@ def driver_createinfiles(i):
   fileout.tholds      = nl.tholds
   fileout.datestart   = str(nl.starttime)
   fileout.dateend     = str(nl.endtime)
-  if nl.ssreg=="True":
+  if nl.ssreg:
     fileout.latN      = nl.latN
     fileout.latS      = nl.latS
     fileout.lonW      = nl.lonW
@@ -186,10 +186,10 @@ def driver_createinfiles(i):
     fileout.region    = nl.ssname
   else:
     fileout.region    ='global'
-  if nl.smooth=="True":
-    if nl.gaussian=="True":
+  if nl.smooth:
+    if nl.gaussian:
       fileout.smthstddev=str(nl.stddev)  
-    if nl.uniform=="True":
+    if nl.uniform:
       fileout.smthwidth=str(nl.width)
 
   # Create dimensions in file

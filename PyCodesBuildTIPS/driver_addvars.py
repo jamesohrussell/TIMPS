@@ -6,6 +6,16 @@ from scipy.spatial import ConvexHull
 import sys
 import math
 
+# Import namelist
+import namelist_TIPS as nl
+
+# Import custom libraries
+sys.path.insert(0,nl.fnsdir)
+import geophys_functions as gfns
+import time_functions as tfns
+import shape_functions as sfns
+import misc_functions as mfns
+
 def driver_addvars(fn):
   """
   Driver to calculate various variables for a single PF.
@@ -15,16 +25,6 @@ def driver_addvars(fn):
 #==================================================================
 # Begin script
 #==================================================================
-
-  # Read in namelist variables
-  nl = Dataset("namelist_av.nc","r")
-
-  # Import custom libraries
-  sys.path.insert(0,nl.fnsdir)
-  import geophys_functions as gfns
-  import time_functions as tfns
-  import shape_functions as sfns
-  import misc_functions as mfns
 
   # Read in filename for PF
   for i, row in enumerate(open("filenames_av.txt")):
@@ -52,30 +52,30 @@ def driver_addvars(fn):
 # Preallocate arrays
 #==================================================================
 
-  if nl.addmaxrr=="True": maxrainrate  = [-999.]*len(datakeys)
+  if nl.addmaxrr: maxrainrate  = [-999.]*len(datakeys)
 
-  if nl.addmeanrr=="True": meanrainrate = [-999.]*len(datakeys)
+  if nl.addmeanrr: meanrainrate = [-999.]*len(datakeys)
 
-  if nl.addmedianrr=="True": medianrainrate = [-999.]*len(datakeys)
+  if nl.addmedianrr: medianrainrate = [-999.]*len(datakeys)
 
-  if nl.addstddevrr=="True": stddevrainrate = [-999.]*len(datakeys)
+  if nl.addstddevrr: stddevrainrate = [-999.]*len(datakeys)
 
-  if nl.addpieces=="True": pieces = [-999]*len(datakeys)
-  if nl.addpiecesc=="True": pieces_c = [-999]*len(datakeys)
+  if nl.addpieces: pieces = [-999]*len(datakeys)
+  if nl.addpiecesc: pieces_c = [-999]*len(datakeys)
 
-  if nl.addarea=="True": area = [-999.]*len(datakeys)
+  if nl.addarea: area = [-999.]*len(datakeys)
 
-  if nl.addvrr=="True": volrainrate = [-999.]*len(datakeys)
+  if nl.addvrr: volrainrate = [-999.]*len(datakeys)
 
-  if nl.addpropagation=="True":
+  if nl.addpropagation:
     propspd = [-999.]*len(datakeys)
     propdir = [-999.]*len(datakeys)
     propspdw = [-999.]*len(datakeys)
     propdirw = [-999.]*len(datakeys)
 
-  if nl.addlocaltime=="True": localsolartime = [""]*len(datakeys)
+  if nl.addlocaltime: localsolartime = [""]*len(datakeys)
 
-  if nl.addTCinfo=="True":
+  if nl.addTCinfo:
     dist_cPF_cTC = [-999.]*len(datakeys)
     cPF_in_TC    = [-999]*len(datakeys)
     TCname_cPF   = [""]*len(datakeys) 
@@ -86,29 +86,29 @@ def driver_addvars(fn):
     TCrad_lPF    = {}
     writeTCdata   = False
 
-  if nl.addlandinfo=="True":
+  if nl.addlandinfo:
     cPF_over_land = [-999]*len(datakeys)
     lPF_over_land = {}
 
-  if nl.addboundaryinfo=="True":
+  if nl.addboundaryinfo:
     blatN = float(fd.track_dom_latN)
     blatS = float(fd.track_dom_latS)
     blonE = float(fd.track_dom_lonE)
     blonW = float(fd.track_dom_lonW)
     touchesdombound = [-999]*len(datakeys)
 
-  if nl.addconvrain=="True":
+  if nl.addconvrain:
     is_conv_rain = {}
     convarea = [-999.]*len(datakeys)
     convvrr  = [-999.]*len(datakeys)
 
-  if nl.addaxesshape=="True":
+  if nl.addaxesshape:
     ellipticity = [-999.]*len(datakeys)
     axlen       = np.zeros((len(datakeys),2))
     axlen[:,:]  = -999.
     axang       = np.zeros((len(datakeys),2))
     axang[:,:]  = -999.
-  if nl.addaxesshapec=="True":
+  if nl.addaxesshapec:
     ellipticity_c = [-999.]*len(datakeys)
     center_c      = np.zeros((len(datakeys),2))
     center_c[:,:] = -999.
@@ -117,26 +117,26 @@ def driver_addvars(fn):
     axang_c       = np.zeros((len(datakeys),2))
     axang_c[:,:]  = -999.
 
-  if nl.addasymmetry=="True": 
+  if nl.addasymmetry: 
     asymmetry_lp = [-999.]*len(datakeys)
-  if nl.addasymmetryc=="True": 
+  if nl.addasymmetryc: 
     asymmetry_lp_c = [-999.]*len(datakeys)
 
-  if nl.addfragmentation=="True" or nl.addaxesshape=="True":
+  if nl.addfragmentation or nl.addaxesshape:
     fragmentation  = [-999.]*len(datakeys)
     solidity       = [-999.]*len(datakeys)
     connectivity   = [-999.]*len(datakeys)
-  if nl.addfragmentationc=="True" or nl.addaxesshapec=="True":
+  if nl.addfragmentationc or nl.addaxesshapec:
     fragmentation_c  = [-999.]*len(datakeys)
     solidity_c       = [-999.]*len(datakeys)
     connectivity_c   = [-999.]*len(datakeys)
  
-  if nl.adddispersion=="True" or nl.addaxesshape=="True":
+  if nl.adddispersion or nl.addaxesshape:
     dispersion = [-999.]*len(datakeys)
-  if nl.adddispersionc=="True" or nl.addaxesshapec=="True":
+  if nl.adddispersionc or nl.addaxesshapec:
     dispersion_c = [-999.]*len(datakeys)
 
-  if nl.addperimeter=="True": perimeter_lp = [-999.]*len(datakeys)
+  if nl.addperimeter: perimeter_lp = [-999.]*len(datakeys)
 
 #==================================================================
 # Begin loop over times
@@ -166,7 +166,7 @@ def driver_addvars(fn):
 # Calculate maximum rain rate
 #==================================================================
 
-    if nl.addmaxrr=="True":
+    if nl.addmaxrr:
 
       # Calculate maximum rain rate in PF
       maxrainrate[c] = np.amax(instrainnzk)
@@ -175,7 +175,7 @@ def driver_addvars(fn):
 # Calculate mean rain rate
 #==================================================================
 
-    if nl.addmeanrr=="True":
+    if nl.addmeanrr:
 
       # Calculate mean rain rates but exclude pixels with 
       #  no rain
@@ -185,7 +185,7 @@ def driver_addvars(fn):
 # Calculate median rain rate
 #==================================================================
 
-    if nl.addmedianrr=="True":
+    if nl.addmedianrr:
 
       # Calculate median rain rates but exclude pixels with 
       #  no rain
@@ -195,7 +195,7 @@ def driver_addvars(fn):
 # Calculate standard deviation of rain rate
 #==================================================================
 
-    if nl.addstddevrr=="True":
+    if nl.addstddevrr:
       # Calculate standard deviation of rain rates but 
       #  exclude pixels with no rain
       stddevrainrate[c] = np.std(instrainnzk)
@@ -204,7 +204,7 @@ def driver_addvars(fn):
 # Add area 
 #==================================================================
 
-    if nl.addarea=="True" and \
+    if nl.addarea and \
        nl.addvrr=="False":
 
       # Calculate area
@@ -218,8 +218,8 @@ def driver_addvars(fn):
 # Add area and volumetric rain rate information
 #==================================================================
 
-    if nl.addarea=="True" and \
-       nl.addvrr=="True":
+    if nl.addarea and \
+       nl.addvrr:
 
       # Calculate area and volumetric rain rate
       ar,vrr = gfns.calc_area_and_volrainrate(
@@ -234,7 +234,7 @@ def driver_addvars(fn):
 #==================================================================
 
     if nl.addarea=="False" and \
-       nl.addvrr=="True":
+       nl.addvrr:
 
       # Calculate volumetric rain rate
       vrr = gfns.calc_area_and_volrainrate(
@@ -248,7 +248,7 @@ def driver_addvars(fn):
 # Add local solar time
 #==================================================================
 
-    if nl.addlocaltime=="True":
+    if nl.addlocaltime:
     
       # Calculate local time based on central longitude
       localsolartime[c] = tfns.calc_local_solar_time(
@@ -260,7 +260,7 @@ def driver_addvars(fn):
 # Add propagation
 #==================================================================
 
-    if nl.addpropagation=="True":
+    if nl.addpropagation:
     # Calculate speed and direction of motion of PF centroid
 
       # Account for objects that aren't more than one time
@@ -308,7 +308,7 @@ def driver_addvars(fn):
 # Add convective rain flag
 #==================================================================
 
-    if nl.addconvrain=="True":
+    if nl.addconvrain:
 
       is_conv_rain[k] = np.where(instrain[k]>nl.convrainthold,1,0)
 
@@ -316,7 +316,7 @@ def driver_addvars(fn):
 # Add convective rain area
 #==================================================================
   
-    if nl.addconvarea=="True" and \
+    if nl.addconvarea and \
        nl.addconvvrr=="False":
       # Calculate area
       if len(instrain[k][instrain[k]>nl.convrainthold])>0:
@@ -331,7 +331,7 @@ def driver_addvars(fn):
 #==================================================================
   
     if nl.addconvarea=="False" and \
-       nl.addconvvrr=="True":
+       nl.addconvvrr:
       # Calculate area and volumetric rain rate
       if len(instrain[k][instrain[k]>nl.convrainthold])>0:
         convvrr[c] = gfns.calc_area_and_volrainrate(
@@ -345,8 +345,8 @@ def driver_addvars(fn):
 # Add convective rain area and volumetric rain rate
 #==================================================================
 
-    if nl.addconvarea=="True" and \
-       nl.addconvvrr=="True":
+    if nl.addconvarea and \
+       nl.addconvvrr:
       # Calculate area and volumetric rain rate
       if len(instrain[k][instrain[k]>nl.convrainthold])>0:
         convarea[c],convvrr[c] = gfns.calc_area_and_volrainrate(
@@ -362,12 +362,12 @@ def driver_addvars(fn):
 # Start shape code
 #==================================================================
 
-    if nl.addperimeter=="True" or \
-       nl.addasymmetry=="True" or \
-       nl.addfragmentation=="True" or \
-       nl.addaxesshape=="True" or \
-       nl.adddispersion=="True" or \
-       nl.addpieces=="True":
+    if nl.addperimeter or \
+       nl.addasymmetry or \
+       nl.addfragmentation or \
+       nl.addaxesshape or \
+       nl.adddispersion or \
+       nl.addpieces:
 
       # Generate dataframe for object
       df = mfns.create_2d_dataframe(lonsnzk,latsnzk,
@@ -381,15 +381,15 @@ def driver_addvars(fn):
                                 [str(i) for i in nx])
 
       # assign number of pieces to pieces
-      if nl.addpieces=="True":
+      if nl.addpieces:
         pieces[c] = numL
 
       # Only calculate if there are enough points
       if len(latsnzk)>float(nl.minshapesize):
 
         # Fragmentation prepwork
-        if nl.addfragmentation=="True" or \
-           nl.addaxesshape=="True":
+        if nl.addfragmentation or \
+           nl.addaxesshape:
 
           # Predefine solidity array
           solid = [0.]*numL
@@ -419,8 +419,8 @@ def driver_addvars(fn):
 # Calculate solidity of pieces (for fragmentation)
 #==================================================================
 
-          if nl.addfragmentation=="True" or \
-             nl.addaxesshape=="True":
+          if nl.addfragmentation or \
+             nl.addaxesshape:
 
             # Define the corners of the pixels
             cornersf = sfns.find_corners(indpairs,
@@ -443,7 +443,7 @@ def driver_addvars(fn):
 # Calculate distance from centroid for all pieces (for dispersion)
 #==================================================================
 
-          if (nl.adddispersion=="True" or nl.addaxesshape=="True") \
+          if (nl.adddispersion or nl.addaxesshape) \
              and numL>1:
 
             # Define the centroids of the pieces
@@ -451,7 +451,7 @@ def driver_addvars(fn):
             centersy[i-1] = np.mean([y for x,y in indpairs])
 
         # Calculate dispersion
-        if (nl.adddispersion=="True" or nl.addaxesshape=="True") \
+        if (nl.adddispersion or nl.addaxesshape) \
           and numL>1:
 
           # Calculate distance to center
@@ -469,15 +469,15 @@ def driver_addvars(fn):
           dispersion[c] = sum([a*b for a,b in 
                                list(zip(areafac,distfac))])
 
-        elif (nl.adddispersion=="True" or nl.addaxesshape=="True") \
+        elif (nl.adddispersion or nl.addaxesshape) \
           and numL==1: dispersion[c]=0
 
 #==================================================================
 # Perimeter and asymmetry prepwork
 #==================================================================
 
-        if nl.addperimeter=="True" or \
-           nl.addasymmetry=="True":
+        if nl.addperimeter or \
+           nl.addasymmetry:
 
           # Find largest piece and all corner coordinates
           largelabel  = areas.index(max(areas))+1
@@ -494,7 +494,7 @@ def driver_addvars(fn):
 # Uses alpha shapes to define the concave hull with alpha=10 
 #==================================================================
 
-        if nl.addperimeter=="True":
+        if nl.addperimeter:
         
           # Define the perimeter coordinates
           import alphashape
@@ -512,7 +512,7 @@ def driver_addvars(fn):
 # Add asymmetry
 #==================================================================
 
-        if nl.addasymmetry=="True":
+        if nl.addasymmetry:
 
           # Fit a convex hull to the data points
           hull = ConvexHull(corners)
@@ -533,7 +533,7 @@ def driver_addvars(fn):
 # Add fragmentation
 #==================================================================
 
-        if nl.addfragmentation=="True" or nl.addaxesshape=="True":
+        if nl.addfragmentation or nl.addaxesshape:
 
           # Calculate metrics related to fragmentation
           connectivity[c]  = 1.-(numL-1.)/(numL+np.log10(
@@ -545,7 +545,7 @@ def driver_addvars(fn):
 # Add major/minor axes shape
 #==================================================================
 
-        if nl.addaxesshape=="True":
+        if nl.addaxesshape:
 
           #print("d="+str(dispersion[c]))
           #print("f="+str(fragmentation[c]))
@@ -574,11 +574,11 @@ def driver_addvars(fn):
 # Convective shape prepwork
 #==================================================================
 
-    if nl.addasymmetryc=="True" or \
-       nl.addfragmentationc=="True" or \
-       nl.addaxesshapec=="True" or \
-       nl.adddispersionc=="True" or \
-       nl.addpiecesc=="True":
+    if nl.addasymmetryc or \
+       nl.addfragmentationc or \
+       nl.addaxesshapec or \
+       nl.adddispersionc or \
+       nl.addpiecesc:
 
       # Find convective locations
       lonsc = lons[k][instrain[k]>nl.convrainthold]
@@ -603,12 +603,12 @@ def driver_addvars(fn):
                                     [str(i) for i in nxc])
 
         # assign number of pieces to pieces
-        if nl.addpiecesc=="True":
+        if nl.addpiecesc:
           pieces_c[c] = numLc
 
         # Fragmentation prepwork
-        if nl.addfragmentationc=="True" or \
-           nl.addaxesshapec=="True":
+        if nl.addfragmentationc or \
+           nl.addaxesshapec:
 
           # Predefine solidity array
           solidc = [0.]*numLc
@@ -638,8 +638,8 @@ def driver_addvars(fn):
 # Calculate solidity of pieces (for fragmentation)
 #==================================================================
 
-          if nl.addfragmentationc=="True" or \
-             nl.addaxesshapec=="True":
+          if nl.addfragmentationc or \
+             nl.addaxesshapec:
 
             # Define the corners of the pixels
             cornersfc = sfns.find_corners(indpairsc,
@@ -662,16 +662,16 @@ def driver_addvars(fn):
 # Calculate distance from centroid for all pieces (for dispersion)
 #==================================================================
 
-          if (nl.adddispersionc=="True" or \
-              nl.addaxesshapec=="True") and numLc>1:
+          if (nl.adddispersionc or \
+              nl.addaxesshapec) and numLc>1:
 
             # Define the centroids of the pieces
             centersxc[i-1] = np.mean([x for x,y in indpairsc])
             centersyc[i-1] = np.mean([y for x,y in indpairsc])
 
         # Calculate dispersion
-        if (nl.adddispersionc=="True" or \
-            nl.addaxesshapec=="True") and numLc>1:
+        if (nl.adddispersionc or \
+            nl.addaxesshapec) and numLc>1:
 
           # Calculate distance to center
           distsc = np.zeros([numLc,numLc])
@@ -688,15 +688,15 @@ def driver_addvars(fn):
           dispersion_c[c] = sum([a*b for a,b in 
                                list(zip(areafacc,distfacc))])
 
-        elif (nl.adddispersionc=="True" or \
-              nl.addaxesshapec=="True") and numLc==1:
+        elif (nl.adddispersionc or \
+              nl.addaxesshapec) and numLc==1:
           dispersion_c[c]=0
 
 #==================================================================
 # Perimeter and asymmetry prepwork
 #==================================================================
 
-        if nl.addasymmetryc=="True":
+        if nl.addasymmetryc:
 
           # Find largest piece and all corner coordinates
           largelabelc  = areasc.index(max(areasc))+1
@@ -729,8 +729,8 @@ def driver_addvars(fn):
 # Add fragmentation
 #==================================================================
 
-        if nl.addfragmentationc=="True" or \
-           nl.addaxesshapec=="True":
+        if nl.addfragmentationc or \
+           nl.addaxesshapec:
 
           # Calculate metrics related to fragmentation
           connectivity_c[c]  = 1.-(numLc-1.)/(numLc+np.log10(
@@ -742,7 +742,7 @@ def driver_addvars(fn):
 # Add major/minor axes shape
 #==================================================================
 
-        if nl.addaxesshapec=="True":
+        if nl.addaxesshapec:
 
           #print("dc="+str(dispersion_c[c]))
           #print("fc="+str(fragmentation_c[c]))
@@ -770,7 +770,7 @@ def driver_addvars(fn):
 # Add boundary information
 #==================================================================
 
-    if nl.addboundaryinfo=="True":
+    if nl.addboundaryinfo:
       # Check whether PF is on the tracking domain boundary
 
       # If not scalar
@@ -806,7 +806,7 @@ def driver_addvars(fn):
 # Add land surface information
 #==================================================================
 
-    if nl.addlandinfo=="True":
+    if nl.addlandinfo:
       
       # Import specific libraries
       import shapely.geometry as sgeom
@@ -847,7 +847,7 @@ def driver_addvars(fn):
 # Add TC information
 #==================================================================
 
-    if nl.addTCinfo=="True":
+    if nl.addTCinfo:
       
       # Read tropical cyclone data
       fTC = Dataset(nl.dataTCdir+nl.fileTCid) 
@@ -909,7 +909,7 @@ def driver_addvars(fn):
 # Write local time to file
 #==================================================================
 
-  if nl.addlocaltime=="True":
+  if nl.addlocaltime:
 
     localsolartime = [int(i) for i in localsolartime]
     description = "Calculated as the UTC time plus an offset based on the longitude. The offset is calculated by multiplying the longitude by 24/360. Note: This is not the actual local time. This should typically only be used to calculate times for the diurnal cycle."
@@ -921,7 +921,7 @@ def driver_addvars(fn):
 # Write max rain rate to file
 #==================================================================
 
-  if nl.addmaxrr=="True":
+  if nl.addmaxrr:
 
     description = "Maximum rain rate within PF"
     mfns.write_var("maxrainrate","Max rain rate",description,
@@ -931,7 +931,7 @@ def driver_addvars(fn):
 # Write mean rain rate to file
 #==================================================================
 
-  if nl.addmeanrr=="True":
+  if nl.addmeanrr:
 
     description = "Mean rain rate within PF excluding pixels with zero rain rate"
     mfns.write_var("meanrainrate","Mean rain rate",description,
@@ -941,7 +941,7 @@ def driver_addvars(fn):
 # Write median rain rate to file
 #==================================================================
 
-  if nl.addmedianrr=="True":
+  if nl.addmedianrr:
 
     description = "Median rain rate within PF excluding pixels with zero rain rate"
     mfns.write_var("medianrainrate","Median rain rate",description,
@@ -952,7 +952,7 @@ def driver_addvars(fn):
 # Write standard deviation rate to file
 #==================================================================
 
-  if nl.addstddevrr=="True":
+  if nl.addstddevrr:
 
     description = "Standard deviation of rain rate within PF excluding pixels with zero rain rate"
     mfns.write_var("stddevrainrate",
@@ -963,7 +963,7 @@ def driver_addvars(fn):
 # Write pieces to file
 #==================================================================
 
-  if nl.addpieces=="True":
+  if nl.addpieces:
 
     description = "Number of disconnected pieces making up the precipitation system"
     mfns.write_var("pieces","Pieces",description,"time",np.int64,
@@ -973,7 +973,7 @@ def driver_addvars(fn):
 # Write convective pieces to file
 #==================================================================
 
-  if nl.addpiecesc=="True":
+  if nl.addpiecesc:
 
     description = "Number of disconnected pieces making up the convective component of the system"
     mfns.write_var("pieces_c","Convective pieces",description,
@@ -983,7 +983,7 @@ def driver_addvars(fn):
 # Write area to file
 #==================================================================
 
-  if nl.addarea=="True":
+  if nl.addarea:
 
     description = "Area within PF excluding pixels with zero rain rate"
     mfns.write_var("area","Area",description,"time",np.float64,
@@ -993,7 +993,7 @@ def driver_addvars(fn):
 # Write volumetric rain rate to file
 #==================================================================
 
-  if nl.addvrr=="True":
+  if nl.addvrr:
 
     description = "Volumetric rain rate within PF excluding pixels with zero rain rate"
     mfns.write_var("volrainrate","Volumetric rain rate",
@@ -1004,7 +1004,7 @@ def driver_addvars(fn):
 # Write propagation to file
 #==================================================================
 
-  if nl.addpropagation=="True":
+  if nl.addpropagation:
 
     description = "Calculated as the geodesic distance travelled by centroid divided by time"
     mfns.write_var("propspd","Propagation speed",description,
@@ -1028,23 +1028,23 @@ def driver_addvars(fn):
 # Write convective information to file
 #==================================================================
 
-  if nl.addconvrain=="True" or nl.addconvarea=="True" or \
-    nl.addconvvrr=="True":
+  if nl.addconvrain or nl.addconvarea or \
+    nl.addconvvrr:
     fileout.conv_rain_threshold = nl.convrainthold
  
-  if nl.addconvarea=="True":
+  if nl.addconvarea:
     description = "Area of locations with rain rates greater than convective rain rate threshold"
     mfns.write_var("area_c","Convective area",
      description,"time",np.float64,"",fileout,convarea,f,
      float(-999))
 
-  if nl.addconvvrr=="True":
+  if nl.addconvvrr:
     description = "Volumetric rain rate of locations with rain rates greater than convective rain rate threshold"
     mfns.write_var("vrr_c","Convective volumetric rain rate",
     description,"time",np.float64,"",fileout,convvrr,f,
     float(-999))
 
-  if nl.addconvrain=="True":
+  if nl.addconvrain:
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
     description = "Binary indicating if a PF location has a convective rain rate (1 = convective, 0 = not convective)"
     mfns.write_group("is_conv_rain",
@@ -1055,7 +1055,7 @@ def driver_addvars(fn):
 # Write perimeter to file
 #==================================================================
 
-  if nl.addperimeter=="True":
+  if nl.addperimeter:
 
     description = "Perimeter of largest piece within the PF. Calculated using alphashapes."
     mfns.write_var("perimeter_lp","Perimeter",description,
@@ -1065,7 +1065,7 @@ def driver_addvars(fn):
 # Write asymmetry to file
 #==================================================================
 
-  if nl.addasymmetry=="True":
+  if nl.addasymmetry:
 
     description = "Asymmetry factor for largest piece within PF. 0 = symmetrical (circle). 1 = Highly asymmetrical, non-circular."
     mfns.write_var("asymmetry_lp","Asymmetry factor",description,
@@ -1075,7 +1075,7 @@ def driver_addvars(fn):
 # Write asymmetry to file
 #==================================================================
 
-  if nl.addasymmetryc=="True":
+  if nl.addasymmetryc:
 
     description = "Asymmetry factor for largest convective piece within PF. 0 = symmetrical (circle). 1 = Highly asymmetrical, non-circular."
     mfns.write_var("asymmetry_lp_c",
@@ -1086,7 +1086,7 @@ def driver_addvars(fn):
 # Write fragmentation to file
 #==================================================================
 
-  if nl.addfragmentation=="True":
+  if nl.addfragmentation:
 
     description = "Fragmentation factor. 0 = One solid piece. 1 = multiple highly fragmented pieces"
     mfns.write_var("fragmentation","Fragmentation factor",
@@ -1097,7 +1097,7 @@ def driver_addvars(fn):
 # Write fragmentation for convective pixels to file
 #==================================================================
 
-  if nl.addfragmentationc=="True":
+  if nl.addfragmentationc:
 
     description = "Fragmentation factor. for convective pixels. 0 = One solid piece. 1 = multiple highly fragmented pieces"
     mfns.write_var("fragmentation_c",
@@ -1108,7 +1108,7 @@ def driver_addvars(fn):
 # Write dispersion to file
 #==================================================================
 
-  if nl.adddispersion=="True":
+  if nl.adddispersion:
 
     description = "Dispersion factor (0-inf). 0 = One piece (no dispersion). 1 = pieces are by a weighted average more than the radius of a circle equivalent to the area of the system away from the center (highly dispersed)."
     mfns.write_var("dispersion","Dispersion factor",
@@ -1119,7 +1119,7 @@ def driver_addvars(fn):
 # Write dispersion for convective pixels to file
 #==================================================================
 
-  if nl.adddispersionc=="True":
+  if nl.adddispersionc:
 
     description = "Dispersion factor (0-inf) for convective pixels. 0 = One piece (no dispersion). 1 = pieces are by a weighted average more than the radius of a circle equivalent to the area of the system away from the center (highly dispersed)."
     mfns.write_var("dispersion_c","Convective dispersion factor",
@@ -1130,7 +1130,7 @@ def driver_addvars(fn):
 # Write ellipticity to file
 #==================================================================
 
-  if nl.addaxesshape=="True":
+  if nl.addaxesshape:
 
     description = "Ellipticity factor for PF. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
     mfns.write_var("ellipticity","Ellipticity factor",
@@ -1169,7 +1169,7 @@ def driver_addvars(fn):
 # Write ellipticity to file
 #==================================================================
 
-  if nl.addaxesshapec=="True":
+  if nl.addaxesshapec:
 
     description = "Ellipticity factor for convective pixels. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
     mfns.write_var("ellipticity_c","Convective ellipticity factor",
@@ -1208,7 +1208,7 @@ def driver_addvars(fn):
 # Write boundary information to file
 #==================================================================
 
-  if nl.addboundaryinfo=="True":
+  if nl.addboundaryinfo:
     
     description = "1 if any part of PF is within a pixel of the tracking domain boundary. Else 0."
     mfns.write_var("touchesdombound",
@@ -1219,7 +1219,7 @@ def driver_addvars(fn):
 # Write land information to file
 #==================================================================
 
-  if nl.addlandinfo=="True":
+  if nl.addlandinfo:
     description = "1 if center of PF is over land. 0 if not."
     mfns.write_var("cPF_over_land","Center of PF over land",
       description,"time",np.int64,"",fileout,cPF_over_land,f,int(-999))
@@ -1234,7 +1234,7 @@ def driver_addvars(fn):
 # Write TC information to file
 #==================================================================
 
-  if nl.addTCinfo=="True":
+  if nl.addTCinfo:
     
     if writeTCdata: 
 

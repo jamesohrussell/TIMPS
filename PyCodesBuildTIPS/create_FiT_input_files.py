@@ -9,6 +9,10 @@
 # James Russell 2019
 #==========================================================
 
+#==========================================================
+# Import libraries
+#==========================================================
+
 # Import python libraries
 from netCDF4 import Dataset
 import glob
@@ -18,89 +22,8 @@ import driver_createinfiles as dc
 from joblib import Parallel, delayed
 import os
 
-#==========================================================
-# Namelist
-#==========================================================
-
-# Directory for custom functions
-fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions"
-
-# Directory and filename for input IMERG data
-datadirin = "/uufs/chpc.utah.edu/common/home/varble-group2/IMERG/"
-fileidin  = "3B-HHR.MS.MRG.3IMERG."
-datahdf5  = True
-datanc4   = False
-
-# Date and time range
-starttime = "20180601"
-endtime   = "20180610" # Actual last day is day before
-
-# Thresholds
-tholdtype = 2 # Threshold type (1 = precip, 2 = normalized)
-tholds = [0.25,0.5] # Thresholds
-#tholds  = [1.0,3.0,9.0]
-minthold = 1. # Min precip threshold. Only required for tholdtype=2.
-
-# Directory and filename for output FiT input data
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test/"
-fileidout  = "IMERG_FiT_tholds_"
-
-# Subset regions (ranges have no affect if ssreg=False)
-ssreg  = True
-latN   = 30
-latS   = -10
-lonW   = -70
-lonE   = 0
-ssname = "Atl"
-
-# Smoothing
-smooth   = True
-gaussian = False
-stddev   = 1.5  # Standard deviation for gaussian smoothing
-uniform  = True
-width    = 5    # Number of points to spread running average
-
-# Parallelization
-serialorparallel = 2 # serial=1 parallel=2
-njobs = 32 # Number of cores for parallelization
-
-#==========================================================
-# Write namelist to a dictionary
-#==========================================================
-
-# Put namelist information in dictionaries
-namelist = {}
-namelist["fnsdir"] = str(fnsdir)
-namelist["datadirin"] = str(datadirin)
-namelist["fileidin"] = str(fileidin)
-namelist["datahdf5"] = str(datahdf5)
-namelist["datanc4"] = str(datanc4)
-namelist["starttime"] = str(starttime)
-namelist["endtime"] = str(endtime)
-namelist["tholdtype"] = tholdtype
-namelist["tholds"] = tholds
-if tholdtype==2: namelist["minthold"] = minthold
-namelist["datadirout"] = str(datadirout)
-namelist["fileidout"] = str(fileidout)
-namelist["ssreg"] = str(ssreg)
-namelist["latN"] = latN
-namelist["latS"] = latS
-namelist["lonE"] = lonE
-namelist["lonW"] = lonW
-namelist["ssname"] = str(ssname)
-namelist["smooth"] = str(smooth)
-namelist["gaussian"] = str(gaussian)
-namelist["stddev"] = stddev
-namelist["uniform"] = str(uniform)
-namelist["width"] = width
-
-# Write namelist dictionary to netcdf file for reading 
-#  during parallel loop
-print("Writing namelist to netcdf file")
-nlfileout = Dataset("namelist_ci.nc","w",format="NETCDF4")
-for k,v in namelist.items():
-  setattr(nlfileout, k,  v)
-nlfileout.close()
+# Import namelist
+import namelist_TIPS as nl
 
 #==========================================================
 # Initialize timer
@@ -115,12 +38,12 @@ startnow = time.time()
 print("Generating file list")
 
 # Generate a list of filenames with dates to search for
-start = datetime.datetime.strptime(starttime, "%Y%m%d")
-end = datetime.datetime.strptime(endtime, "%Y%m%d")
+start = datetime.datetime.strptime(nl.starttime, "%Y%m%d")
+end = datetime.datetime.strptime(nl.endtime, "%Y%m%d")
 datearr = (start + datetime.timedelta(days=x) for x in range(0, (end-start).days))
 filen = []
 for dateobj in datearr:
-  filen.append(datadirin+fileidin+dateobj.strftime("%Y%m%d")+"*")
+  filen.append(nl.datadirin+nl.fileidin+dateobj.strftime("%Y%m%d")+"*")
 
 # Reads directory and filenames
 n = 0
@@ -151,15 +74,16 @@ ffn.close()
 #========================================================== 
 
 # Begins loop
-if serialorparallel==1:
+if nl.serialorparallelc==1:
   print("Begin serial loop over objects")
   for i in range(len(filenames)):
     dc.driver_createinfiles(i)
 
 # Parallel loop over PFs
-if serialorparallel==2:
+if nl.serialorparallelc==2:
   print("Begin parallel loop over objects")
-  Parallel(n_jobs=njobs)(delayed(dc.driver_createinfiles)(i) for \
+  Parallel(n_jobs=nl.njobsc)(delayed(
+    dc.driver_createinfiles)(i) for \
     i in range(len(filenames)))
 
 #==========================================================
@@ -169,7 +93,6 @@ if serialorparallel==2:
 # Remove namelist and filename files
 print("Cleaning up")
 os.system("rm filenames_ci.txt")
-os.system("rm namelist_ci.nc")
 os.system("rm -rf __pycache__")
 
 # End timer

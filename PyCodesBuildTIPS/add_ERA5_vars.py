@@ -24,64 +24,8 @@ from joblib import Parallel, delayed
 import time as tm
 import os
 
-#==================================================================
-# Namelist
-#==================================================================
-
-# Directory for custom functions
-fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
-
-# Directory and filename for PF files
-datadir = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test2/"
-fileid  = "TIPS_"
-
-# Subset (for certain range of dates) 
-ssdat = False
-date1 = "20180601"
-date2 = "20180602"
-ssobs = False
-obid1 = "103231"
-obid2 = "103233"
-
-# Number of processes for parrallelization
-serialorparallel = 2
-njobs = 20
-
-# Type of area or mean
-addctarea = True # Area centered on TIPS
-addctmean = True  # Mean of centered area
-addinarea = False # All points in calculated inflow
-addinmean = False # Add mean of inflow region
-
-# Rain check or no rain check
-addrainchk   = True
-addnorainchk = True
-
-# Variables desired
-addTCWVE5    = True # ERA5 Total Column Water Vapor
-addCAPEE5    = True # ERA5 Convective Available Potential Energy
-addSR18E5    = True # ERA5 Boundary Layer Shear
-addSR82E5    = True # ERA5 Free-troposphere Shear
-addSH18E5    = True # ERA5 Boundary Layer Specific Humidity
-addSH82E5    = True # ERA5 Free-troposphere Specific Humidity
-
-# ERA5 domain variables
-hda           = 2.5 # Half data area in degrees
-hoursbefore   = np.arange(48,0,-3) # Hours before (descending)
-hoursafter    = hoursbefore[::-1] # Hours after (ascending)
-avgmissfrac   = 0.8 # fraction of domain missing before average is not carried out
-
-# Directory and filenames of ERA5 data
-dataE5dir     = "/uufs/chpc.utah.edu/common/home/varble-group1/ERA5/"
-fileTCWVE5id  = "moisture/ERA5.TCWV."
-fileCAPEE5id  = "convparams/ERA5.CAPE."
-fileUSR18E5id = "shear/ERA5.USHR_1000-850hPamean."
-fileVSR18E5id = "shear/ERA5.VSHR_1000-850hPamean."
-fileUSR82E5id = "shear/ERA5.USHR_850-200hPamean."
-fileVSR82E5id = "shear/ERA5.VSHR_850-200hPamean."
-fileSH18E5id  = "moisture/ERA5.SPHU_1000-850hPamean."
-fileSH82E5id  = "moisture/ERA5.SPHU_850-200hPamean."
-fileTCRWE5id  = "clouds/ERA5.TCRW."
+# Import namelist
+import namelist_TIPS as nl
 
 #==================================================================
 # Initialize timer
@@ -90,73 +34,22 @@ fileTCRWE5id  = "clouds/ERA5.TCRW."
 startnow = tm.time()
 
 #==================================================================
-# Write namelist to a dictionary
-#==================================================================
-
-# Put namelist information in dictionaries
-namelist = {}
-namelist["fnsdir"] = str(fnsdir)
-
-# Add which variables are selected
-namelist["addctarea"] = str(addctarea)
-namelist["addctmean"] = str(addctmean)
-namelist["addinarea"] = str(addinarea)
-namelist["addinmean"] = str(addinmean)
-
-namelist["addrainchk"]   = str(addrainchk)
-namelist["addnorainchk"] = str(addnorainchk)
-
-namelist["addTCWVE5"] = str(addTCWVE5)
-namelist["addCAPEE5"] = str(addCAPEE5)
-namelist["addSR18E5"] = str(addSR18E5)
-namelist["addSR82E5"] = str(addSR82E5)
-namelist["addSH18E5"] = str(addSH18E5)
-namelist["addSH82E5"] = str(addSH82E5)
-
-namelist["dataE5dir"] = str(dataE5dir)
-
-namelist["hda"] = hda
-namelist["avgmissfrac"] = avgmissfrac
-namelist["hoursbefore"] = hoursbefore
-namelist["hoursafter"] = hoursafter
-
-if addTCWVE5: namelist["fileTCWVE5id"] = str(fileTCWVE5id)
-if addCAPEE5: namelist["fileCAPEE5id"] = str(fileCAPEE5id)
-if addSR18E5: 
-  namelist["fileUSR18E5id"] = str(fileUSR18E5id)
-  namelist["fileVSR18E5id"] = str(fileVSR18E5id)
-if addSR82E5: 
-  namelist["fileUSR82E5id"] = str(fileUSR82E5id)
-  namelist["fileVSR82E5id"] = str(fileVSR82E5id)
-if addSH18E5: namelist["fileSH18E5id"] = str(fileSH18E5id)
-if addSH82E5: namelist["fileSH82E5id"] = str(fileSH82E5id)
-if addrainchk: namelist["fileTCRWE5id"] = str(fileTCRWE5id)
-
-# Write namelist dictionary to netcdf file for reading 
-#  during parallel loop
-print("Writing namelist to netcdf file")
-nlfileout = Dataset("namelist_av_E5.nc","w",format="NETCDF4")
-for k,v in namelist.items():
-  setattr(nlfileout, k,  v)
-nlfileout.close()
-
-#==================================================================
 # Generate list of IPF files to process
 #==================================================================
 
 # Reads directory and file names
-if ssdat:
+if nl.ssdataE:
 
   print("Subsetting by date")
 
   # Generate a list of filenames with dates to search for
   print("Generating filenames to search for")
-  start = dt.datetime.strptime(date1,"%Y%m%d")
-  end = dt.datetime.strptime(date2,"%Y%m%d")
+  start = dt.datetime.strptime(nl.date1aE,"%Y%m%d")
+  end = dt.datetime.strptime(nl.date2aE,"%Y%m%d")
   datearr = (start + dt.timedelta(days=x) for x in range(0,(end-start).days))
   filen = []
   for dateobj in datearr:
-    filen.append(datadir+fileid+"*"+dateobj.strftime("%Y%m%d")+"*")
+    filen.append(nl.datadirTIPS+nl.fileidTIPS+"*"+dateobj.strftime("%Y%m%d")+"*")
 
   # Reads directory and filenames
   print("Getting directory and filenames")
@@ -164,15 +57,15 @@ if ssdat:
   for f in filen:
       filenamesrun = filenamesrun+sorted(glob.glob(f))
 
-elif ssobs:
+elif nl.ssobsaE:
 
   print("Subsetting by object ids")
 
   print("Generating filenames to search for")
-  obids = [i for i in range(int(obid1),int(obid2))]
+  obids = [i for i in range(int(nl.obid1aE),int(nl.obid2aE))]
   filen = []
   for i in range(len(obids)):
-    filen.append(datadir+fileid+str(obids[i])+"*")
+    filen.append(nl.datadirTIPS+nl.fileidTIPS+str(obids[i])+"*")
 
   # Reads directory and filenames
   print("Getting directory and filenames")
@@ -181,17 +74,13 @@ elif ssobs:
     print("Adding "+str(f))
     filenamesrun = filenamesrun+sorted(glob.glob(f))
 
-  #import os
-  #for f in filen:
-  #  print(os.system("ls "+str(f)))
-
 else:
 
   print("No subsetting")
 
   # Find all files in directory
   print("Generating list of files")
-  filenamesrun = sorted(glob.glob(datadir+fileid+'*'))
+  filenamesrun = sorted(glob.glob(nl.datadirTIPS+nl.fileidTIPS+'*'))
 
 # Write file names to a text file for reading during 
 #  parallel loop
@@ -205,15 +94,15 @@ ffn.close()
 # Loop over IPF files in parrallel
 #==================================================================
 
-if serialorparallel==1:
+if nl.serialorparallelaE==1:
   print("Begin serial loop over TIPS")
   for fn in range(len(filenamesrun)):
     da.driver_addvars(fn)
 
 # Parrallel loop over PFs
-if serialorparallel==2:
+if nl.serialorparallelaE==2:
   print("Begin parrallel loop over TIPS")
-  Parallel(n_jobs=njobs)(delayed(da.driver_addvars)(fn) \
+  Parallel(n_jobs=nl.njobsaE)(delayed(da.driver_addvars)(fn) \
     for fn in range(len(filenamesrun)))
 
 #==================================================================
@@ -223,7 +112,6 @@ if serialorparallel==2:
 # Remove namelist and filename files
 print("Cleaning up")
 os.system("rm filenames_av_E5.txt")
-os.system("rm namelist_av_E5.nc")
 os.system("rm -rf __pycache__")
 
 # End timer

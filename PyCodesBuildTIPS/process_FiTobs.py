@@ -21,52 +21,8 @@ from joblib import Parallel, delayed
 import time as tm
 import os
 
-#============================================================
-# Namelist
-#============================================================
-
-# Directory for custom functions
-fnsdir = "/uufs/chpc.utah.edu/common/home/u0816744/general_functions/"
-
-# Directory and filename for input IMERG data
-# Should obtain from create_FiT_input_files.py
-datadirIM  = "/uufs/chpc.utah.edu/common/home/varble-group2/IMERG/"
-fileidIM   = "3B-HHR.MS.MRG.3IMERG."
-datahdf5   = True
-datanc4    = False
-
-# Directory and filename for FiT input files
-# Should obtain from create_FiT_input_files.py
-datadirFin = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_input_test2/"
-fileidFin  = "IMERG_FiT_tholds_Atl_"
-
-# Directory and filename for FiT output data files
-datadirFi  = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/FiT_output_test2/"
-fileidFi1  = "IMERG_tracked_"
-fileidFi2  = "_4Dobjects.nc"
-fileidtxt  = "4Dobject_tree.txt"
-
-# Directory and filename for output PF nc files
-datadirout = "/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test2/"
-fileidout1 = "TIPS_"
-
-# Only process a set of objects
-subsetobs = True
-ob1       = 100000 # First obid
-ob2       = 100100 # Last obid
-subsetsztm= True
-nsz       = 30     # Minimum no of pixels (30 advised)
-nt        = 6      # Minimum number of times
-
-# Specify merging distance from tracking (number of pixels)
-mergedist = 30
-
-# Specify reference time in format YYYY-MM-DD hh:mm:ss
-reftime = "1900-01-01 00:00:00"
-
-# Number of processes for parallelization
-serialorparallel = 2
-njobs = 32
+# Import namelist
+import namelist_TIPS as nl
 
 #============================================================
 # Initialize timer
@@ -75,40 +31,12 @@ njobs = 32
 startnow = tm.time()
 
 #============================================================
-# Write namelist to a dictionary
-#============================================================
-
-# Put namelist information in dictionaries
-namelist = {}
-namelist["fnsdir"] = str(fnsdir)
-namelist["datahdf5"] = str(datahdf5)
-namelist["datanc4"] = str(datanc4)
-namelist["datadirFin"] = str(datadirFin)
-namelist["fileidFin"] = str(fileidFin)
-namelist["datadirFi"] = str(datadirFi)
-namelist["fileidFi1"] = str(fileidFi1)
-namelist["fileidFi2"] = str(fileidFi2)
-namelist["fileidtxt"] = str(fileidtxt)
-namelist["mergedist"] = str(mergedist)
-namelist["reftime"] = str(reftime)
-namelist["datadirout"] = str(datadirout)
-namelist["fileidout1"] = str(fileidout1)
-
-# Write namelist dictionary to netcdf file for reading 
-#  during parallel loop
-print("Writing namelist to netcdf file")
-nlfileout = Dataset("namelist_po.nc","w",format="NETCDF4")
-for k,v in namelist.items():
-  setattr(nlfileout, k,  v)
-nlfileout.close()
-
-#============================================================
 # Get universal information
 #============================================================
 
 # Get all original files used for tracking
 print("Generating list of files")
-datasetFin = Dataset(datadirFin+fileidFin+"00000.nc")
+datasetFin = Dataset(nl.datadirFin+nl.fileidFin+"00000.nc")
 datestart = datasetFin.datestart
 dateend = datasetFin.dateend
 
@@ -119,7 +47,7 @@ datearr = (start + dt.timedelta(days=x) \
           for x in range(0, (end-start).days))
 filen = []
 for dateobj in datearr:
-  filen.append(datadirIM+fileidIM+ \
+  filen.append(nl.datadirin+nl.fileidin+ \
   dateobj.strftime("%Y%m%d")+"*")
 
 # Reads directory and filenames
@@ -130,14 +58,14 @@ for f in filen:
   else:
     filenames = filenames+glob.glob(f)
   n=n+1
-lenIdir    = len(datadirIM)
+lenIdir    = len(nl.datadirin)
 
 #============================================================
 # Read FiT text file
 #============================================================
 
 # Read text file
-f       = open(datadirFi+fileidFi1+fileidtxt,'r') 
+f       = open(nl.datadirFi+nl.fileidFi1+nl.fileidtxt,'r') 
 FiTinfo = np.genfromtxt(f, dtype="str",delimiter="\t",
                            skip_header=1)
 
@@ -150,22 +78,22 @@ objs  = list(obids.keys())
 # Find only obids of objects that reach a size of nsz 
 #  pixels in their lifetime and exist for at least nt
 #  times.
-if subsetsztm:
+if nl.subsetsztm:
   obinds = [list(np.where(FiTids==key)[0]) 
            for key in objs]
   obnt  = list(obids.values())
   obmsz = [max([FiTszs[i] for i in inds]) 
                           for inds in obinds]
   obinds1 = np.intersect1d(
-             np.where(np.array(obmsz)>=nsz)[0],
-             np.where(np.array(obnt)>=nt)[0])
+            np.where(np.array(obmsz)>=nl.nsz)[0],
+            np.where(np.array(obnt)>=nl.nt)[0])
   objs = [objs[i] for i in obinds1]
 
 # Subset by range of object ids
-if subsetobs:
+if nl.subsetobs:
   objs = list(np.intersect1d(
-               np.array(np.arange(ob1,ob2)),
-               np.array(objs)))
+              np.array(np.arange(nl.ob1,nl.ob2)),
+              np.array(objs)))
 
 #============================================================
 # Write information
@@ -194,15 +122,15 @@ pifileout.close()
 # Parallel loop over object
 #============================================================ 
 
-if serialorparallel==1:
+if nl.serialorparallelp==1:
   print("Begin serial loop over objects")
   for o in range(len(objs)):
     dp.driver_processFiTobs(o)
 
 # Parrallel loop over PFs
-if serialorparallel==2:
+if nl.serialorparallelp==2:
   print("Begin parrallel loop over objects")
-  Parallel(n_jobs=njobs)(delayed(dp.driver_processFiTobs)(o) \
+  Parallel(n_jobs=nl.njobsp)(delayed(dp.driver_processFiTobs)(o) \
     for o in range(len(objs)))
 
 #============================================================
@@ -212,7 +140,6 @@ if serialorparallel==2:
 # Remove namelist and filename files
 print("Cleaning up")
 os.system("rm filenames_po.txt")
-os.system("rm namelist_po.nc")
 os.system("rm passinfo_po.nc")
 os.system("rm -rf __pycache__")
 
