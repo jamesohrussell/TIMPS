@@ -1,15 +1,6 @@
 #==================================================================
-# Add variables to IMERG PF netcdf files.
-#
-# Must provide in namelist:
-#  * Directory and filename identifiers for PF files
-#  * Directory and filename identifiers for IBtracs data
-#     (only if TC information is desired)
-#  * Variables desired
-#  * Grid spacing of input data pixels in degrees 
-#     (IMERG = 0.1, only required if area or volumetric 
-#     rain rate is desired)
-#  * Subset information if desired
+# Add variables to IMERG PF netcdf files. Requires 
+#  driver_addvars.py be in same directory.
 #
 # James Russell 2019
 #==================================================================

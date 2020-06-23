@@ -1,10 +1,18 @@
 #==========================================================
 # Script to read IMERG data files and convert them to files
 # which can be read by the FiT tracking algorithm. Converts
-# rain rates to sort-of binary i.e. everything below a 
+# rain rates to thresholded data i.e. everything below a 
 # low threshold is 0, everything between the first two 
 # thresholds is 1, between second two thresholds is 2, 
 # and above the last threshold is 3.
+#
+# Addition of Mani Rajagopal's normalized thresholds 
+# methods (6/22/2019). These look at each contiguous 
+# object and normalize the thresholds within each relative
+# to the maximum precipation. Thus thresholds are a 
+# fraction of the max precip within a contiguous object.
+#
+# Requires driver_createinfiles.py be in same directory.
 #
 # James Russell 2019
 #==========================================================

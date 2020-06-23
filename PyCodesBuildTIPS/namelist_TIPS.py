@@ -1,14 +1,16 @@
 #==========================================================
 # Namelist for running TIPS programs
-# 
-# Must be in directory 
 #
 # In here you will input all namelist options for the 
-#  python programs involved in the FiT:
+#  python programs involved in :
 #  * create_FiT_input_files
 #  * process_FiTobs
 #  * add_vars
 #  * add_ERA5_vars
+#
+# Namelist must be in same directory as python scripts
+#
+# James Russell 2020
 #==========================================================
 
 # Import Python libraries (don't change)

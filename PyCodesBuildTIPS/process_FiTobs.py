@@ -1,11 +1,7 @@
 #============================================================
 # Compile IMERG and FiT information into precipitation 
-# feature netcdf files.
-#
-# Must provide in namelist:
-#  * Directory and filename identifiers for IMERG files 
-#      and FiT output netcdf files (the latter has no 
-#      effect if only plotting IMERG)
+# feature netcdf files. Requires driver_processFiTobs.py be 
+# in same directory.
 #
 # James Russell 2019
 #============================================================
