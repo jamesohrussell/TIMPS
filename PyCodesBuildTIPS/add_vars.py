@@ -15,7 +15,8 @@ from joblib import Parallel, delayed
 import os
 
 # Import namelist
-import namelist_TIPS as nl
+from namelist_TIPS import general as gnl
+from namelist_TIPS import addvars as anl
 
 #==================================================================
 # Initialize timer
@@ -28,19 +29,19 @@ startnow = tm.time()
 #==================================================================
 
 # Reads directory and file names
-if nl.ssdat:
+if anl.ssdat:
 
   print("Subsetting by date")
 
   # Generate a list of filenames with dates to search for
   print("Generating filenames to search for")
-  start = dt.datetime.strptime(nl.date1,"%Y%m%d")
-  end = dt.datetime.strptime(nl.date2,"%Y%m%d")
+  start = dt.datetime.strptime(anl.date1,"%Y%m%d")
+  end = dt.datetime.strptime(anl.date2,"%Y%m%d")
   datearr = (start + dt.timedelta(days=x) \
    for x in range(0,(end-start).days))
   filen = []
   for dateobj in datearr:
-    filen.append(nl.datadirTIPS+nl.fileidTIPS+"*"+ \
+    filen.append(gnl.datadirTIPS+gnl.fileidTIPS+"*"+ \
      dateobj.strftime("%Y%m%d")+"*")
 
   # Reads directory and filenames
@@ -49,15 +50,15 @@ if nl.ssdat:
   for f in filen:
       filenamesrun = filenamesrun+sorted(glob.glob(f))
 
-elif nl.ssobs:
+elif anl.ssobs:
 
   print("Subsetting by object ids")
 
   print("Generating filenames to search for")
-  obids = [i for i in range(int(nl.obid1),int(nl.obid2))]
+  obids = [i for i in range(int(anl.obid1),int(anl.obid2))]
   filen = []
   for i in range(len(obids)):
-    filen.append(nl.datadirTIPS+nl.fileidTIPS+str(obids[i])+"*")
+    filen.append(gnl.datadirTIPS+gnl.fileidTIPS+str(obids[i])+"*")
 
   # Reads directory and filenames
   print("Getting directory and filenames")
@@ -76,7 +77,7 @@ else:
 
   # Find all files in directory
   print("Generating list of files")
-  filenamesrun = sorted(glob.glob(nl.datadirTIPS+nl.fileidTIPS+'*'))
+  filenamesrun = sorted(glob.glob(gnl.datadirTIPS+gnl.fileidTIPS+'*'))
 
 # Write file names to a text file for reading during 
 #  parallel loop
@@ -90,15 +91,15 @@ ffn.close()
 # Loop over IPF files in parrallel
 #==================================================================
 
-if nl.serialorparallela==1:
+if anl.serialorparallel==1:
   print("Begin serial loop over objects")
   for fn in range(len(filenamesrun)):
     da.driver_addvars(fn)
 
 # Parrallel loop over PFs
-if nl.serialorparallela==2:
+if anl.serialorparallel==2:
   print("Begin parrallel loop over IPFs")
-  Parallel(n_jobs=nl.njobsa)(delayed(da.driver_addvars)(fn) \
+  Parallel(n_jobs=anl.njobs)(delayed(da.driver_addvars)(fn) \
     for fn in range(len(filenamesrun)))
 
 #==================================================================

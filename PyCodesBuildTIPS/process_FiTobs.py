@@ -18,7 +18,8 @@ import time as tm
 import os
 
 # Import namelist
-import namelist_TIPS as nl
+from namelist_TIPS import general as gnl
+from namelist_TIPS import process as pnl
 
 #============================================================
 # Initialize timer
@@ -32,7 +33,7 @@ startnow = tm.time()
 
 # Get all original files used for tracking
 print("Generating list of files")
-datasetFin = Dataset(nl.datadirFin+nl.fileidFin+"00000.nc")
+datasetFin = Dataset(pnl.datadirFin+pnl.fileidFin+"00000.nc")
 datestart = datasetFin.datestart
 dateend = datasetFin.dateend
 
@@ -43,7 +44,7 @@ datearr = (start + dt.timedelta(days=x) \
           for x in range(0, (end-start).days))
 filen = []
 for dateobj in datearr:
-  filen.append(nl.datadirin+nl.fileidin+ \
+  filen.append(gnl.datadirin+gnl.fileidin+ \
   dateobj.strftime("%Y%m%d")+"*")
 
 # Reads directory and filenames
@@ -54,14 +55,14 @@ for f in filen:
   else:
     filenames = filenames+glob.glob(f)
   n=n+1
-lenIdir    = len(nl.datadirin)
+lenIdir    = len(gnl.datadirin)
 
 #============================================================
 # Read FiT text file
 #============================================================
 
 # Read text file
-f       = open(nl.datadirFi+nl.fileidFi1+nl.fileidtxt,'r') 
+f       = open(pnl.datadirFi+pnl.fileidFi1+pnl.fileidtxt,'r') 
 FiTinfo = np.genfromtxt(f, dtype="str",delimiter="\t",
                            skip_header=1)
 
@@ -74,21 +75,21 @@ objs  = list(obids.keys())
 # Find only obids of objects that reach a size of nsz 
 #  pixels in their lifetime and exist for at least nt
 #  times.
-if nl.subsetsztm:
+if pnl.subsetsztm:
   obinds = [list(np.where(FiTids==key)[0]) 
            for key in objs]
   obnt  = list(obids.values())
   obmsz = [max([FiTszs[i] for i in inds]) 
                           for inds in obinds]
   obinds1 = np.intersect1d(
-            np.where(np.array(obmsz)>=nl.nsz)[0],
-            np.where(np.array(obnt)>=nl.nt)[0])
+            np.where(np.array(obmsz)>=pnl.nsz)[0],
+            np.where(np.array(obnt)>=pnl.nt)[0])
   objs = [objs[i] for i in obinds1]
 
 # Subset by range of object ids
-if nl.subsetobs:
+if pnl.subsetobs:
   objs = list(np.intersect1d(
-              np.array(np.arange(nl.ob1,nl.ob2)),
+              np.array(np.arange(pnl.ob1,pnl.ob2)),
               np.array(objs)))
 
 #============================================================
@@ -118,15 +119,15 @@ pifileout.close()
 # Parallel loop over object
 #============================================================ 
 
-if nl.serialorparallelp==1:
+if pnl.serialorparallel==1:
   print("Begin serial loop over objects")
   for o in range(len(objs)):
     dp.driver_processFiTobs(o)
 
 # Parrallel loop over PFs
-if nl.serialorparallelp==2:
+if pnl.serialorparallel==2:
   print("Begin parrallel loop over objects")
-  Parallel(n_jobs=nl.njobsp)(delayed(dp.driver_processFiTobs)(o) \
+  Parallel(n_jobs=pnl.njobs)(delayed(dp.driver_processFiTobs)(o) \
     for o in range(len(objs)))
 
 #============================================================

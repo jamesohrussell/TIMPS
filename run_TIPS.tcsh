@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/tcsh
 # Example script to run tracking, process objects into precipitation 
 #  systems, and add various variables quantifying the precipitation 
 #  systems.
@@ -21,40 +21,46 @@
 # Below is an example/sample for running the scripts required.
 
 # Inputs
-datadir="/uufs/chpc.utah.edu/common/home/u0816744/varb2/FiT_CPEX-AW/"
-pycodedir="/uufs/chpc.utah.edu/common/home/u0816744/TIPS_git/PyCodesBuildTIPS/"
-trcodedir="/uufs/chpc.utah.edu/common/home/u0816744/TIPS_git/exe_for_tracking_2020/"
+set datadir = "/uufs/chpc.utah.edu/common/home/u0816744/varb2/FiT_CPEX-AW/"
+set pycodedir = "/uufs/chpc.utah.edu/common/home/u0816744/TIPS_git/PyCodesBuildTIPS/"
+set trcodedir = "/uufs/chpc.utah.edu/common/home/u0816744/TIPS_git/exe_for_tracking_2020/"
 
 # Make required directories
-mkdir "${datadir}/FiT_input_test"  # FiT input data directory
-mkdir "${datadir}/FiT_output_test" # FiT output data directory
-mkdir "${datadir}/TIPS_test"       # TIPS files data directory
+echo "Making directories for output"
+mkdir ${datadir}"/FiT_input_test"  # FiT input data directory
+mkdir ${datadir}"/FiT_output_test" # FiT output data directory
+mkdir ${datadir}"/TIPS_test"       # TIPS files data directory
 wait
 
 # Python: Creates the thresholded files that are input to the FiT 
 #  algorithm. Ensure all output is piped to a log file and script 
 #  is run in the background or this will get messy in your terminal.
-python -u "${pycodedir}create_FiT_input_files.py" > create.log 2>&1 &
+echo "Creating FiT input files"
+python -u ${pycodedir}"create_FiT_input_files.py" >& create.log &
 wait
 
 # Executable: Run compiled FiT algorithm (C++) to track objects
-"${trcodedir}FiT_Object_analysis_basic_with_NetCDF4.exex" \
-"${trcodedir}namelist.dat" > FiT.log 2>&1 &
+echo "Running FiT tracking algorithm"
+${trcodedir}"FiT_Object_analysis_basic_with_NetCDF4.exex" \
+${trcodedir}"namelist.dat" >& FiT.log &
 wait
 
 # Python: Process FiT objects into individual files, each describing 
 #  one precipitation system.
-python "${pycodedir}process_FiTobs.py" > proc.log 2>&1 &
+echo "Processing FiT objects into TIPS"
+python ${pycodedir}"process_FiTobs.py" >& proc.log &
 wait
 
 # Add variables quantifying precipitation systems
-python "${pycodedir}add_vars.py" > add.log 2>&1 &
+echo "Adding variables to TIPS"
+python ${pycodedir}"add_vars.py" >& add.log &
 wait
 
 # Add ERA5 variables to precipitation system files
-python "${pycodedir}add_ERA5_vars.py" > addE5.log 2>&1 &
+echo "Adding ERA5 variables to TIPS"
+python ${pycodedir}"add_ERA5_vars.py" >& addE5.log &
 wait
 
 # Remove extras
-rm -f "${pycodedir}__pycache__/"
+rm -rf ${pycodedir}"__pycache__/"
 wait

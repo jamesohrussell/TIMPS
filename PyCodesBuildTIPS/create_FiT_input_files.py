@@ -22,7 +22,6 @@
 #==========================================================
 
 # Import python libraries
-from netCDF4 import Dataset
 import glob
 import time
 import datetime
@@ -31,7 +30,8 @@ from joblib import Parallel, delayed
 import os
 
 # Import namelist
-import namelist_TIPS as nl
+from namelist_TIPS import general as gnl
+from namelist_TIPS import create as cnl
 
 #==========================================================
 # Initialize timer
@@ -46,12 +46,12 @@ startnow = time.time()
 print("Generating file list")
 
 # Generate a list of filenames with dates to search for
-start = datetime.datetime.strptime(nl.starttime, "%Y%m%d")
-end = datetime.datetime.strptime(nl.endtime, "%Y%m%d")
+start = datetime.datetime.strptime(cnl.starttime, "%Y%m%d")
+end = datetime.datetime.strptime(cnl.endtime, "%Y%m%d")
 datearr = (start + datetime.timedelta(days=x) for x in range(0, (end-start).days))
 filen = []
 for dateobj in datearr:
-  filen.append(nl.datadirin+nl.fileidin+dateobj.strftime("%Y%m%d")+"*")
+  filen.append(gnl.datadirin+gnl.fileidin+dateobj.strftime("%Y%m%d")+"*")
 
 # Reads directory and filenames
 n = 0
@@ -82,15 +82,15 @@ ffn.close()
 #========================================================== 
 
 # Begins loop
-if nl.serialorparallelc==1:
+if cnl.serialorparallel==1:
   print("Begin serial loop over objects")
   for i in range(len(filenames)):
     dc.driver_createinfiles(i)
 
 # Parallel loop over PFs
-if nl.serialorparallelc==2:
+if cnl.serialorparallel==2:
   print("Begin parallel loop over objects")
-  Parallel(n_jobs=nl.njobsc)(delayed(
+  Parallel(n_jobs=cnl.njobs)(delayed(
     dc.driver_createinfiles)(i) for \
     i in range(len(filenames)))
 

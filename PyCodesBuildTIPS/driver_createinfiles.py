@@ -7,10 +7,11 @@ import time
 import sys
 
 # Import namelist
-import namelist_TIPS as nl
+from namelist_TIPS import general as gnl
+from namelist_TIPS import create as cnl
 
 # Import custom libraries
-sys.path.insert(0,nl.fnsdir)
+sys.path.insert(0,gnl.fnsdir)
 import shape_functions as sfns
 import misc_functions as mfns
 
@@ -27,14 +28,14 @@ def driver_createinfiles(i):
 
   print("Reading data from "+filenames[i])
 
-  if nl.datanc4:
+  if gnl.datanc4:
     # Open file
     dataset = Dataset(filenames[i])
 
     # Read variables
     rain = dataset.variables["precipitationCal"][:,:,:]
 
-  if nl.datahdf5:
+  if gnl.datahdf5:
     # Open file
     datasetIM = h5py.File(filenames[i],'r')
 
@@ -46,7 +47,7 @@ def driver_createinfiles(i):
 
   # Obtain time and date, compile into string in format:
   #   YYYYMMDDhhmm
-  lenIdir  = len(nl.datadirin)
+  lenIdir  = len(gnl.datadirin)
   ye = str(filenames[i][lenIdir+21:lenIdir+25])
   mo = str(filenames[i][lenIdir+25:lenIdir+27])
   da = str(filenames[i][lenIdir+27:lenIdir+29])
@@ -58,25 +59,25 @@ def driver_createinfiles(i):
 # Subset data
 #==========================================================
 
-  if nl.ssreg:
+  if cnl.ssreg:
 
     print("Subsetting variable by area")
 
-    if nl.datanc4:
+    if gnl.datanc4:
       # Read in coordinate variables
       lat = dataset.variables["lat"][:]
       lon = dataset.variables["lon"][:]
 
-    if nl.datahdf5:
+    if gnl.datahdf5:
       # Read in coordinate variables
       lat = datasetIM["Grid/lat"][:]
       lon = datasetIM["Grid/lon"][:]
 
     # Find indices of closest coordinates
-    idyS = (np.abs(lat - nl.latS)).argmin()
-    idyN = (np.abs(lat - nl.latN)).argmin()
-    idxW = (np.abs(lon - nl.lonW)).argmin()
-    idxE = (np.abs(lon - nl.lonE)).argmin()
+    idyS = (np.abs(lat - cnl.latS)).argmin()
+    idyN = (np.abs(lat - cnl.latN)).argmin()
+    idxW = (np.abs(lon - cnl.lonW)).argmin()
+    idxE = (np.abs(lon - cnl.lonE)).argmin()
 
     # Subset main dataset by indices
     lat  = lat[idyS:idyN]
@@ -92,11 +93,11 @@ def driver_createinfiles(i):
 # Smooth data
 #==========================================================
 
-  if nl.smooth:
-    if nl.gaussian:
-      rain = ndimage.gaussian_filter(rain,sigma=nl.stddev)
-    elif nl.uniform:
-      rain = ndimage.uniform_filter(rain,size=nl.width)
+  if cnl.smooth:
+    if cnl.gaussian:
+      rain = ndimage.gaussian_filter(rain,sigma=cnl.stddev)
+    elif cnl.uniform:
+      rain = ndimage.uniform_filter(rain,size=cnl.width)
     
 #==========================================================
 # Do thresholding
@@ -105,23 +106,23 @@ def driver_createinfiles(i):
   print("Creating thresholded data")
 
   # Constant thresholds
-  if nl.tholdtype==1:
+  if cnl.tholdtype==1:
   
     # Loop over all thresholds
-    for j in (range(len(nl.tholds)+1)):
+    for j in (range(len(cnl.tholds)+1)):
       if j==0:
-        value1 = np.where(rain<nl.tholds[0],j,rain)
-      elif j>0 and j<len(nl.tholds):
-        value1 = np.where((rain>=nl.tholds[j-1]) & \
-                          (rain<nl.tholds[j]),j,value1)
-      elif j==len(nl.tholds):
-        value1 = np.where(rain>=nl.tholds[j-1],j,value1)
+        value1 = np.where(rain<cnl.tholds[0],j,rain)
+      elif j>0 and j<len(cnl.tholds):
+        value1 = np.where((rain>=cnl.tholds[j-1]) & \
+                          (rain<cnl.tholds[j]),j,value1)
+      elif j==len(cnl.tholds):
+        value1 = np.where(rain>=cnl.tholds[j-1],j,value1)
 
   # Normalized thresholds
-  elif nl.tholdtype==2:
+  elif cnl.tholdtype==2:
     
     # Remove all precip below minthold
-    rain = np.where(rain>=nl.minthold,rain-nl.minthold,0)
+    rain = np.where(rain>=cnl.minthold,rain-cnl.minthold,0)
 
     # Find all contiguous objects
     rainlabs,numobs = sfns.label_wdiags(rain)
@@ -140,15 +141,15 @@ def driver_createinfiles(i):
      out=np.zeros_like(rain),where=rainobjmax!=0)    
 
     # Do thresholding
-    for j in (range(len(nl.tholds)+1)):
+    for j in (range(len(cnl.tholds)+1)):
       if j==0:
         value1 = np.where((nrain>0.) & \
-         (nrain<nl.tholds[0]),j+1,nrain)
-      elif j>0 and j<len(nl.tholds):
-        value1 = np.where((nrain>=nl.tholds[j-1]) & \
-                          (nrain<nl.tholds[j]),j+1,value1)
-      elif j==len(nl.tholds):
-        value1 = np.where(nrain>=nl.tholds[j-1],j+1,value1)
+         (nrain<cnl.tholds[0]),j+1,nrain)
+      elif j>0 and j<len(cnl.tholds):
+        value1 = np.where((nrain>=cnl.tholds[j-1]) & \
+                          (nrain<cnl.tholds[j]),j+1,value1)
+      elif j==len(cnl.tholds):
+        value1 = np.where(nrain>=cnl.tholds[j-1],j+1,value1)
 
   else:
     raise ValueError("Incorrect option for threshold")
@@ -158,16 +159,16 @@ def driver_createinfiles(i):
 #==========================================================
 
   # Creating netcdf file to write to
-  if nl.ssreg: 
-    print("Creating file: "+nl.datadiroutc+nl.fileidoutc+ \
-     nl.ssname+"_"+str(i).zfill(5)+".nc")
-    fileout = Dataset(nl.datadiroutc+nl.fileidoutc+ \
-     nl.ssname+"_"+str(i).zfill(5)+".nc",'w',
+  if cnl.ssreg: 
+    print("Creating file: "+cnl.datadirout+cnl.fileidout+ \
+     cnl.ssname+"_"+str(i).zfill(5)+".nc")
+    fileout = Dataset(cnl.datadirout+cnl.fileidout+ \
+     cnl.ssname+"_"+str(i).zfill(5)+".nc",'w',
      format='NETCDF4_CLASSIC')
   else:
-    print("Creating file: "+nl.datadiroutc+ \
-     nl.fileidoutc+str(i).zfill(5)+".nc")
-    fileout = Dataset(nl.datadiroutc+nl.fileidoutc+ \
+    print("Creating file: "+cnl.datadirout+ \
+     cnl.fileidout+str(i).zfill(5)+".nc")
+    fileout = Dataset(cnl.datadirout+cnl.fileidout+ \
      str(i).zfill(5)+".nc",'w',format='NETCDF4_CLASSIC')
 
   # Global Attributes
@@ -175,22 +176,22 @@ def driver_createinfiles(i):
   fileout.history     = 'Created ' + time.ctime(time.time())
   fileout.source      = 'https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_V06/summary?keywords=imerg'
   fileout.time        = str(timenow)
-  fileout.tholds      = nl.tholds
-  fileout.datestart   = str(nl.starttime)
-  fileout.dateend     = str(nl.endtime)
-  if nl.ssreg:
-    fileout.latN      = nl.latN
-    fileout.latS      = nl.latS
-    fileout.lonW      = nl.lonW
-    fileout.lonE      = nl.lonE
-    fileout.region    = nl.ssname
+  fileout.tholds      = cnl.tholds
+  fileout.datestart   = str(cnl.starttime)
+  fileout.dateend     = str(cnl.endtime)
+  if cnl.ssreg:
+    fileout.latN      = cnl.latN
+    fileout.latS      = cnl.latS
+    fileout.lonW      = cnl.lonW
+    fileout.lonE      = cnl.lonE
+    fileout.region    = cnl.ssname
   else:
     fileout.region    ='global'
-  if nl.smooth:
-    if nl.gaussian:
-      fileout.smthstddev=str(nl.stddev)  
-    if nl.uniform:
-      fileout.smthwidth=str(nl.width)
+  if cnl.smooth:
+    if cnl.gaussian:
+      fileout.smthstddev=str(cnl.stddev)  
+    if cnl.uniform:
+      fileout.smthwidth=str(cnl.width)
 
   # Create dimensions in file
   z = fileout.createDimension('z', 1)
