@@ -151,6 +151,12 @@ def driver_createinfiles(i):
       elif j==len(cnl.tholds):
         value1 = np.where(nrain>=cnl.tholds[j-1],j+1,value1)
 
+  # Contiguous area
+  elif cnl.tholdtype==3:
+
+    # Set everything above min threhold to zero
+    value1 = np.where(rain>=cnl.minthold,1,0)
+
   else:
     raise ValueError("Incorrect option for threshold")
 
@@ -177,8 +183,8 @@ def driver_createinfiles(i):
   fileout.source      = 'https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_V06/summary?keywords=imerg'
   fileout.time        = str(timenow)
   fileout.tholds      = cnl.tholds
-  fileout.datestart   = str(cnl.starttime)
-  fileout.dateend     = str(cnl.endtime)
+  fileout.datestart   = str(gnl.starttime)
+  fileout.dateend     = str(gnl.endtime)
   if cnl.ssreg:
     fileout.latN      = cnl.latN
     fileout.latS      = cnl.latS

@@ -20,6 +20,7 @@ from namelist_TIPS import process as pnl
 # Load custom libraries
 sys.path.insert(0,gnl.fnsdir)
 import misc_functions as mfns
+import shape_functions as sfns
 
 #============================================================
 # Begin function
@@ -131,7 +132,7 @@ def driver_processFiTobs(o):
 
       # Read variables
       rain  = datasetIM.variables["precipitationCal"][:,:,:]
-      QI1  = datasetIM.variables[
+      QI1   = datasetIM.variables[
        "precipitationQualityIndex"][:,:,:]
 
     if gnl.datahdf5:
@@ -170,6 +171,9 @@ def driver_processFiTobs(o):
       rain = rain[idyS:idyN,idxW:idxE]
       QI1  = QI1[idyS:idyN,idxW:idxE]
 
+    # Define contiguous areas within domain
+    labels = sfns.label_wdiags(rain)
+
 #============================================================
 # Calculate parameters and assign data at first time
 #============================================================
@@ -182,7 +186,8 @@ def driver_processFiTobs(o):
     # Calculate weighted (by rainfall) centroid
     sr = sum(rain[locindob[0],locindob[1]])
     if sr!=0: 
-      rw = [mfns.divzero(r,sr) for r in rain[locindob[0],locindob[1]]]
+      rw = [mfns.divzero(r,sr) 
+            for r in rain[locindob[0],locindob[1]]]
       wgtcentlat[t] = np.average(lat[locindob[0]],weights=rw)
       wgtcentlon[t] = np.average(lon[locindob[1]],weights=rw)
 

@@ -17,7 +17,7 @@ import nclcmaps
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 # Read data from current IPF netcdf file
-f = Dataset("/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_100719/IMERGPFs/IPF_103149_201806091730_05_-31.nc") 
+f = Dataset("/uufs/chpc.utah.edu/common/home/varble-group2/james/FiT_CPEX-AW/TIPS_test/TIPS_100703_201808031200_10_-17.nc") 
 datalat = f.groups["lats"].groups["data"]
 datalon = f.groups["lons"].groups["data"]
 datapcp = f.groups["instrain"].groups["data"]

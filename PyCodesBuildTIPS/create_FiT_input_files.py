@@ -25,13 +25,16 @@
 import glob
 import time
 import datetime
-import driver_createinfiles as dc
 from joblib import Parallel, delayed
 import os
 
 # Import namelist
 from namelist_TIPS import general as gnl
 from namelist_TIPS import create as cnl
+
+# Import scripts
+sys.path.insert(0,gnl.scriptsdir)
+import driver_createinfiles as dc
 
 #==========================================================
 # Initialize timer
@@ -46,8 +49,8 @@ startnow = time.time()
 print("Generating file list")
 
 # Generate a list of filenames with dates to search for
-start = datetime.datetime.strptime(cnl.starttime, "%Y%m%d")
-end = datetime.datetime.strptime(cnl.endtime, "%Y%m%d")
+start = datetime.datetime.strptime(gnl.starttime, "%Y%m%d")
+end = datetime.datetime.strptime(gnl.endtime, "%Y%m%d")
 datearr = (start + datetime.timedelta(days=x) for x in range(0, (end-start).days))
 filen = []
 for dateobj in datearr:

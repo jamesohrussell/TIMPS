@@ -1,3 +1,18 @@
+# Import libraries
+import scipy.ndimage as ndimage
+import cartopy.crs as ccrs
+from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+import cmaps
+import h5py
+from collections import Counter
+import csv
+from netCDF4 import Dataset
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Import namelist
+import namelist_plot as nl
+
 #==========================================================
 # Function to read text file
 #==========================================================
@@ -23,21 +38,6 @@ def read_FiT_txt(dirandfile):
 def driver_plotIMERG(i):
   "Driver for plotting IMERG and FiT objects/thresholds in parrallel"
 
-  # Import libraries
-  import scipy.ndimage as ndimage
-  import cartopy.crs as ccrs
-  from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-  import cmaps
-  import h5py
-  from collections import Counter
-  import csv
-  from netCDF4 import Dataset
-  import matplotlib.pyplot as plt
-  import numpy as np
-
-  # Read in namelist
-  nl = Dataset("namelist_plot.nc","r")
-
   # Read in filename
   for fn, row in enumerate(open("filenames_plot.txt")):
     if fn==i:
@@ -45,13 +45,13 @@ def driver_plotIMERG(i):
 
   print("Working on "+f)
 
-  lenIdir    = len(nl.datadirIM)
+  lenIdir = len(nl.datadirIM)
 
 #==========================================================
 # Read IMERG data (NetCDF4)
 #==========================================================
 
-  if nl.datanc4=="True":
+  if nl.datanc4:
 
     # Open file
     datasetIM = Dataset(f)
@@ -63,7 +63,7 @@ def driver_plotIMERG(i):
 # Read IMERG data (hdf5)
 #==========================================================
 
-  if nl.datahdf5=="True":
+  if nl.datahdf5:
 
     # Open file
     print(f)
@@ -86,7 +86,7 @@ def driver_plotIMERG(i):
 # Read FiT tracking data
 #==========================================================
 
-  if nl.plotobj=="True":
+  if nl.plotobj:
     # Open file
     datasetFi = Dataset(nl.datadirFi+nl.fileidFi1+str(i).zfill(5)+nl.fileidFi2)
   
@@ -97,10 +97,10 @@ def driver_plotIMERG(i):
 # Process FiT tracking data
 #==========================================================
 
-    if nl.idobj=="True":
+    if nl.idobj:
       # Make obbin only 1 for specific object id
       obbin = np.where(obid==obid1,1,0)
-    elif nl.longobj=="True":
+    elif nl.longobj:
       # Select largest nlngst objects
       datatxt = read_FiT_txt(nl.datadirFi+nl.fileidFi3)
       obidsdrs = Counter([int(i) for i in datatxt[:,0]])
@@ -121,16 +121,16 @@ def driver_plotIMERG(i):
 # Subset data
 #==========================================================
 
-  if nl.ssreg=="True":
+  if nl.ssreg:
 
     print("Subsetting variable by area")
     
     # Read in coordinate variables
-    if nl.datanc4=="True":
+    if nl.datanc4:
       lat = datasetIM.variables["lat"][:]
       lon = datasetIM.variables["lon"][:]
 
-    if nl.datahdf5=="True":
+    if nl.datahdf5:
       lat = datasetIM["Grid/lat"][:]
       lon = datasetIM["Grid/lon"][:]
 
@@ -162,18 +162,18 @@ def driver_plotIMERG(i):
 # Smooth data
 #==========================================================
 
-  if nl.smooth=="True":
+  if nl.smooth:
     print("Smoothing rainfall")
-    if nl.gaussian=="True":
+    if nl.gaussian:
       rain = ndimage.gaussian_filter(rain, sigma=nl.stddev)
-    elif nl.uniform=="True":
+    elif nl.uniform:
       rain = ndimage.uniform_filter(rain,size=nl.width)
 
 #==========================================================
 # Make plot
 #==========================================================
 
-  if nl.plot=="True":
+  if nl.plot:
     print("Plotting data")
 
     # Generate center points for contourf
@@ -210,11 +210,11 @@ def driver_plotIMERG(i):
     cbar.set_label("IMERG Precipitation (mm/hr)")
 
     # Contour outline of objects
-    if nl.plotobj=="True":
+    if nl.plotobj:
 
       cntrclr = ['r','g','b','m','y','#1f77b4','#ff7f0e','#9467bd','#8c564b','#7f7f7f']        
      
-      if nl.longobj=="True":
+      if nl.longobj:
         for p in range(0,nlong):
           obbin = np.where(obid==obids[p],1,0)
           plt.contour(lonc, latc, np.squeeze(obbin), [1], colors=cntrclr[p])
@@ -228,7 +228,7 @@ def driver_plotIMERG(i):
           plt.contour(lonc, latc, np.squeeze(obbinnow), [1], colors=cntrclr[i%10])
 
     # Contour outline of thresholds
-    if nl.plotthr=="True":
+    if nl.plotthr:
       plt.contour(lonc, latc, np.squeeze(rain), nl.tholds, colors='k')
 
     plt.xlim(nl.lonmn, nl.lonmx)
