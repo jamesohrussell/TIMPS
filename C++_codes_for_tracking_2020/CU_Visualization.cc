@@ -704,7 +704,7 @@ void draw_grayscale_pngimage_between_minlevel_and_maxlevel(string fname, const C
 #endif
 
 #ifndef DISABLE_PNGWRITER
-void draw_grayscale_pngimage_between_minlevel_and_maxlevel2_invert(string fname, const CField &f,double minlevel, double maxlevel )
+void draw_grayscale_pngimage_between_minlevel_and_maxlevel_invert(string fname, const CField &f,double minlevel, double maxlevel )
 	{
 	double dlev=maxlevel-minlevel;
 	ERRORIF(dlev < 0);

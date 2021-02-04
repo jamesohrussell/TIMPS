@@ -453,6 +453,16 @@ double euclidian_distance(double x1, double y1, double x2, double y2)
 	return(sqrt(squared_euclidian_distance(x1,y1,x2,y2)));
 	}
 
+
+double euclidian_distance_domain_periodic_in_x_dimension(double x1, double y1, double x2, double y2, int dimx)
+	{
+	double dx=fabs(x1-x2);
+	if (dx > (double)dimx/2)
+		dx=(double)dimx - dx;
+	return(sqrt(dx*dx + (y2-y1)*(y2-y1)));
+	}
+
+
 double squared_euclidian_distance_3D(double x1, double y1, double z1, double x2, double y2, double z2)
 	{
 	return((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1) + (z2-z1)*(z2-z1));

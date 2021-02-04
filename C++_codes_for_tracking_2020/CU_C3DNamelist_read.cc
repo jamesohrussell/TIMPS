@@ -11,12 +11,14 @@ class CNamelist_for_4D_analysis
 	string output_file_prefix;
 	long number_of_thresholds;
 	double horizontal_distance_limit_for_merging;
+	bool domain_periodic_in_x_dimension;
 
 	long input_file_type;
 	long output_file_type;
 	bool output_3D_objects;
 	bool output_4D_objects;
 	bool output_png_files;
+
 
 	CNamelist_for_4D_analysis()
 		{
@@ -27,9 +29,10 @@ class CNamelist_for_4D_analysis
 		input_file_prefix="";
 		output_file_prefix="";
 		number_of_thresholds=0;
+		horizontal_distance_limit_for_merging=BAD_DATA_FLOAT;
+		domain_periodic_in_x_dimension=false;
 		input_file_type=0;
 		output_file_type=0;
-		horizontal_distance_limit_for_merging=BAD_DATA_FLOAT;
 		output_3D_objects=false;
 		output_4D_objects=false;
 		output_png_files=false;
@@ -87,6 +90,17 @@ class CNamelist_for_4D_analysis
 			else if (file_line[ix].find("number_of_thresholds") == 0 )
 				number_of_thresholds=atol(extract_value_from_a_string(file_line[ix]).c_str());
 
+			else if (file_line[ix].find("horizontal_distance_limit_for_merging") == 0 )
+				horizontal_distance_limit_for_merging=atof(extract_value_from_a_string(file_line[ix]).c_str());
+
+			else if (file_line[ix].find("domain_periodic_in_x_dimension") == 0 )
+				{
+				long temp=atol(extract_value_from_a_string(file_line[ix]).c_str());
+				if (temp==0) domain_periodic_in_x_dimension=false;
+				else if (temp==1) domain_periodic_in_x_dimension=true;
+				else error(AT,FU,"domain_periodic_in_x_dimension != 0 || domain_periodic_in_x_dimension != 1");
+				}
+
 			else if (file_line[ix].find("input_file_type") == 0 )
 				input_file_type=atol(extract_value_from_a_string(file_line[ix]).c_str());
 
@@ -114,8 +128,6 @@ class CNamelist_for_4D_analysis
 				else output_png_files=true;
 				}
 
-			else if (file_line[ix].find("horizontal_distance_limit_for_merging") == 0 )
-				horizontal_distance_limit_for_merging=atof(extract_value_from_a_string(file_line[ix]).c_str());
 			}
 		check_values();
 		}
@@ -132,6 +144,7 @@ class CNamelist_for_4D_analysis
 		s << "output_file_prefix =\t" << output_file_prefix << endl;
 		s << "number_of_thresholds =\t" << number_of_thresholds << endl;
 		s << "horizontal_distance_limit_for_merging =\t" << horizontal_distance_limit_for_merging << endl;
+		s << "domain_periodic_in_x_dimension =\t" << output_logic_as_string(domain_periodic_in_x_dimension) << endl;
 		s << "input_file_type =\t" << input_file_type << endl;
 		s << "output_file_type =\t" << output_file_type << endl;
 		s << "output_3D_objects =\t" << output_logic_as_string(output_3D_objects) << endl;

@@ -142,7 +142,7 @@ class C3DFrameObject
 			}
 		}
 	*/
-	C3DFrameObject create_new_object_from_merging_of_objects(vector <C3DFrameObject*> fos)
+	C3DFrameObject create_new_object_from_merging_of_objects(vector <C3DFrameObject*> fos, bool domain_periodic_in_x_dimension, int dimx)
 		{
 		long io;
 		C3DFrameObject fo;
@@ -164,11 +164,39 @@ class C3DFrameObject
 			fo.centerx+= fos[io]->centerx*fos[io]->size;
 			fo.centery+= fos[io]->centery*fos[io]->size;
 			fo.centerz+= fos[io]->centerz*fos[io]->size;
+
+			//cout << "- aa\t" << fo.object_id << "\t" << fos[io]->centerx << "\t" << fos[io]->size << endl;
+
 			}
 
 		fo.centerx*=1.0/fo.size;
 		fo.centery*=1.0/fo.size;
 		fo.centerz*=1.0/fo.size;
+
+
+		// redo the calculation of fo.centerx if domain is periodic in x dimension - https://en.wikipedia.org/wiki/Center_of_mass#cite_note-10
+		if (domain_periodic_in_x_dimension)
+			{
+			double xx_sum=0;
+			double yy_sum=0;
+			for (io=0; io < (long)fos.size(); io++)
+				{
+				double fi=(double)fos[io]->centerx/(double)dimx*2*M_PI;
+				xx_sum+=fos[io]->size*cos(fi);
+				yy_sum+=fos[io]->size*sin(fi);
+				}
+
+			if (xx_sum != 0 || yy_sum != 0)
+				{
+				double fi_avg=atan2(-yy_sum,-xx_sum) + M_PI;
+				fo.centerx=fi_avg/(2*M_PI)*(double)dimx;
+				}
+			else
+				fo.centerx=(double)dimx/2;
+			}
+
+		//cout << "- bb\t" << fo.object_id << "\t" << fo.centerx << "\t" << fos[io]->size << endl;
+
 
 		return(fo);
 		}
@@ -180,7 +208,8 @@ class C3DFrameObject
 		{
 		ostringstream s1;
 		s1.str("");
-		s1 << object_id << "\tx:" << xmin << "-" << xmax << "\ty:" << ymin << "-" << ymax << "\tz:" << zmin << "-" << zmax << "\tcenter:" << round(centerx) << ","<<  round(centery) << "," << round(centerz) << "\tpieces:" << pieces << "\tsize:" << size << "\tnew_id:" << new_id << "\toverlaps:" << overlap_list.output();
+		s1 << std::setprecision(12);
+		s1 << object_id << "\tx:" << xmin << "-" << xmax << "\ty:" << ymin << "-" << ymax << "\tz:" << zmin << "-" << zmax << "\tcenter:" << centerx << ","<<  centery << "," << centerz << "\tpieces:" << pieces << "\tsize:" << size << "\tnew_id:" << new_id << "\toverlaps:" << overlap_list.output();
 		//for (int ix=0; ix < (long)overlaps.size(); ix++)
 		//	s1 << overlaps[ix] << ",";
 		return(s1.str());
@@ -191,21 +220,23 @@ class C3DFrameObject
 		{
 		ostringstream s1;
 		s1.str("");
+		s1 << std::setprecision(12);
 //		s1 << "x:" << xmin << "-" << xmax << "\ty:" << ymin << "-" << ymax << "\tz:" << zmin << "-" << zmax << "\tcnt:" << round(centerx) << ","<<  round(centery) << "," << round(centerz) << "\tpcs:" << pieces << "\tsize:" << size ;
-		s1 << "x:" << xmin << "-" << xmax << "\ty:" << ymin << "-" << ymax << "\tz:" << zmin << "-" << zmax << "\tcnt:" << round(centerx) << ","<<  round(centery) << "," << round(centerz) << "\tpcs:" << pieces << "\tsize:" << size << "\toverlaps:" << overlap_list.output();
+		s1 << "x:" << xmin << "-" << xmax << "\ty:" << ymin << "-" << ymax << "\tz:" << zmin << "-" << zmax << "\tcnt:" << round_to_digits(centerx,1) << ","<<  round_to_digits(centery,1) << "," << round_to_digits(centerz,1) << "\tpcs:" << pieces << "\tsize:" << size << "\toverlaps:" << overlap_list.output();
 		return(s1.str());
 		}
-
+/*
 	string custom_output_for_table2_for_project_of_comparison_of_identification_algorithms_HDCP2(long timestep) const
 		{
 		ostringstream s1;
 		s1.str("");
+		s1 << std::setprecision(12);
 		COverlap overlap;
 		if (overlap_list.get_object_with_biggest_overlap_size(overlap))
 			s1 << output_leading_zero_string(timestep,4) << "\t" << overlap.id << "\t" << object_id  << endl;
 		return(s1.str());
 		}
-
+*/
 
 
 
@@ -351,7 +382,7 @@ class C3DFrameObjects_all
 		return(out);
 		}
 
-	void set_new_ids_from_overlaps_for_one_timestep_using_FIT_logic(long timestep, double &new_id_counter, double new_id_counter_start, double horizontal_distance_limit_for_merging)
+	void set_new_ids_from_overlaps_for_one_timestep_using_FIT_logic(long timestep, double &new_id_counter, double new_id_counter_start, double horizontal_distance_limit_for_merging,  bool domain_periodic_in_x_dimension, int dimx)
 		{
 		long io;
 
@@ -421,7 +452,7 @@ class C3DFrameObjects_all
 					{
 					C3DFrameObject fonp;
 					C3DFrameObject fo_tmp;
-					fonp=fo_tmp.create_new_object_from_merging_of_objects(ptr_fos);
+					fonp=fo_tmp.create_new_object_from_merging_of_objects(ptr_fos, domain_periodic_in_x_dimension, dimx );
 					fonp_vector.push_back(fonp.deep_copy());
 					//cout << fonp.new_id << "\t" << fonp.output2() << endl;
 
@@ -475,6 +506,13 @@ class C3DFrameObjects_all
 								{
 								// calculate centroid distance
 								double horizontal_centroid_distance=euclidian_distance(fonp_vector[il].centerx, fonp_vector[il].centery, fo->centerx, fo->centery);
+
+								// recalculate distance if domain is periodic
+								if (domain_periodic_in_x_dimension)
+									horizontal_centroid_distance=euclidian_distance_domain_periodic_in_x_dimension(fonp_vector[il].centerx, fonp_vector[il].centery, fo->centerx, fo->centery, dimx);
+
+								//cout << fonp_vector[il].new_id << "\t" <<  fonp_vector[il].centerx << "\t" << fo->centerx << "\t" << horizontal_centroid_distance << endl;
+
 								// if the distance is too large start a new 4D object insted of merging (this logic ignores the overlaps with other objects)
 								if (horizontal_centroid_distance > horizontal_distance_limit_for_merging)
 									{
@@ -490,10 +528,10 @@ class C3DFrameObjects_all
 			}
 		}
 
-	void set_new_ids_from_overlaps_for_all_timesteps_using_FIT_logic(double &new_id_counter, double new_id_counter_start, double horizontal_distance_limit_for_merging)
+	void set_new_ids_from_overlaps_for_all_timesteps_using_FIT_logic(double &new_id_counter, double new_id_counter_start, double horizontal_distance_limit_for_merging, bool domain_periodic_in_x_dimension, int dimx)
 		{
 		for (long it=0; it < (long)FrameObjects_in_timestep.size(); it++)
-			set_new_ids_from_overlaps_for_one_timestep_using_FIT_logic(it, new_id_counter,  new_id_counter_start, horizontal_distance_limit_for_merging);
+			set_new_ids_from_overlaps_for_one_timestep_using_FIT_logic(it, new_id_counter,  new_id_counter_start, horizontal_distance_limit_for_merging, domain_periodic_in_x_dimension, dimx);
 		}
 
 
@@ -556,6 +594,7 @@ class C3DFrameObjects_all
 		long it, io;
 		ostringstream s1;
 		s1.str("");
+		s1 << std::setprecision(12);
 		C3DFrameObject *fo;
 
 		s1 << "object id (unique only in timestep)" << "\t" << "timestep" << "\t" << "x extent" << "\t" << "y extent" << "\t" << "z extent" << "\t" << "object center" << "\t" << "number of pieces" << "\t" << "object volume (num. of gridpoints)" << endl;
@@ -573,11 +612,12 @@ class C3DFrameObjects_all
 		}
 
 
-	string custom_output_for_table2_for_project_of_comparison_of_identification_algorithms_HDCP2()
+/*	string custom_output_for_table2_for_project_of_comparison_of_identification_algorithms_HDCP2()
 		{
 		long it, io;
 		ostringstream s1;
 		s1.str("");
+		s1 << std::setprecision(12);
 		C3DFrameObject *fo;
 
 		//s1 << "object id (unique only in timestep)" << "\t" << "timestep" << "\t" << "x extent" << "\t" << "y extent" << "\t" << "z extent" << "\t" << "object center" << "\t" << "number of pieces" << "\t" << "object volume (num. of gridpoints)" << endl;
@@ -594,9 +634,9 @@ class C3DFrameObjects_all
 		return (s1.str());
 		}
 
+*/
 
-
-	string output_the_4D_objects_tree()
+	string output_the_4D_objects_tree(bool domain_periodic_in_x_dimension, int dimx)
 		{
 		long it, io, it2, lifespan;
 		C3DFrameObject fonp;
@@ -605,6 +645,7 @@ class C3DFrameObjects_all
 		vector <C3DFrameObject*> ptr_fos;
 		ostringstream s1;
 		s1.str("");
+		s1 << std::setprecision(12);
 
 		s1 << "unique object id" << "\t" << "lifestep of object" << "\t" << "timestep" << "\t" << "x extent" << "\t" << "y extent" << "\t" << "z extent" << "\t" << "object center" << "\t" << "number of pieces" << "\t" << "object volume (num. of gridpoints)" << endl;
 
@@ -631,7 +672,7 @@ class C3DFrameObjects_all
 							if (FrameObjects_in_timestep[it2].does_object_with_new_id_exist_in_this_set(fo->new_id, ptr_fos))
 								{
 								lifespan++;
-								fonp=fo->create_new_object_from_merging_of_objects(ptr_fos);
+								fonp=fo->create_new_object_from_merging_of_objects(ptr_fos, domain_periodic_in_x_dimension, dimx);
 								s1 << fonp.new_id << "\t" << lifespan << "\t" << output_leading_zero_string(it2,4) << "\t" << fonp.output2() << endl;
 								}
 

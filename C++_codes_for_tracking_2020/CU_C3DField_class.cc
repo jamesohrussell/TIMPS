@@ -134,6 +134,17 @@ class C3DField {
 			set(x, y, z, value);
 		}
 
+	void Set_all_values_in_rectangular_area_periodic_x_dimension(int xmin, int ymin, int zmin, int xmax, int ymax, int zmax, double value)
+		{
+		for (int x=xmin; x <= xmax; x++)
+		for (int y=ymin; y <= ymax; y++)
+		for (int z=zmin; z <= zmax; z++)
+			{
+			int xnew=x % dimx;
+			if (xnew < 0) xnew+=dimx;
+			set(xnew, y, z, value);
+			}
+		}
 
 
 	void multiply_by_double(double x)
@@ -396,12 +407,13 @@ class C3DField {
 
 				f.calculate_object_orientation_and_symetry_using_image_algebra_book_algorithm(fo->xmin, fo->xmax, fo->ymin, fo->ymax, fo->orientation, fo->symetry);
 
+				// does not work with periodic domains
 				f.Replace_values_only_in_certain_area(1, 0, fo->xmin, fo->xmax, fo->ymin, fo->ymax);
 				}
 		}
 
 
-	// old is the original_value_which_is_to_be_replaced, new_value in the new value
+/*	// old is the original_value_which_is_to_be_replaced, new_value in the new value
 	void floodfill(int x, int y, int z, double old, double new_value)
 		{
 		if (get(x,y,z)==old)
@@ -415,7 +427,6 @@ class C3DField {
 			if (z > 0       ) floodfill(x  , y  , z-1, old, new_value);
 			}
 		}
-
 	// old is the original_value_which_is_to_be_replaced, new_value in the new value - stack based version
 	void floodfill_stack_based(int x, int y, int z, double old, double new_value)
 		{
@@ -448,10 +459,10 @@ class C3DField {
 				}
 			}
 		}
-
+*/
 
 	// old is the original_value_which_is_to_be_replaced, new_value in the new value
-	void floodfill_stack_based_and_log_the_touching_values_and_make_a_list_of_all_affected_points(int x, int y, int z, double old, double new_value, vector <double> &touching_values_list, double dont_log_values_lower_than_this, vector <long> &list_of_affected_points)
+	void floodfill_stack_based_and_log_the_touching_values_and_make_a_list_of_all_affected_points(int x, int y, int z, double old, double new_value, vector <double> &touching_values_list, double dont_log_values_lower_than_this, vector <long> &list_of_affected_points, bool domain_periodic_in_x_dimension)
 		{
 
 		double val;
@@ -481,6 +492,12 @@ class C3DField {
 		 		//10.        Add surrounding nodes to end of Q.
 				if (p.x < dimx - 1) Q.push_back(t.create(p.x+1, p.y  , p.z  ));
 				if (p.x > 0       ) Q.push_back(t.create(p.x-1, p.y  , p.z  ));
+				if (domain_periodic_in_x_dimension)
+					{
+					if (p.x == dimx - 1) Q.push_back(t.create(0, p.y  , p.z  ));
+					if (p.x == 0) Q.push_back(t.create(dimx - 1, p.y  , p.z  ));
+					}
+
 				if (p.y < dimy - 1) Q.push_back(t.create(p.x  , p.y+1, p.z  ));
 				if (p.y > 0       ) Q.push_back(t.create(p.x  , p.y-1, p.z  ));
 				if (p.z < dimz - 1) Q.push_back(t.create(p.x  , p.y  , p.z+1));
@@ -505,7 +522,7 @@ class C3DField {
 
 
 
-	void Identify_3D_objects_using_floodfill(double lower_obj_index_limit)
+/*	void Identify_3D_objects_using_floodfill(double lower_obj_index_limit)
 		{
 		if (!check_if_initilized())
 			error(AT,FU, "!check_if_initilized()");
@@ -528,9 +545,9 @@ class C3DField {
 				counter++;
 				}
 		}
+*/
 
-
-	void Identify_3D_objects_using_floodfill_and_cascading_threshold(int number_of_thresholds, double lowest_object_id, double &number_of_found_objects)
+	void Identify_3D_objects_using_floodfill_and_cascading_threshold(int number_of_thresholds, double lowest_object_id, double &number_of_found_objects, bool domain_periodic_in_x_dimension)
 		{
 		long il,it;
 		double val;
@@ -575,7 +592,7 @@ class C3DField {
 					// do the flood fill
 					touching_values_list.clear();
 					list_of_affected_points.clear();
-					floodfill_stack_based_and_log_the_touching_values_and_make_a_list_of_all_affected_points(x,y,z, val, counter,touching_values_list, lowest_object_id, list_of_affected_points);
+					floodfill_stack_based_and_log_the_touching_values_and_make_a_list_of_all_affected_points(x,y,z, val, counter,touching_values_list, lowest_object_id, list_of_affected_points,domain_periodic_in_x_dimension);
 
 					//cout << val << "\t" << x << ":" << y << "\t" << list_of_affected_points.size() << "\t" << touching_values_list.size() << ":" ;
 					//for (long io=0; io < (long)touching_values_list.size(); io++)
@@ -597,7 +614,7 @@ class C3DField {
 						counter++;
 					}
 
-			Grow_object_area(-2, lowest_object_id, 1E100);
+			Grow_object_area(-2, lowest_object_id, 1E100, domain_periodic_in_x_dimension);
 
 			// test write fields
 			//ostringstream s1;
@@ -614,7 +631,7 @@ class C3DField {
 
 
 
-	void Calculate_object_attributes(vector <C3DFrameObject> &I3DFrameObject, double lower_obj_index_limit, double upper_obj_index_limit) const
+	void Calculate_object_attributes(vector <C3DFrameObject> &I3DFrameObject, double lower_obj_index_limit, double upper_obj_index_limit, bool domain_periodic_in_x_dimension) const
 		{
 		long il;
 
@@ -664,9 +681,40 @@ class C3DField {
 		// set object ids
 		for (il=0; il <= max_object_id; il++)
 			I3DFrameObject[il].object_id = il;
+
+		// redo the calculation of x coordinates if domain is periodic in x dimension
+		// http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.151.8565&rep=rep1&type=pdf  Calculating Center of Mass in anUnbounded 2D EnvironmentLinge Bai and David Breen
+		if (domain_periodic_in_x_dimension)
+			{
+			vector <double> xx_sum ((long)max_object_id+1,0);
+			vector <double> yy_sum ((long)max_object_id+1,0);
+			for (int x=0; x < dimx; x++)
+			for (int y=0; y < dimy; y++)
+			for (int z=0; z < dimz; z++)
+				if (get(x,y,z) >= lower_obj_index_limit)
+					{
+					double fi=(double)x/(double)dimx*2*M_PI;
+					xx_sum[(long)get(x,y,z)]+=cos(fi);
+					yy_sum[(long)get(x,y,z)]+=sin(fi);
+					}
+			// calculate center
+			for (il=0; il <= max_object_id; il++)
+				if (I3DFrameObject[il].size > 0)
+					{
+					op=&I3DFrameObject[il];
+					if (xx_sum[il] != 0 || yy_sum[il] != 0)
+						{
+						double fi_avg=atan2(-yy_sum[il],-xx_sum[il]) + M_PI;
+						op->centerx=fi_avg/(2*M_PI)*(double)dimx;
+						}
+					// center cannot be determined - set ceter to dimx/2
+					else
+						op->centerx=(double)dimx/2;
+					}
+			}
 		}
 
-	// this is actually quite slow - since the whole object identification in this time step has to be redone - but there is no faster way to do it than this
+/*	// this is actually quite slow - since the whole object identification in this time step has to be redone - but there is no faster way to do it than this
 	void Calculate_object_number_of_pieces_attribute(vector <C3DFrameObject> &I3DFrameObject, double lower_obj_index_limit) const
 		{
 		long il;
@@ -702,7 +750,7 @@ class C3DField {
 		// free memory
 		f.freememory();
 		}
-
+*/
 	void Calculate_object_overlaps(const C3DField &f, vector <C3DFrameObject> &I3DFrameObject, double lower_obj_index_limit, double upper_obj_index_limit) const
 		{
 		long il;
@@ -721,10 +769,15 @@ class C3DField {
 		}
 
 
-	bool Check_if_any_neigboring_point_has_a_value_in_interval(int x, int y, int z, double lower_limit, double upper_limit, double &v) const
+	bool Check_if_any_neigboring_point_has_a_value_in_interval(int x, int y, int z, double lower_limit, double upper_limit, double &v, bool domain_periodic_in_x_dimension) const
 		{
 		if (x < dimx - 1) {v=get(x+1, y  , z  ); if (is_inside_interval(lower_limit, upper_limit, v)) return(true);}
 		if (x > 0       ) {v=get(x-1, y  , z  ); if (is_inside_interval(lower_limit, upper_limit, v)) return(true);}
+		if (domain_periodic_in_x_dimension)
+			{
+			if (x == dimx - 1) {v=get(0, y  , z  ); if (is_inside_interval(lower_limit, upper_limit, v)) return(true);}
+			if (x == 0) {v=get(dimx - 1, y  , z  ); if (is_inside_interval(lower_limit, upper_limit, v)) return(true);}
+			}
 		if (y < dimy - 1) {v=get(x  , y+1, z  ); if (is_inside_interval(lower_limit, upper_limit, v)) return(true);}
 		if (y > 0       ) {v=get(x  , y-1, z  ); if (is_inside_interval(lower_limit, upper_limit, v)) return(true);}
 		if (z < dimz - 1) {v=get(x  , y  , z+1); if (is_inside_interval(lower_limit, upper_limit, v)) return(true);}
@@ -733,7 +786,7 @@ class C3DField {
 		}
 
 	// in field f the allowed growth area is defined with allow_grow_index
-	void Grow_object_area(double allow_grow_index, double lower_obj_index_limit, double upper_obj_index_limit)
+	void Grow_object_area(double allow_grow_index, double lower_obj_index_limit, double upper_obj_index_limit, bool domain_periodic_in_x_dimension)
 		{
 		long il;
 		int x,y,z;
@@ -751,7 +804,7 @@ class C3DField {
 		for (y=0;y<dimy;y++)
 		for (z=0;z<dimz;z++)
 			if (get(x,y,z) == allow_grow_index)
-				if (Check_if_any_neigboring_point_has_a_value_in_interval(x,y,z,lower_obj_index_limit,upper_obj_index_limit,temp_obj))
+				if (Check_if_any_neigboring_point_has_a_value_in_interval(x,y,z,lower_obj_index_limit,upper_obj_index_limit,temp_obj, domain_periodic_in_x_dimension))
 					{
 					p.set(x,y,z);
 					p.a=temp_obj;
@@ -784,6 +837,11 @@ class C3DField {
 					// check neigboring points
 					if (x < dimx - 1) if (get(x+1, y  , z  ) == allow_grow_index) {p.set(x+1, y  , z  ); p.a=a; new_points.push_back(p.deep_copy());}
 					if (x > 0       ) if (get(x-1, y  , z  ) == allow_grow_index) {p.set(x-1, y  , z  ); p.a=a; new_points.push_back(p.deep_copy());}
+					if (domain_periodic_in_x_dimension)
+						{
+						if (x == dimx - 1) if (get(0, y  , z  ) == allow_grow_index) {p.set(0, y  , z  ); p.a=a; new_points.push_back(p.deep_copy());}
+						if (x == 0) if (get(dimx - 1, y  , z  ) == allow_grow_index) {p.set(dimx - 1, y  , z  ); p.a=a; new_points.push_back(p.deep_copy());}
+						}
 					if (y < dimy - 1) if (get(x  , y+1, z  ) == allow_grow_index) {p.set(x  , y+1, z  ); p.a=a; new_points.push_back(p.deep_copy());}
 					if (y > 0       ) if (get(x  , y-1, z  ) == allow_grow_index) {p.set(x  , y-1, z  ); p.a=a; new_points.push_back(p.deep_copy());}
 					if (z < dimz - 1) if (get(x  , y  , z+1) == allow_grow_index) {p.set(x  , y  , z+1); p.a=a; new_points.push_back(p.deep_copy());}

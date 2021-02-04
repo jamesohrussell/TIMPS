@@ -155,7 +155,7 @@ for (is=0; is < number_of_steps; is++)
 		// Identify 3D objects
 		// -----------------------------------
 		//cout << "Identifying 3D objects" << endl;
-		f.Identify_3D_objects_using_floodfill_and_cascading_threshold(namelist.number_of_thresholds,lower_obj_index_limit,number_of_found_3Dobjects);
+		f.Identify_3D_objects_using_floodfill_and_cascading_threshold(namelist.number_of_thresholds,lower_obj_index_limit,number_of_found_3Dobjects,namelist.domain_periodic_in_x_dimension);
 		cout << "Found " << number_of_found_3Dobjects << " 3D objects in timestep " << output_leading_zero_string(it,number_of_digits_in_input_files) << endl;
 
 		// -----------------------------------
@@ -183,7 +183,7 @@ for (is=0; is < number_of_steps; is++)
 		// Calculate object properties
 		// -----------------------------------
 		cout << "Calculating 3D object attributes" << endl;
-		f.Calculate_object_attributes(objects.FrameObjects_in_timestep[it].FrameObject, lower_obj_index_limit, upper_obj_index_limit);
+		f.Calculate_object_attributes(objects.FrameObjects_in_timestep[it].FrameObject, lower_obj_index_limit, upper_obj_index_limit, namelist.domain_periodic_in_x_dimension);
 
 		//cout << objects.FrameObjects_in_timestep[it].output() << endl;
 
@@ -305,7 +305,7 @@ for (is=0; is < number_of_steps; is++)
 				if ( itx < namelist.number_of_timesteps)
 					{
 					//objects.set_new_ids_from_overlaps_for_one_timestep_using_FIT_logic(itx,new_id_counter, new_id_counter_start);
-					objects.set_new_ids_from_overlaps_for_one_timestep_using_FIT_logic(itx,new_id_counter, new_id_counter_start, namelist.horizontal_distance_limit_for_merging);
+					objects.set_new_ids_from_overlaps_for_one_timestep_using_FIT_logic(itx,new_id_counter, new_id_counter_start, namelist.horizontal_distance_limit_for_merging, namelist.domain_periodic_in_x_dimension, namelist.dimx );
 					// reindex objects in field - values set by new_ids
 					//cout << "reindex objects in field - values set by new_ids" << endl;
 					}
@@ -423,7 +423,7 @@ if (namelist.output_4D_objects)
 	s1.str("");
 	s1 << namelist.output_file_prefix << +"4Dobject_tree.txt";
 	cout << "Writing file: " << s1.str() << endl;
-	write_string_to_new_file_and_create_dir_if_necessary(s1.str(),objects.output_the_4D_objects_tree());
+	write_string_to_new_file_and_create_dir_if_necessary(s1.str(),objects.output_the_4D_objects_tree(namelist.domain_periodic_in_x_dimension, namelist.dimx));
 	}
 
 

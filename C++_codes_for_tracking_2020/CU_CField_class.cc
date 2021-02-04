@@ -897,6 +897,17 @@ class CField {
 		lon_data.assign((long)dimx,0);
 		}
 
+	void allocatememory_lat_lon_array_with_linear_increasing_data()
+		{
+		lat_data.clear();
+		for (long il=0; il < dimy; il++)
+			lat_data.push_back(il);
+
+		lon_data.clear();
+		for (long il=0; il < dimx; il++)
+			lon_data.push_back(il);
+		}
+
 	void set_lat_lon_to_zero()
 		{
 		long il;
@@ -1181,19 +1192,52 @@ class CField {
 				}
 		}
 
-
-// draws a filled roteted ellipse. e1 is the ration of rmin/rmax. e1 should be less than 1 so we can optimize the drawing - by drawing just inside the circle which encompasses the ellipse
-void draw_filled_rotated_ellipse(int x1, int y1, int rmax, double e1, double fi1, double value)
+	// draws a gaussian function inside circle
+	void draw_elliptic_gauss_inside_circle_add_value(int x0, int y0, double sigma_x, double sigma_y, double amplitude, double bias, double radius)
 		{
-		if (e1 > 1 || e1 <= 0)
-			error(AT,FU, "e1 > 1 || e1 <= 0)");
-
-		int dx,dy;
-		for (dx=-(int)rmax; dx<=(int)rmax; dx++)
-		for (dy=-(int)sqrt(rmax*rmax-(double)dx*(double)dx); dy<=(int)sqrt(rmax*rmax-(double)dx*(double)dx); dy++)
-			if (is_location_inside_rotated_elipse(x1+dx,y1+dy, x1, y1, rmax, e1, fi1 ))
-				set_but_check_first(x1+dx, y1+dy, value);
+		#pragma omp parallel for
+		for (long dx=-(int)radius; dx<=(int)radius; dx++)
+			for (long dy=-(int)sqrt(radius*radius-(double)dx*(double)dx); dy<=(int)sqrt(radius*radius-(double)dx*(double)dx); dy++)
+				{
+				long ix=x0+dx;
+				long iy=y0+dy;
+				if (check_coordianes(ix,iy))
+					{
+					double old_value=get(ix,iy);
+					if (old_value != BAD_DATA_FLOAT)
+						{
+						set(ix,iy,old_value+bias + amplitude*exp(-(
+						(double)(ix-x0)*(double)(ix-x0)/(2*sigma_x*sigma_x) +
+						(double)(iy-y0)*(double)(iy-y0)/(2*sigma_y*sigma_y))
+						));
+						}
+					}
+				}
 		}
+
+	void draw_linear_gradient_add_value(int x0, int y0, double value_at_x0_y0, double grad_x, double grad_y)
+		{
+		#pragma omp parallel for
+		for (long ix=0; ix < dimx; ix++)
+		for (long iy=0; iy < dimy; iy++)
+			{
+			double value= value_at_x0_y0 + (double)(ix-x0)*grad_x + (double)(iy-y0)*grad_y;
+			set(ix,iy,get(ix,iy)+value);
+			}
+		}
+
+	// draws a filled roteted ellipse. e1 is the ration of rmin/rmax. e1 should be less than 1 so we can optimize the drawing - by drawing just inside the circle which encompasses the ellipse
+	void draw_filled_rotated_ellipse(int x1, int y1, int rmax, double e1, double fi1, double value)
+			{
+			if (e1 > 1 || e1 <= 0)
+				error(AT,FU, "e1 > 1 || e1 <= 0)");
+
+			int dx,dy;
+			for (dx=-(int)rmax; dx<=(int)rmax; dx++)
+			for (dy=-(int)sqrt(rmax*rmax-(double)dx*(double)dx); dy<=(int)sqrt(rmax*rmax-(double)dx*(double)dx); dy++)
+				if (is_location_inside_rotated_elipse(x1+dx,y1+dy, x1, y1, rmax, e1, fi1 ))
+					set_but_check_first(x1+dx, y1+dy, value);
+			}
 
 
 	// draws a filled rectangle
@@ -2621,7 +2665,7 @@ CField smooth_using_square_kernel(int n) const
 	}
 
 // calculate precipitation neighborhood score value for specific n
-double calculate_PNS(const CField &f2, long n, double p) const
+double calculate_NSS(const CField &f2, long n, double p) const
 	{
 	ERRORIF(!compare_have_they_the_same_dimensions(f2));
 
@@ -2651,7 +2695,7 @@ double calculate_PNS(const CField &f2, long n, double p) const
 	}
 
 // calculate precipitation neighborhood score value for specific n
-double calculate_PNS_from_summed_fields(const CField &f2sum, long n) const
+double calculate_NSS_from_summed_fields(const CField &f2sum, long n) const
 	{
 	ERRORIF(!compare_have_they_the_same_dimensions(f2sum));
 
@@ -2680,9 +2724,9 @@ double calculate_PNS_from_summed_fields(const CField &f2sum, long n) const
 	}
 
 
-// fast calculation of neigberhood size where PNS=0.5 - using bisection method - assuming a montonic increase of PNS with n
+// fast calculation of neigberhood size where NSS=0.5 - using bisection method - assuming a montonic increase of NSS with n
 // the returned value is the first n (assuming monotonicity) that has a FSS value LARGER than 0.5
-double calculate_dPNS_using_bisection_from_non_overlapping_fields(const CField &f, double Q) const
+double calculate_dNSS_using_bisection_from_non_overlapping_fields(const CField &f, double Q) const
 	{
 	// check missing data
 	ERRORIF(!check_if_field_has_no_missing_values());
@@ -2705,16 +2749,16 @@ double calculate_dPNS_using_bisection_from_non_overlapping_fields(const CField &
 	// domain size needs to be at least 2
 	if (x2 < 5)
 		error(AT,FU, "domain size needs to be at least 2");
-	double PNS1=f1sum.calculate_PNS_from_summed_fields(f2sum,x1);
-	double PNS2=f1sum.calculate_PNS_from_summed_fields(f2sum,x2);
+	double NSS1=f1sum.calculate_NSS_from_summed_fields(f2sum,x1);
+	double NSS2=f1sum.calculate_NSS_from_summed_fields(f2sum,x2);
 
-	// special case when PNS>0.5 at n=1
-	if (PNS1>0.5)
+	// special case when NSS>0.5 at n=1
+	if (NSS1>0.5)
 		return(1);
 
-	// special case when PNS does never reach value 0.5
-	if (PNS2 <= 0.5)
-		error(AT,FU, "PNS does never reach value 0.5!");
+	// special case when NSS does never reach value 0.5
+	if (NSS2 <= 0.5)
+		error(AT,FU, "NSS does never reach value 0.5!");
 
     do
 	    {
@@ -2723,18 +2767,18 @@ double calculate_dPNS_using_bisection_from_non_overlapping_fields(const CField &
         // if xnew is even add 1
         if (xnew%2==0) xnew++;
         // calulcate FSS vale at xnew
-        double PNSnew=f1sum.calculate_PNS_from_summed_fields(f2sum,xnew);
+        double NSSnew=f1sum.calculate_NSS_from_summed_fields(f2sum,xnew);
 
         // move x1 or x2 to the middle point according to FSS value at xnew
-        if (PNSnew > 0.5)
+        if (NSSnew > 0.5)
         	{
 			x2=xnew;
-			PNS2=PNSnew;
+			NSS2=NSSnew;
 			}
 		else
 			{
 			x1=xnew;
-			PNS1=PNSnew;
+			NSS1=NSSnew;
 			}
 	    }
     while ( x2 - x1 > 2 );
@@ -2743,10 +2787,11 @@ double calculate_dPNS_using_bisection_from_non_overlapping_fields(const CField &
 	//cout << x2 << endl;
 
 	return(((double)(x2-1)/2.0*(1.0-Q)));
+
 	}
 
-// fast calculation of dPNS
-double calculate_dPNS(const CField &f, double &Q, double &R) const
+// fast calculation of dNSS
+double calculate_dNSS(const CField &f, double &Q, double &R) const
 	{
 	// check missing data
 	ERRORIF(!check_if_field_has_no_missing_values());
@@ -2768,22 +2813,22 @@ double calculate_dPNS(const CField &f, double &Q, double &R) const
 	double subtracted_precipitation_sum;
 	CField f1subtracted=f1unbiased;
 	CField f2subtracted=f2unbiased;
-	f1subtracted.generate_subtracted_precipation_fields_for_PNS_calculation(f2subtracted,subtracted_precipitation_sum);
+	f1subtracted.generate_subtracted_precipation_fields_for_NSS_calculation(f2subtracted,subtracted_precipitation_sum);
 	Q=subtracted_precipitation_sum/sumf1;
-	return(f1subtracted.calculate_dPNS_using_bisection_from_non_overlapping_fields(f2subtracted, Q));
+	return(f1subtracted.calculate_dNSS_using_bisection_from_non_overlapping_fields(f2subtracted, Q));
 	}
 
-// fast calculation of dPNS
-double calculate_dPNS_with_enlarged_domain(const CField &f, double &Q, double &R, long grow_domain) const
+// fast calculation of dNSS
+double calculate_dNSS_with_enlarged_domain(const CField &f, double &Q, double &R, long grow_domain) const
 	{
 	CField f1enlarged=grow_domain_by_n_pixels(grow_domain, 0);
 	CField f2enlarged=f.grow_domain_by_n_pixels(grow_domain, 0);
 
-	return(f1enlarged.calculate_dPNS(f2enlarged, Q, R));
+	return(f1enlarged.calculate_dNSS(f2enlarged, Q, R));
 	}
 
-// fast calculation of dPNS
-vector <double> calculate_PNS_for_multiple_neighborhoods(const CField &f, double &R, const vector <long> nvec) const
+// fast calculation of dNSS
+vector <double> calculate_NSS_for_multiple_neighborhoods(const CField &f, double &R, const vector <long> nvec) const
 	{
 	// check missing data
 	ERRORIF(!check_if_field_has_no_missing_values());
@@ -2804,15 +2849,15 @@ vector <double> calculate_PNS_for_multiple_neighborhoods(const CField &f, double
 	CField f1sum=f1unbiased.calculate_the_summed_field_in_both_directions_used_by_fast_FSS_calculation();
 	CField f2sum=f2unbiased.calculate_the_summed_field_in_both_directions_used_by_fast_FSS_calculation();
 
-	vector <double> PNSvec;
+	vector <double> NSSvec;
 	for (unsigned long in=0; in < nvec.size(); in++)
-		PNSvec.push_back(f1sum.calculate_PNS_from_summed_fields(f2sum, nvec[in]));
+		NSSvec.push_back(f1sum.calculate_NSS_from_summed_fields(f2sum, nvec[in]));
 
-	return(PNSvec);
+	return(NSSvec);
 	}
 
 
-void generate_subtracted_precipation_fields_for_PNS_calculation(CField &f2, double &subtracted_precipitation_sum)
+void generate_subtracted_precipation_fields_for_NSS_calculation(CField &f2, double &subtracted_precipitation_sum)
 	{
 	subtracted_precipitation_sum=0;
 	for (long il=0; il < size(); il++)
