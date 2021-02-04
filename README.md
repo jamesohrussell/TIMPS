@@ -1,4 +1,4 @@
-# Tracked IMERG Precipitation Systems (TIPS) development codes
+# Tracked IMERG Mesoscale Precipitation Systems (TIMPS) development codes
 C++, Python, and shell scripts for the development of a set of tracked precipitation systems derived from gridded precipitation fields.
 
 ## C++ codes. Developed by Gregor Skok.
