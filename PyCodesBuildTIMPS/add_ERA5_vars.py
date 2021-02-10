@@ -35,6 +35,71 @@ warnings.filterwarnings("ignore")
 startnow = tm.time()
 
 #==================================================================
+# Function to pull and process data
+#==================================================================
+
+def create_var(varname,varfname,files,timestr,anl,TCRW,loni,lati):
+
+  # Find file and time indices
+  fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files[varname],timestr)
+
+  # Get an area
+  if anl.addfull:
+    var = E5fns.get_E5_ss_2D_var(
+     fh,varfname,timi,loni,lati,times,ctime)
+    var_nr = np.where(TCRW>0.001,np.nan,var)
+    varnan = var_nr.flatten()
+    if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
+      var_mean_nr = np.nanmean(var_nr)
+    else:
+      var_mean_nr = np.nan
+  if anl.addanom:
+    varanom = E5fns.get_E5_ss_2D_var(
+     fh,f'{varfname}_anom',timi,loni,lati,times,ctime)
+    varanom_nr = np.where(TCRW>0.001,np.nan,varanom)
+    varnan = varanom_nr.flatten()
+    if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
+      varanom_mean_nr = np.nanmean(varanom_nr)
+    else:
+      varanom_mean_nr = np.nan
+  if anl.addanomn:
+    varanomn = E5fns.get_E5_ss_2D_var(
+     fh,f'{varfname}_anomn',timi,loni,lati,times,ctime)
+    varanomn_nr = np.where(TCRW>0.001,np.nan,varanomn)
+    varnan = varanomn_nr.flatten()
+    if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
+      varanomn_mean_nr = np.nanmean(varanomn_nr)
+    else:
+      varanomn_mean_nr = np.nan
+
+  # Close file
+  for fii in fh:
+    fii.close()
+
+  return(var_mean_nr,varanom_mean_nr,varanomn_mean_nr)
+
+#==================================================================
+# Function to write data
+#==================================================================
+
+def write_data(lname,sname,fileg,var,vara,varan,units):
+
+    description = f"{lname} from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    if anl.addfull:
+      mfns.write_var(f"{sname}_mean_nr",
+       f"ERA5 Mean {lname} (Rain cells removed)",
+       description,("tE5"),np.float64,units,fileg,var)
+    if anl.addanom:
+      mfns.write_var(f"{sname}_anom_mean_nr",
+       f"ERA5 Mean {lname} Anomaly (Rain cells removed)",
+       description,("tE5"),np.float64,units,fileg,vara)
+    if anl.addanomn:
+      mfns.write_var(f"{sname}_anomn_mean_nr",
+       f"ERA5 Mean {lname} Normalized Anomaly (Rain cells removed)",
+       description,("tE5"),np.float64,"",fileg,varan)
+
+#==================================================================
 # Generate list of TIMPS files to process
 #==================================================================
 
@@ -153,29 +218,44 @@ def driver_addvars(fn):
 
   # Find files
   files["TCRW"] = E5fns.get_E5_ss_files(
-    anl.fileTCRWE5id,timestrs[0],timestrs[-1])
+    anl.fileTCRWid,timestrs[0],timestrs[-1])
 
   # Moisture variables
-  if anl.addTCWVE5: files["TCWV"] = E5fns.get_E5_ss_files(
-    anl.fileTCWVE5id,timestrs[0],timestrs[-1])
-  if anl.addSH18E5: files["SH18"] = E5fns.get_E5_ss_files(
-    anl.fileSH18E5id,timestrs[0],timestrs[-1])
-  if anl.addSH84E5: files["SH84"] = E5fns.get_E5_ss_files(
-    anl.fileSH84E5id,timestrs[0],timestrs[-1])
+  if anl.addTCWV: files["TCWV"] = E5fns.get_E5_ss_files(
+    anl.fileTCWVid,timestrs[0],timestrs[-1])
+  if anl.addSH18: files["SH18"] = E5fns.get_E5_ss_files(
+    anl.fileSH18id,timestrs[0],timestrs[-1])
+  if anl.addSH84: files["SH84"] = E5fns.get_E5_ss_files(
+    anl.fileSH84id,timestrs[0],timestrs[-1])
+  if anl.addMF18: files["MF18"] = E5fns.get_E5_ss_files(
+    anl.fileMF18id,timestrs[0],timestrs[-1])
+  if anl.addMF84: files["MF84"] = E5fns.get_E5_ss_files(
+    anl.fileMF84id,timestrs[0],timestrs[-1])
+  if anl.addMA18: files["MA18"] = E5fns.get_E5_ss_files(
+    anl.fileMA18id,timestrs[0],timestrs[-1])
+  if anl.addMA84: files["MA84"] = E5fns.get_E5_ss_files(
+    anl.fileMA84id,timestrs[0],timestrs[-1])
+  if anl.addMC18: files["MC18"] = E5fns.get_E5_ss_files(
+    anl.fileMC18id,timestrs[0],timestrs[-1])
+  if anl.addMC84: files["MC84"] = E5fns.get_E5_ss_files(
+    anl.fileMC84id,timestrs[0],timestrs[-1])
 
-  # Shear variables
-  if anl.addSR18E5: files["SR18"] = E5fns.get_E5_ss_files(
-    anl.fileSR18E5id,timestrs[0],timestrs[-1])
-  if anl.addSR84E5: files["SR84"] = E5fns.get_E5_ss_files(
-    anl.fileSR84E5id,timestrs[0],timestrs[-1])
-  if anl.addSR14E5: files["SR14"] = E5fns.get_E5_ss_files(
-    anl.fileSR14E5id,timestrs[0],timestrs[-1])
+  # Kinematic variables
+  if anl.addSR18: files["SR18"] = E5fns.get_E5_ss_files(
+    anl.fileSR18id,timestrs[0],timestrs[-1])
+  if anl.addSR84: files["SR84"] = E5fns.get_E5_ss_files(
+    anl.fileSR84id,timestrs[0],timestrs[-1])
+  if anl.addSR14: files["SR14"] = E5fns.get_E5_ss_files(
+    anl.fileSR14id,timestrs[0],timestrs[-1])
+  if anl.addCV18: files["CV18"] = E5fns.get_E5_ss_files(
+    anl.fileCV18id,timestrs[0],timestrs[-1])
+  if anl.addCV31: files["CV31"] = E5fns.get_E5_ss_files(
+    anl.fileCV31id,timestrs[0],timestrs[-1])
+  if anl.addVE18: files["VE18"] = E5fns.get_E5_ss_files(
+    anl.fileVE18id,timestrs[0],timestrs[-1])
+  if anl.addVE84: files["VE84"] = E5fns.get_E5_ss_files(
+    anl.fileVE84id,timestrs[0],timestrs[-1])
 
-  # Convergence/divergence variables
-  if anl.addCV18E5: files["CV18"] = E5fns.get_E5_ss_files(
-    anl.fileCV18E5id,timestrs[0],timestrs[-1])
-  if anl.addCV31E5: files["CV31"] = E5fns.get_E5_ss_files(
-    anl.fileCV31E5id,timestrs[0],timestrs[-1])
 
 #==================================================================
 # Get coordinates and their indices
@@ -215,81 +295,154 @@ def driver_addvars(fn):
 
       # Moisture
 
-      if anl.addTCWVE5:
+      if anl.addTCWV:
 
         if anl.addfull:
-          TCWV_mean_nr_E5 = [np.nan]*len(timestrs)
+          TCWV_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          TCWVanom_mean_nr_E5 = [np.nan]*len(timestrs)
+          TCWVanom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          TCWVanomn_mean_nr_E5 = [np.nan]*len(timestrs)
+          TCWVanomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSH18E5:
+      if anl.addSH18:
 
         if anl.addfull:
-          SH18_mean_nr_E5 = [np.nan]*len(timestrs)
+          SH18_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SH18anom_mean_nr_E5 = [np.nan]*len(timestrs)
+          SH18anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SH18anomn_mean_nr_E5 = [np.nan]*len(timestrs)
+          SH18anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSH84E5:
+      if anl.addSH84:
 
         if anl.addfull:
-          SH84_mean_nr_E5 = [np.nan]*len(timestrs)
+          SH84_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SH84anom_mean_nr_E5 = [np.nan]*len(timestrs)
+          SH84anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SH84anomn_mean_nr_E5 = [np.nan]*len(timestrs)
+          SH84anomn_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addMF18:
+
+        if anl.addfull:
+          MF18_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          MF18anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          MF18anomn_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addMF84:
+
+        if anl.addfull:
+          MF84_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          MF84anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          MF84anomn_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addMA18:
+
+        if anl.addfull:
+          MA18_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          MA18anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          MA18anomn_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addMA84:
+
+        if anl.addfull:
+          MA84_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          MA84anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          MA84anomn_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addMC18:
+
+        if anl.addfull:
+          MC18_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          MC18anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          MC18anomn_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addMC84:
+
+        if anl.addfull:
+          MC84_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          MC84anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          MC84anomn_mean_nr = [np.nan]*len(timestrs)
 
       # Shear
 
-      if anl.addSR18E5:
+      if anl.addSR18:
 
         if anl.addfull:
-          SR18_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR18_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR18anom_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR18anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR18anomn_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR18anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSR84E5:
+      if anl.addSR84:
 
         if anl.addfull:
-          SR84_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR84_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR84anom_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR84anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR84anomn_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR84anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSR14E5:
+      if anl.addSR14:
 
         if anl.addfull:
-          SR14_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR14_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR14anom_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR14anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR14anomn_mean_nr_E5 = [np.nan]*len(timestrs)
+          SR14anomn_mean_nr = [np.nan]*len(timestrs)
 
       # Convergence/divergence
 
-      if anl.addCV18E5:
+      if anl.addCV18:
 
         if anl.addfull:
-          CV18_mean_nr_E5 = [np.nan]*len(timestrs)
+          CV18_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          CV18anom_mean_nr_E5 = [np.nan]*len(timestrs)
+          CV18anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          CV18anomn_mean_nr_E5 = [np.nan]*len(timestrs)
+          CV18anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addCV31E5:
+      if anl.addCV31:
 
         if anl.addfull:
-          CV31_mean_nr_E5 = [np.nan]*len(timestrs)
+          CV31_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          CV31anom_mean_nr_E5 = [np.nan]*len(timestrs)
+          CV31anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          CV31anomn_mean_nr_E5 = [np.nan]*len(timestrs)
+          CV31anomn_mean_nr = [np.nan]*len(timestrs)
+
+      # Vertical motion
+      if anl.addVE18:
+
+        if anl.addfull:
+          VE18_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          VE18anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          VE18anomn_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addVE84:
+
+        if anl.addfull:
+          VE84_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          VE84anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          VE84anomn_mean_nr = [np.nan]*len(timestrs)
 
 #==================================================================
 # Get rain check data
@@ -300,7 +453,7 @@ def driver_addvars(fn):
       fhR,timiR,timesR,ctimeR = E5fns.get_E5_ss_2D_fiti(
        files["TCRW"],timestrs[c])
 
-      TCRWE5 = E5fns.get_E5_ss_2D_var(
+      TCRW = E5fns.get_E5_ss_2D_var(
        fhR,"TCRW",timiR,loni,lati,timesR,ctimeR)
 
       # Close file
@@ -308,325 +461,96 @@ def driver_addvars(fn):
         fii.close()
 
 #==================================================================
-# Get TCWV data
+# Get data
 #==================================================================
 
-    if anl.addTCWVE5:
+    # TCWV
+    if anl.addTCWV:
+      TCWV_mean_nr[c],TCWVanom_mean_nr[c],TCWVanomn_mean_nr[c] = \
+       create_var("TCWV","TCWV",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       files["TCWV"],timestrs[c])
+    # Specific humidity
+    if anl.addSH18:
+      SH18_mean_nr[c],SH18anom_mean_nr[c],SH18anomn_mean_nr[c] = \
+       create_var("SH18","Q",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Get units
-      TCWVE5units = fh[0].variables["TCWV"].units
+    if anl.addSH84:
+      SH84_mean_nr[c],SH84anom_mean_nr[c],SH84anomn_mean_nr[c] = \
+       create_var("SH84","Q",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Get an area
-      if anl.addfull:
-        TCWVE5 = E5fns.get_E5_ss_2D_var(
-               fh,"TCWV",timi,loni,lati,times,ctime)
-        TCWVE5_nr = np.where(TCRWE5>0.001,np.nan,TCWVE5)
-        varnan = TCWVE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          TCWV_mean_nr_E5[c] = np.nanmean(TCWVE5_nr)
+    # Moisture flux
+    if anl.addMF18:
+      MF18_mean_nr[c],MF18anom_mean_nr[c],MF18anomn_mean_nr[c] = \
+       create_var("MF18","MFC",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      if anl.addanom:
-        TCWVanomE5 = E5fns.get_E5_ss_2D_var(
-               fh,"TCWV_anom",timi,loni,lati,times,ctime)
-        TCWVanomE5_nr = np.where(TCRWE5>0.001,np.nan,TCWVanomE5)
-        varnan = TCWVanomE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          TCWVanom_mean_nr_E5[c] = np.nanmean(TCWVanomE5_nr)
-      if anl.addanomn:
-        TCWVanomnE5 = E5fns.get_E5_ss_2D_var(
-               fh,"TCWV_anomn",timi,loni,lati,times,ctime)
-        TCWVanomnE5_nr = np.where(TCRWE5>0.001,np.nan,TCWVanomnE5)
-        varnan = TCWVanomnE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          TCWVanomn_mean_nr_E5[c] = np.nanmean(TCWVanomnE5_nr)         
-          
-      # Close file
-      for fii in fh:
-        fii.close()
+    if anl.addMF84:
+      MF84_mean_nr[c],MF84anom_mean_nr[c],MF84anomn_mean_nr[c] = \
+       create_var("MF84","MFC",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-#==================================================================
-# Get SH18 data
-#==================================================================
+    # Moisture advection
+    if anl.addMA18:
+      MA18_mean_nr[c],MA18anom_mean_nr[c],MA18anomn_mean_nr[c] = \
+       create_var("MA18","MADV",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-    if anl.addSH18E5:
+    if anl.addMA84:
+      MA84_mean_nr[c],MA84anom_mean_nr[c],MA84anomn_mean_nr[c] = \
+       create_var("MA84","MADV",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       files["SH18"],timestrs[c])
+    # Moisture convergence
+    if anl.addMC18:
+      MC18_mean_nr[c],MC18anom_mean_nr[c],MC18anomn_mean_nr[c] = \
+       create_var("MC18","MCONV",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Get units
-      SH18E5units = fh[0].variables["Q"].units
+    if anl.addMC84:
+      MC84_mean_nr[c],MC84anom_mean_nr[c],MC84anomn_mean_nr[c] = \
+       create_var("MC84","MCONV",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Get an area
-      if anl.addfull:
-        SH18E5 = E5fns.get_E5_ss_2D_var(
-               fh,"Q",timi,loni,lati,times,ctime)
-        SH18E5_nr = np.where(TCRWE5>0.001,np.nan,SH18E5)
-        varnan = SH18E5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SH18_mean_nr_E5[c] = np.nanmean(SH18E5_nr)
-      if anl.addanom:
-        SH18anomE5 = E5fns.get_E5_ss_2D_var(
-               fh,"Q_anom",timi,loni,lati,times,ctime)
-        SH18anomE5_nr = np.where(TCRWE5>0.001,np.nan,SH18anomE5)
-        varnan = SH18anomE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SH18anom_mean_nr_E5[c] = np.nanmean(SH18anomE5_nr)
-      if anl.addanomn:
-        SH18anomnE5 = E5fns.get_E5_ss_2D_var(
-               fh,"Q_anomn",timi,loni,lati,times,ctime)
-        SH18anomnE5_nr = np.where(TCRWE5>0.001,np.nan,SH18anomnE5)
-        varnan = SH18anomnE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SH18anomn_mean_nr_E5[c] = np.nanmean(SH18anomnE5_nr)
+    # Shear
+    if anl.addSR18:
+      SR18_mean_nr[c],SR18anom_mean_nr[c],SR18anomn_mean_nr[c] = \
+       create_var("SR18","MSHR",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Close file
-      for fii in fh:
-        fii.close()
-     
-#==================================================================
-# Get SH84 data
-#==================================================================
+    if anl.addSR84:
+      SR84_mean_nr[c],SR84anom_mean_nr[c],SR84anomn_mean_nr[c] = \
+       create_var("SR84","MSHR",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-    if anl.addSH84E5:
+    if anl.addSR14:
+      SR14_mean_nr[c],SR14anom_mean_nr[c],SR14anomn_mean_nr[c] = \
+       create_var("SR14","MSHR",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       files["SH84"],timestrs[c])
+    # Convergence
+    if anl.addCV18:
+      CV18_mean_nr[c],CV18anom_mean_nr[c],CV18anomn_mean_nr[c] = \
+       create_var("CV18","CONV",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Get units
-      SH84E5units = fh[0].variables["Q"].units
+    if anl.addCV31:
+      CV31_mean_nr[c],CV31anom_mean_nr[c],CV31anomn_mean_nr[c] = \
+       create_var("CV31","CONV",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Get an area
-      if anl.addfull:
-        SH84E5 = E5fns.get_E5_ss_2D_var(
-               fh,"Q",timi,loni,lati,times,ctime)
-        SH84E5_nr = np.where(TCRWE5>0.001,np.nan,SH84E5)
-        varnan = SH84E5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SH84_mean_nr_E5[c] = np.nanmean(SH84E5_nr)
-      if anl.addanom:
-        SH84anomE5 = E5fns.get_E5_ss_2D_var(
-               fh,"Q_anom",timi,loni,lati,times,ctime)
-        SH84anomE5_nr = np.where(TCRWE5>0.001,np.nan,SH84anomE5)
-        varnan = SH84anomE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SH84anom_mean_nr_E5[c] = np.nanmean(SH84anomE5_nr)
-      if anl.addanomn:
-        SH84anomnE5 = E5fns.get_E5_ss_2D_var(
-               fh,"Q_anomn",timi,loni,lati,times,ctime)
-        SH84anomnE5_nr = np.where(TCRWE5>0.001,np.nan,SH84anomnE5)
-        varnan = SH84anomnE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SH84anomn_mean_nr_E5[c] = np.nanmean(SH84anomnE5_nr)
+    # Vertical motion
+    if anl.addVE18:
+      VE18_mean_nr[c],VE18anom_mean_nr[c],VE18anomn_mean_nr[c] = \
+       create_var("VE18","W",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
-      # Close file
-      for fii in fh:
-        fii.close()
-
-#==================================================================
-# Get SR18 data
-#==================================================================
-
-    if anl.addSR18E5:
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       files["SR18"],timestrs[c])
-
-      # Get units
-      SR18E5units = fh[0].variables["MSHR"].units
-
-      # Get an area
-      if anl.addfull:
-        SR18E5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR",timi,loni,lati,times,ctime)
-        SR18E5_nr = np.where(TCRWE5>0.001,np.nan,SR18E5)
-        varnan = SR18E5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR18_mean_nr_E5[c] = np.nanmean(SR18E5_nr)
-      if anl.addanom:
-        SR18anomE5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR_anom",timi,loni,lati,times,ctime)
-        SR18anomE5_nr = np.where(TCRWE5>0.001,np.nan,SR18anomE5)
-        varnan = SR18anomE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR18anom_mean_nr_E5[c] = np.nanmean(SR18anomE5_nr)
-      if anl.addanomn:
-        SR18anomnE5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR_anomn",timi,loni,lati,times,ctime)
-        SR18anomnE5_nr = np.where(TCRWE5>0.001,np.nan,SR18anomnE5)
-        varnan = SR18anomnE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR18anomn_mean_nr_E5[c] = np.nanmean(SR18anomnE5_nr)
-
-      # Close file
-      for fii in fh:
-        fii.close()
-
-#==================================================================
-# Get SR84 data
-#==================================================================
-
-    if anl.addSR84E5:
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       files["SR84"],timestrs[c])
-
-      # Get units
-      SR84E5units = fh[0].variables["MSHR"].units
-
-      # Get an area
-      if anl.addfull:
-        SR84E5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR",timi,loni,lati,times,ctime)
-        SR84E5_nr = np.where(TCRWE5>0.001,np.nan,SR84E5)
-        varnan = SR84E5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR84_mean_nr_E5[c] = np.nanmean(SR84E5_nr)
-      if anl.addanom:
-        SR84anomE5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR_anom",timi,loni,lati,times,ctime)
-        SR84anomE5_nr = np.where(TCRWE5>0.001,np.nan,SR84anomE5)
-        varnan = SR84anomE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR84anom_mean_nr_E5[c] = np.nanmean(SR84anomE5_nr)
-      if anl.addanomn:
-        SR84anomnE5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR_anomn",timi,loni,lati,times,ctime)
-        SR84anomnE5_nr = np.where(TCRWE5>0.001,np.nan,SR84anomnE5)
-        varnan = SR84anomnE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR84anomn_mean_nr_E5[c] = np.nanmean(SR84anomnE5_nr)
-
-      # Close file
-      for fii in fh:
-        fii.close()
-
-#==================================================================
-# Get SR14 data
-#==================================================================
-
-    if anl.addSR14E5:
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       files["SR14"],timestrs[c])
-
-      # Get units
-      SR14E5units = fh[0].variables["MSHR"].units
-
-      # Get an area
-      if anl.addfull:
-        SR14E5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR",timi,loni,lati,times,ctime)
-        SR14E5_nr = np.where(TCRWE5>0.001,np.nan,SR14E5)
-        varnan = SR14E5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR14_mean_nr_E5[c] = np.nanmean(SR14E5_nr)
-      if anl.addanom:
-        SR14anomE5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR_anom",timi,loni,lati,times,ctime)
-        SR14anomE5_nr = np.where(TCRWE5>0.001,np.nan,SR14anomE5)
-        varnan = SR14anomE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR14anom_mean_nr_E5[c] = np.nanmean(SR14anomE5_nr)
-      if anl.addanomn:
-        SR14anomnE5 = E5fns.get_E5_ss_2D_var(
-               fh,"MSHR_anomn",timi,loni,lati,times,ctime)
-        SR14anomnE5_nr = np.where(TCRWE5>0.001,np.nan,SR14anomnE5)
-        varnan = SR14anomnE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          SR14anomn_mean_nr_E5[c] = np.nanmean(SR14anomnE5_nr)
-
-      # Close file
-      for fii in fh:
-        fii.close()
-
-#==================================================================
-# Get CV18 data
-#==================================================================
-
-    if anl.addCV18E5:
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       files["CV18"],timestrs[c])
-
-      # Get units
-      CV18E5units = fh[0].variables["CONV"].units
-
-      # Get an area
-      if anl.addfull:
-        CV18E5 = E5fns.get_E5_ss_2D_var(
-               fh,"CONV",timi,loni,lati,times,ctime)
-        CV18E5_nr = np.where(TCRWE5>0.001,np.nan,CV18E5)
-        varnan = CV18E5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          CV18_mean_nr_E5[c] = np.nanmean(CV18E5_nr)
-      if anl.addanom:
-        CV18anomE5 = E5fns.get_E5_ss_2D_var(
-               fh,"CONV_anom",timi,loni,lati,times,ctime)
-        CV18anomE5_nr = np.where(TCRWE5>0.001,np.nan,CV18anomE5)
-        varnan = CV18anomE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          CV18anom_mean_nr_E5[c] = np.nanmean(CV18anomE5_nr)
-      if anl.addanomn:
-        CV18anomnE5 = E5fns.get_E5_ss_2D_var(
-               fh,"CONV_anomn",timi,loni,lati,times,ctime)
-        CV18anomnE5_nr = np.where(TCRWE5>0.001,np.nan,CV18anomnE5)
-        varnan = CV18anomnE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          CV18anomn_mean_nr_E5[c] = np.nanmean(CV18anomnE5_nr)
-
-      # Close file
-      for fii in fh:
-        fii.close()
-
-#==================================================================
-# Get CV31 data
-#==================================================================
-
-    if anl.addCV31E5:
-
-      # Find file and time indices
-      fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
-                       files["CV31"],timestrs[c])
-
-      # Get units
-      CV31E5units = fh[0].variables["CONV"].units
-
-      # Get an area
-      if anl.addfull:
-        CV31E5 = E5fns.get_E5_ss_2D_var(
-               fh,"CONV",timi,loni,lati,times,ctime)
-        CV31E5_nr = np.where(TCRWE5>0.001,np.nan,CV31E5)
-        varnan = CV31E5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          CV31_mean_nr_E5[c] = np.nanmean(CV31E5_nr)
-      if anl.addanom:
-        CV31anomE5 = E5fns.get_E5_ss_2D_var(
-               fh,"CONV_anom",timi,loni,lati,times,ctime)
-        CV31anomE5_nr = np.where(TCRWE5>0.001,np.nan,CV31anomE5)
-        varnan = CV31anomE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          CV31anom_mean_nr_E5[c] = np.nanmean(CV31anomE5_nr)
-      if anl.addanomn:
-        CV31anomnE5 = E5fns.get_E5_ss_2D_var(
-               fh,"CONV_anomn",timi,loni,lati,times,ctime)
-        CV31anomnE5_nr = np.where(TCRWE5>0.001,np.nan,CV31anomnE5)
-        varnan = CV31anomnE5_nr.flatten()
-        if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
-          CV31anomn_mean_nr_E5[c] = np.nanmean(CV31anomnE5_nr)
-
-      # Close file
-      for fii in fh:
-        fii.close()
+    if anl.addVE84:
+      VE84_mean_nr[c],VE84anom_mean_nr[c],VE84anomn_mean_nr[c] = \
+       create_var("VE84","W",files,timestrs[c],anl,TCRW,
+       loni,lati)
 
 #==================================================================
 # End loops over objects and times
@@ -638,181 +562,119 @@ def driver_addvars(fn):
   fd.close()
 
 #==================================================================
-# Open file to write data
+# Open file to write data and create ERA5 group
 #==================================================================
 
+  # Open file
   fileout = Dataset(f,'a')
+
+  # Create group
+  try:
+    E5group  = fileout.createGroup("ERA5")
+  except:
+    E5group = fileout.group["ERA5"]
 
 #==================================================================
 # Write coordinate data for environment information to file
 #==================================================================
 
-  try: tE51 = fileout.createDimension('tE5',len(tE5))
+  try: tE51 = E5group.createDimension('tE5',len(tE5))
   except: print("tE5 already defined")
 
   description = "Corresponds to ERA5 data. Different from time dimension since times are added before and after the TIPS exists."
   mfns.write_var("tE5","ERA5 time",description,("tE5"),
-    np.float64,timeunits,fileout,tE5)
+    np.float64,timeunits,E5group,tE5)
 
 #==================================================================
 # Write TCWV information to file
 #==================================================================
 
-  if anl.addTCWVE5:
+  # TCWV
+  if anl.addTCWV:
+    write_data("Total column water vapor","TCWV",E5group,
+     TCWV_mean_nr,TCWVanom_mean_nr,TCWVanomn_mean_nr,"kg m**-2")
 
-    description = "Total column water vapor from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    if anl.addfull:
-      mfns.write_var("TCWV_mean_nr_E5",
-       "ERA5 Mean Total Column Water Vapor (Rain cells removed)",description,("tE5"),
-       np.float64,TCWVE5units,fileout,TCWV_mean_nr_E5)
-    if anl.addanom:
-      mfns.write_var("TCWVanom_mean_nr_E5",
-       "ERA5 Mean Total Column Water Vapor Anomaly (Rain cells removed)",description,("tE5"),
-       np.float64,TCWVE5units,fileout,TCWVanom_mean_nr_E5)
-    if anl.addanomn:
-      mfns.write_var("TCWVanomn_mean_nr_E5",
-       "ERA5 Mean Total Column Water Vapor Normalized Anomaly (Rain cells removed)",description,
-       ("tE5"),np.float64,"",fileout,TCWVanomn_mean_nr_E5)
+  # Specific humidity
+  if anl.addSH18:
+    write_data("Specific humidity (1000-850hPa average)","SH18",
+     E5group,SH18_mean_nr,SH18anom_mean_nr,SH18anomn_mean_nr,
+     "g kg**-1")
 
-#==================================================================
-# Write SH18 information to file
-#==================================================================
+  if anl.addSH84:
+    write_data("Specific humidity (800-400hPa average)","SH84",
+     E5group,SH84_mean_nr,SH84anom_mean_nr,SH84anomn_mean_nr,
+     "g kg**-1")
 
-  if anl.addSH18E5:
+  # Moisture flux
+  if anl.addMF18:
+    write_data("Moisture flux convergence (1000-850hPa average)",
+     "MFC18",E5group,MF18_mean_nr,MF18anom_mean_nr,
+     MF18anomn_mean_nr,"g kg**-1 hr**-1")
 
-    description = "Specific humidity (1000-850hPa) from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    if anl.addfull:
-      mfns.write_var("SH18_mean_nr_E5",
-       "ERA5 Mean Specific humidity (1000-850hPa) (Rain cells removed)",description,("tE5"),
-       np.float64,SH18E5units,fileout,SH18_mean_nr_E5)
-    if anl.addanom:
-      mfns.write_var("SH18anom_mean_nr_E5",
-       "ERA5 Mean Specific humidity (1000-850hPa) Anomaly (Rain cells removed)",description,("tE5"),
-       np.float64,SH18E5units,fileout,SH18anom_mean_nr_E5)
-    if anl.addanomn:
-      mfns.write_var("SH18anomn_mean_nr_E5",
-       "ERA5 Mean Specific humidity (1000-850hPa) Normalized Anomaly (Rain cells removed)",description,
-       ("tE5"),np.float64,"",fileout,SH18anomn_mean_nr_E5)
+  if anl.addMF84:
+    write_data("Moisture flux convergence (800-400hPa average)",
+     "MFC84",E5group,MF84_mean_nr,MF84anom_mean_nr,
+     MF84anomn_mean_nr,"g kg**-1 hr**-1")
 
-#==================================================================
-# Write SH84 information to file
-#==================================================================
+  # Moisture advection
+  if anl.addMA18:
+    write_data("Moisture advection (1000-850hPa average)",
+     "MADV18",E5group,MA18_mean_nr,MA18anom_mean_nr,
+     MA18anomn_mean_nr,"g kg**-1 hr**-1")
 
-  if anl.addSH84E5:
+  if anl.addMA84:
+    write_data("Moisture advection (800-400hPa average)",
+     "MADV84",E5group,MA84_mean_nr,MA84anom_mean_nr,
+     MA84anomn_mean_nr,"g kg**-1 hr**-1")
 
-    description = "Specific humidity (800-400hPa) from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    if anl.addfull:
-      mfns.write_var("SH84_mean_nr_E5",
-       "ERA5 Mean Specific humidity (800-400hPa) (Rain cells removed)",description,("tE5"),
-       np.float64,SH84E5units,fileout,SH84_mean_nr_E5)
-    if anl.addanom:
-      mfns.write_var("SH84anom_mean_nr_E5",
-       "ERA5 Mean Specific humidity (800-400hPa) Anomaly (Rain cells removed)",description,("tE5"),
-       np.float64,SH84E5units,fileout,SH84anom_mean_nr_E5)
-    if anl.addanomn:
-      mfns.write_var("SH84anomn_mean_nr_E5",
-       "ERA5 Mean Specific humidity (800-400hPa) Normalized Anomaly (Rain cells removed)",description,
-       ("tE5"),np.float64,"",fileout,SH84anomn_mean_nr_E5)
+  # Moisture convergence
+  if anl.addMC18:
+    write_data("Moisture convergence (1000-850hPa average)",
+     "MCONV18",E5group,MC18_mean_nr,MC18anom_mean_nr,
+     MC18anomn_mean_nr,"g kg**-1 hr**-1")
 
-#==================================================================
-# Write SR18 information to file
-#==================================================================
+  if anl.addMC84:
+    write_data("Moisture convergence (800-400hPa average)",
+     "MCONV84",E5group,MC84_mean_nr,MC84anom_mean_nr,
+     MC84anomn_mean_nr,"g kg**-1 hr**-1")
 
-  if anl.addSR18E5:
+  # Shear
+  if anl.addSR18:
+    write_data("Shear magnitude (1000-850hPa average, ~0-1.5km)",
+     "MSHR18",E5group,SR18_mean_nr,SR18anom_mean_nr,
+     SR18anomn_mean_nr,"m s**-1")
 
-    description = "Shear magnitude (1000-850hPa) from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    if anl.addfull:
-      mfns.write_var("SR18_mean_nr_E5",
-       "ERA5 Mean shear magnitude (1000-850hPa) (Rain cells removed)",description,("tE5"),
-       np.float64,SR18E5units,fileout,SR18_mean_nr_E5)
-    if anl.addanom:
-      mfns.write_var("SR18anom_mean_nr_E5",
-       "ERA5 Mean shear magnitude (1000-850hPa) Anomaly (Rain cells removed)",description,("tE5"),
-       np.float64,SR18E5units,fileout,SR18anom_mean_nr_E5)
-    if anl.addanomn:
-      mfns.write_var("SR18anomn_mean_nr_E5",
-       "ERA5 Mean shear magnitude (1000-850hPa) Normalized Anomaly (Rain cells removed)",description,
-       ("tE5"),np.float64,"",fileout,SR18anomn_mean_nr_E5)
+  if anl.addSR84:
+    write_data("Shear magnitude (800-400hPa average, ~2-8km)",
+     "MSHR84",E5group,SR84_mean_nr,SR84anom_mean_nr,
+     SR84anomn_mean_nr,"m s**-1")
 
-#==================================================================
-# Write SR84 information to file
-#==================================================================
+  if anl.addSR14:
+    write_data("Shear magnitude (1000-400hPa average, ~0-8km)",
+     "MSHR14",E5group,SR14_mean_nr,SR14anom_mean_nr,
+     SR14anomn_mean_nr,"m s**-1")
 
-  if anl.addSR84E5:
+  # Convergence
+  if anl.addCV18:
+    write_data("Convergence (1000-850hPa average)",
+     "CONV18",E5group,CV18_mean_nr,CV18anom_mean_nr,
+     CV18anomn_mean_nr,"hr**-1")
 
-    description = "shear magnitude (800-400hPa) from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    if anl.addfull:
-      mfns.write_var("SR84_mean_nr_E5",
-       "ERA5 Mean shear magnitude (800-400hPa) (Rain cells removed)",description,("tE5"),
-       np.float64,SR84E5units,fileout,SR84_mean_nr_E5)
-    if anl.addanom:
-      mfns.write_var("SR84anom_mean_nr_E5",
-       "ERA5 Mean shear magnitude (800-400hPa) Anomaly (Rain cells removed)",description,("tE5"),
-       np.float64,SR84E5units,fileout,SR84anom_mean_nr_E5)
-    if anl.addanomn:
-      mfns.write_var("SR84anomn_mean_nr_E5",
-       "ERA5 Mean shear magnitude (800-400hPa) Normalized Anomaly (Rain cells removed)",description,
-       ("tE5"),np.float64,"",fileout,SR84anomn_mean_nr_E5)
+  if anl.addCV31:
+    write_data("Convergence (300-100hPa average)",
+     "CONV31",E5group,CV31_mean_nr,CV31anom_mean_nr,
+     CV31anomn_mean_nr,"hr**-1")
 
-#==================================================================
-# Write SR14 information to file
-#==================================================================
+  # Vertical motion
+  if anl.addVE18:
+    write_data("Vertical motion (1000-850hPa average)",
+     "VERT18",E5group,VE18_mean_nr,VE18anom_mean_nr,
+     VE18anomn_mean_nr,"Pa s**-1")
 
-  if anl.addSR14E5:
-
-    description = "shear magnitude (800-400hPa) from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    if anl.addfull:
-      mfns.write_var("SR14_mean_nr_E5",
-       "ERA5 Mean shear magnitude (800-400hPa) (Rain cells removed)",description,("tE5"),
-       np.float64,SR14E5units,fileout,SR14_mean_nr_E5)
-    if anl.addanom:
-      mfns.write_var("SR14anom_mean_nr_E5",
-       "ERA5 Mean shear magnitude (800-400hPa) Anomaly (Rain cells removed)",description,("tE5"),
-       np.float64,SR14E5units,fileout,SR14anom_mean_nr_E5)
-    if anl.addanomn:
-      mfns.write_var("SR14anomn_mean_nr_E5",
-       "ERA5 Mean shear magnitude (800-400hPa) Normalized Anomaly (Rain cells removed)",description,
-       ("tE5"),np.float64,"",fileout,SR14anomn_mean_nr_E5)
-
-#==================================================================
-# Write CV18 information to file
-#==================================================================
-
-  if anl.addCV18E5:
-
-    description = "convergence (1000-850hPa) from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    if anl.addfull:
-      mfns.write_var("CONV18_mean_nr_E5",
-       "ERA5 Mean convergence (1000-850hPa) (Rain cells removed)",description,("tE5"),
-       np.float64,CV18E5units,fileout,CV18_mean_nr_E5)
-    if anl.addanom:
-      mfns.write_var("CONV18anom_mean_nr_E5",
-       "ERA5 Mean convergence (1000-850hPa) Anomaly (Rain cells removed)",description,("tE5"),
-       np.float64,CV18E5units,fileout,CV18anom_mean_nr_E5)
-    if anl.addanomn:
-      mfns.write_var("CONV18anomn_mean_nr_E5",
-       "ERA5 Mean convergence (1000-850hPa) Normalized Anomaly (Rain cells removed)",description,
-       ("tE5"),np.float64,"",fileout,CV18anomn_mean_nr_E5)
-
-#==================================================================
-# Write CV31 information to file
-#==================================================================
-
-  if anl.addCV31E5:
-
-    description = "Convergence (300-100hPa) from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
-    if anl.addfull:
-      mfns.write_var("CONV18_mean_nr_E5",
-       "ERA5 Mean Convergence (300-100hPa) (Rain cells removed)",description,("tE5"),
-       np.float64,CV31E5units,fileout,CV31_mean_nr_E5)
-    if anl.addanom:
-      mfns.write_var("CONV31anom_mean_nr_E5",
-       "ERA5 Mean Convergence (300-100hPa) Anomaly (Rain cells removed)",description,("tE5"),
-       np.float64,CV31E5units,fileout,CV31anom_mean_nr_E5)
-    if anl.addanomn:
-      mfns.write_var("CONV31anomn_mean_nr_E5",
-       "ERA5 Mean Convergence (300-100hPa) Normalized Anomaly (Rain cells removed)",description,
-       ("tE5"),np.float64,"",fileout,CV31anomn_mean_nr_E5)
+  if anl.addVE84:
+    write_data("Vertical motion (800-400hPa average)",
+     "VERT84",E5group,VE84_mean_nr,VE84anom_mean_nr,
+     VE84anomn_mean_nr,"Pa s**-1")
 
 #==================================================================
 # Close current file
@@ -829,13 +691,13 @@ def driver_addvars(fn):
 #==================================================================
 
 if anl.serialorparallel==1:
-  print("Begin serial loop over TIPS")
+  print("Begin serial loop over TIMPS")
   for fn in range(len(filenamesrun)):
     driver_addvars(fn)
 
 # Parrallel loop over PFs
 if anl.serialorparallel==2:
-  print("Begin parrallel loop over TIPS")
+  print("Begin parrallel loop over TIMPS")
   Parallel(n_jobs=anl.njobs)(delayed(driver_addvars)(fn) \
     for fn in range(len(filenamesrun)))
 

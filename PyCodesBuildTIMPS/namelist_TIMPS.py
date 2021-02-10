@@ -243,7 +243,7 @@ addERA5vars.ssobs = False
 addERA5vars.obid1 = "103231"
 addERA5vars.obid2 = "103233"
 addERA5vars.sslst = True
-addERA5vars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/scripts/fn_ug_ocean_2015.txt"
+addERA5vars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/UG_file_lists/fn_ug_all_2015.txt"
 
 # Number of processes for parrallelization
 addERA5vars.serialorparallel = 2
@@ -260,19 +260,29 @@ addERA5vars.addrainchk   = True
 addERA5vars.addnorainchk = False
 
 # Full, anomaly, and/or normalized anomaly
-addERA5vars.addfull = True
-addERA5vars.addanom = True
+addERA5vars.addfull  = True
+addERA5vars.addanom  = True
 addERA5vars.addanomn = True
 
-# Variables desired
-addERA5vars.addTCWVE5 = True # ERA5 Total Column Water Vapor
-addERA5vars.addSH18E5 = True # ERA5 Boundary Layer Specific Humidity
-addERA5vars.addSH84E5 = True # ERA5 Free-troposphere Specific Humidity
-addERA5vars.addSR18E5 = True # ERA5 1000-850 hPa shear magnitude
-addERA5vars.addSR84E5 = True # ERA5 800-400 hPa shear magnitude
-addERA5vars.addSR14E5 = True # ERA5 1000-400 hPa shear magnitude
-addERA5vars.addCV18E5 = False # ERA5 1000-850 hPa convergence
-addERA5vars.addCV31E5 = False # ERA5 300-100 hPa convergence
+# Moisture Variables desired
+addERA5vars.addTCWV = True # ERA5 Total Column Water Vapor
+addERA5vars.addSH18 = True # ERA5 1000-850 hPa Specific Humidity
+addERA5vars.addSH84 = True # ERA5 800-400 hPa Specific Humidity
+addERA5vars.addMF18 = True # ERA5 1000-850 hPa moisture flux convergence
+addERA5vars.addMF84 = True # ERA5 800-400 hPa moisture flux convergence
+addERA5vars.addMA18 = True # ERA5 1000-850 hPa moisture advection
+addERA5vars.addMA84 = True # ERA5 800-400 hPa moisture advection
+addERA5vars.addMC18 = True # ERA5 1000-850 hPa moisture convergence
+addERA5vars.addMC84 = True # ERA5 800-400 hPa moisture convergence
+
+# Kinematic variables desired
+addERA5vars.addSR18 = True # ERA5 1000-850 hPa shear magnitude
+addERA5vars.addSR84 = True # ERA5 800-400 hPa shear magnitude
+addERA5vars.addSR14 = True # ERA5 1000-400 hPa shear magnitude
+addERA5vars.addCV18 = True # ERA5 1000-850 hPa convergence
+addERA5vars.addCV31 = True # ERA5 300-100 hPa convergence
+addERA5vars.addVE18 = True # ERA5 1000-850 hPa vertical motion
+addERA5vars.addVE84 = True # ERA5 800-400 hPa vertical motion
 
 # ERA5 domain variables
 addERA5vars.hda           = 2.5 # Half data area in degrees
@@ -281,15 +291,23 @@ addERA5vars.hoursafter    = addERA5vars.hoursbefore[::-1] # Hours after (ascendi
 addERA5vars.avgmissfrac   = 0.8 # fraction of domain missing before average is not carried out
 
 # Directory and filenames of ERA5 data
-addERA5vars.fileTCRWE5id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/clouds/TCRW/ERA5.TCRW."
-addERA5vars.fileTCWVE5id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/moisture/TCWV/ERA5.TCWV.anomaly_"
-addERA5vars.fileSH18E5id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/moisture/SPHU/ERA5.SPHU_1000-850hPamean.anomaly_"
-addERA5vars.fileSH84E5id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/moisture/SPHU/ERA5.SPHU_800-400hPamean.anomaly_"
-addERA5vars.fileSR18E5id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-850hPa.anomaly_"
-addERA5vars.fileSR84E5id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-400hPa.anomaly_"
-addERA5vars.fileSR14E5id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-400hPa.anomaly_"
-addERA5vars.fileCV18E5id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.CONV_1000-850hPamean.anomaly_"
-addERA5vars.fileCV31E5id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.CONV_300-100hPamean.anomaly_"
+addERA5vars.fileTCRWid  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/clouds/TCRW/ERA5.TCRW."
+addERA5vars.fileTCWVid  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/moisture/TCWV/ERA5.TCWV.anomaly_"
+addERA5vars.fileSH18id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/moisture/SPHU/ERA5.SPHU_1000-850hPamean.anomaly_"
+addERA5vars.fileSH84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/moisture/SPHU/ERA5.SPHU_800-400hPamean.anomaly_"
+addERA5vars.fileMF18id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MFC_1000-850hPamean.anomaly_"
+addERA5vars.fileMF84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MFC_800-400hPamean.anomaly_"
+addERA5vars.fileMA18id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MADV_1000-850hPamean.anomaly_"
+addERA5vars.fileMA84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MADV_800-400hPamean.anomaly_"
+addERA5vars.fileMC18id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MCONV_1000-850hPamean.anomaly_"
+addERA5vars.fileMC84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MCONV_800-400hPamean.anomaly_"
+addERA5vars.fileSR18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-850hPa.anomaly_"
+addERA5vars.fileSR84id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-400hPa.anomaly_"
+addERA5vars.fileSR14id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-400hPa.anomaly_"
+addERA5vars.fileCV18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.CONV_1000-850hPamean.anomaly_"
+addERA5vars.fileCV31id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.CONV_300-100hPamean.anomaly_"
+addERA5vars.fileVE18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/vertmotion/ERA5.VERT_1000-850hPamean.anomaly_"
+addERA5vars.fileVE84id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/vertmotion/ERA5.VERT_800-400hPamean.anomaly_"
 
 #==================================================================
 # End namelist
