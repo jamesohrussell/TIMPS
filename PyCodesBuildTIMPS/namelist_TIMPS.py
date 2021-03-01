@@ -243,11 +243,11 @@ addERA5vars.ssobs = False
 addERA5vars.obid1 = "103231"
 addERA5vars.obid2 = "103233"
 addERA5vars.sslst = True
-addERA5vars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/UG_file_lists/fn_ug_all_2015.txt"
+addERA5vars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/UG_file_lists/fn_ug_all_80_2015.txt"
 
 # Number of processes for parrallelization
 addERA5vars.serialorparallel = 2
-addERA5vars.njobs = 20
+addERA5vars.njobs = 30
 
 # Type of area or mean
 addERA5vars.addctarea = False # Area centered on TIPS
@@ -265,24 +265,25 @@ addERA5vars.addanom  = True
 addERA5vars.addanomn = True
 
 # Moisture Variables desired
-addERA5vars.addTCWV = True # ERA5 Total Column Water Vapor
-addERA5vars.addSH18 = True # ERA5 1000-850 hPa Specific Humidity
-addERA5vars.addSH84 = True # ERA5 800-400 hPa Specific Humidity
-addERA5vars.addMF18 = True # ERA5 1000-850 hPa moisture flux convergence
-addERA5vars.addMF84 = True # ERA5 800-400 hPa moisture flux convergence
-addERA5vars.addMA18 = True # ERA5 1000-850 hPa moisture advection
-addERA5vars.addMA84 = True # ERA5 800-400 hPa moisture advection
-addERA5vars.addMC18 = True # ERA5 1000-850 hPa moisture convergence
-addERA5vars.addMC84 = True # ERA5 800-400 hPa moisture convergence
+addERA5vars.addTCWV = False # ERA5 Total Column Water Vapor
+addERA5vars.addSH18 = False # ERA5 1000-850 hPa Specific Humidity
+addERA5vars.addSH84 = False # ERA5 800-400 hPa Specific Humidity
+addERA5vars.addMF18 = False # ERA5 1000-850 hPa moisture flux convergence
+addERA5vars.addMF84 = False # ERA5 800-400 hPa moisture flux convergence
+addERA5vars.addMA18 = False # ERA5 1000-850 hPa moisture advection
+addERA5vars.addMA84 = False # ERA5 800-400 hPa moisture advection
+addERA5vars.addMC18 = False # ERA5 1000-850 hPa moisture convergence
+addERA5vars.addMC84 = False # ERA5 800-400 hPa moisture convergence
 
 # Kinematic variables desired
-addERA5vars.addSR18 = True # ERA5 1000-850 hPa shear magnitude
-addERA5vars.addSR84 = True # ERA5 800-400 hPa shear magnitude
-addERA5vars.addSR14 = True # ERA5 1000-400 hPa shear magnitude
-addERA5vars.addCV18 = True # ERA5 1000-850 hPa convergence
-addERA5vars.addCV31 = True # ERA5 300-100 hPa convergence
-addERA5vars.addVE18 = True # ERA5 1000-850 hPa vertical motion
-addERA5vars.addVE84 = True # ERA5 800-400 hPa vertical motion
+addERA5vars.addSR18 = False # ERA5 1000-850 hPa shear magnitude
+addERA5vars.addSR17 = True  # ERA5 1000-700 hPa shear magnitude
+addERA5vars.addSR84 = False # ERA5 800-400 hPa shear magnitude
+addERA5vars.addSR14 = False # ERA5 1000-400 hPa shear magnitude
+addERA5vars.addCV18 = False # ERA5 1000-850 hPa convergence
+addERA5vars.addCV31 = False # ERA5 300-100 hPa convergence
+addERA5vars.addVE18 = False # ERA5 1000-850 hPa vertical motion
+addERA5vars.addVE84 = False # ERA5 800-400 hPa vertical motion
 
 # ERA5 domain variables
 addERA5vars.hda           = 2.5 # Half data area in degrees
@@ -302,6 +303,7 @@ addERA5vars.fileMA84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_d
 addERA5vars.fileMC18id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MCONV_1000-850hPamean.anomaly_"
 addERA5vars.fileMC84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MCONV_800-400hPamean.anomaly_"
 addERA5vars.fileSR18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-850hPa.anomaly_"
+addERA5vars.fileSR17id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-700hPa.anomaly_"
 addERA5vars.fileSR84id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-400hPa.anomaly_"
 addERA5vars.fileSR14id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-400hPa.anomaly_"
 addERA5vars.fileCV18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.CONV_1000-850hPamean.anomaly_"

@@ -243,6 +243,8 @@ def driver_addvars(fn):
   # Kinematic variables
   if anl.addSR18: files["SR18"] = E5fns.get_E5_ss_files(
     anl.fileSR18id,timestrs[0],timestrs[-1])
+  if anl.addSR17: files["SR17"] = E5fns.get_E5_ss_files(
+    anl.fileSR18id,timestrs[0],timestrs[-1])
   if anl.addSR84: files["SR84"] = E5fns.get_E5_ss_files(
     anl.fileSR84id,timestrs[0],timestrs[-1])
   if anl.addSR14: files["SR14"] = E5fns.get_E5_ss_files(
@@ -255,7 +257,6 @@ def driver_addvars(fn):
     anl.fileVE18id,timestrs[0],timestrs[-1])
   if anl.addVE84: files["VE84"] = E5fns.get_E5_ss_files(
     anl.fileVE84id,timestrs[0],timestrs[-1])
-
 
 #==================================================================
 # Get coordinates and their indices
@@ -386,6 +387,15 @@ def driver_addvars(fn):
           SR18anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
           SR18anomn_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addSR17:
+
+        if anl.addfull:
+          SR17_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          SR17anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          SR17anomn_mean_nr = [np.nan]*len(timestrs)
 
       if anl.addSR84:
 
@@ -520,6 +530,11 @@ def driver_addvars(fn):
        create_var("SR18","MSHR",files,timestrs[c],anl,TCRW,
        loni,lati)
 
+    if anl.addSR17:
+      SR17_mean_nr[c],SR17anom_mean_nr[c],SR17anomn_mean_nr[c] = \
+       create_var("SR17","MSHR",files,timestrs[c],anl,TCRW,
+       loni,lati)
+
     if anl.addSR84:
       SR84_mean_nr[c],SR84anom_mean_nr[c],SR84anomn_mean_nr[c] = \
        create_var("SR84","MSHR",files,timestrs[c],anl,TCRW,
@@ -643,6 +658,11 @@ def driver_addvars(fn):
     write_data("Shear magnitude (1000-850hPa average, ~0-1.5km)",
      "MSHR18",E5group,SR18_mean_nr,SR18anom_mean_nr,
      SR18anomn_mean_nr,"m s**-1")
+
+  if anl.addSR17:
+    write_data("Shear magnitude (1000-700hPa average, ~0-3km)",
+     "MSHR17",E5group,SR17_mean_nr,SR17anom_mean_nr,
+     SR17anomn_mean_nr,"m s**-1")
 
   if anl.addSR84:
     write_data("Shear magnitude (800-400hPa average, ~2-8km)",
