@@ -247,6 +247,8 @@ def driver_addvars(fn):
     anl.fileSR18id,timestrs[0],timestrs[-1])
   if anl.addSR84: files["SR84"] = E5fns.get_E5_ss_files(
     anl.fileSR84id,timestrs[0],timestrs[-1])
+  if anl.addSR82: files["SR82"] = E5fns.get_E5_ss_files(
+    anl.fileSR82id,timestrs[0],timestrs[-1])
   if anl.addSR65: files["SR65"] = E5fns.get_E5_ss_files(
     anl.fileSR65id,timestrs[0],timestrs[-1])
   if anl.addSR14: files["SR14"] = E5fns.get_E5_ss_files(
@@ -408,6 +410,15 @@ def driver_addvars(fn):
         if anl.addanomn:
           SR84anomn_mean_nr = [np.nan]*len(timestrs)
 
+      if anl.addSR82:
+
+        if anl.addfull:
+          SR82_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanom:
+          SR82anom_mean_nr = [np.nan]*len(timestrs)
+        if anl.addanomn:
+          SR82anomn_mean_nr = [np.nan]*len(timestrs)
+
       if anl.addSR65:
 
         if anl.addfull:
@@ -551,6 +562,11 @@ def driver_addvars(fn):
        create_var("SR84","MSHR",files,timestrs[c],anl,TCRW,
        loni,lati)
 
+    if anl.addSR82:
+      SR82_mean_nr[c],SR82anom_mean_nr[c],SR82anomn_mean_nr[c] = \
+       create_var("SR82","MSHR",files,timestrs[c],anl,TCRW,
+       loni,lati)
+
     if anl.addSR65:
       SR65_mean_nr[c],SR65anom_mean_nr[c],SR65anomn_mean_nr[c] = \
        create_var("SR65","MSHR",files,timestrs[c],anl,TCRW,
@@ -684,6 +700,11 @@ def driver_addvars(fn):
     write_data("Shear magnitude (800-400hPa average, ~2-8km)",
      "MSHR84",E5group,SR84_mean_nr,SR84anom_mean_nr,
      SR84anomn_mean_nr,"m s**-1")
+
+  if anl.addSR82:
+    write_data("Shear magnitude (800-200hPa average, ~2-12km)",
+     "MSHR82",E5group,SR82_mean_nr,SR82anom_mean_nr,
+     SR82anomn_mean_nr,"m s**-1")
 
   if anl.addSR65:
     write_data("Shear magnitude (650-500hPa average, ~4-6km)",

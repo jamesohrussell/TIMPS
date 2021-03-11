@@ -341,7 +341,7 @@ def driver_addvars(fn):
     if anl.addlocaltime:
     
       # Calculate local time based on central longitude
-      localsolartime[c] = tfns.calc_local_solar_time(
+      localsolartime[c] = tfns.calc_local_solar_date(
        str(datadtim[c])[0:4],str(datadtim[c])[4:6],
        str(datadtim[c])[6:8],str(datadtim[c])[8:10],
        str(datadtim[c])[10:12],str(0),dataclon[c])
@@ -650,11 +650,20 @@ def driver_addvars(fn):
           # Only assign shape if f and d are low
           if fragmentation[c]<float(anl.minshapefrag) and \
                 dispersion[c]<float(anl.minshapedisp):
-            axang[c,:],axlen[c,:] = \
-             sfns.fit_ellipse_svd_earth(lonsnzk,latsnzk,
-             [dataclon[c],dataclat[c]],fit=True,plot=True)[1:3]
+            #axang[c,:],axlen[c,:] = \
+            # sfns.fit_ellipse_svd_earth(lonsnzk,latsnzk,
+            # [dataclon[c],dataclat[c]],fit=True,plot=True)[1:3]
 
+            center,axang[c,:],axlen[c,:],fit = \
+             sfns.fit_ellipse_svd_earth(lonsnzk,latsnzk,
+             [dataclon[c],dataclat[c]],fit=True,plot=False)
+            
             ellipticity[c] = 1-(axlen[c,1]/axlen[c,0])
+
+            ## Plotting for test
+            print("hello")
+            sfns.plot_pf_ellipse(xg,yg,df.values,center,
+             axang[c,:],axlen[c,:],fit)
 
 #==================================================================
 # Convective shape prepwork
@@ -840,17 +849,17 @@ def driver_addvars(fn):
 
             ellipticity_c[c] = 1-(axlen_c[c,1]/axlen_c[c,0])
 
-          ### Plotting for test
-          #  if len(latsnzk)>float(anl.minshapesize):
-          #    print("Ellipse: yes")
-          #    sfns.plot_pf_ellipse(xm,ym,df.values,center_c[c,:],
-          #     axang_c[c,:],axlen_c[c,:],fitc)          
-          #
-          #else:
-          #
-          #  if len(latsnzk)>float(anl.minshapesize):
-          #    print("Ellipse: no")
-          #    sfns.plot_pf(xm,ym,df.values)
+          ## Plotting for test
+            if len(latsnzk)>float(anl.minshapesize):
+              print("Ellipse: yes")
+              sfns.plot_pf_ellipse(xm,ym,df.values,center_c[c,:],
+               axang_c[c,:],axlen_c[c,:],fitc)
+          
+          else:
+          
+            if len(latsnzk)>float(anl.minshapesize):
+              print("Ellipse: no")
+              sfns.plot_pf(xm,ym,df.values)
 
 #==================================================================
 # Add land surface information
@@ -948,6 +957,8 @@ def driver_addvars(fn):
     c = c + 1
 
   fd.close()
+
+  exit()
 
 #==================================================================
 # Open file to write data
@@ -1325,6 +1336,7 @@ def driver_addvars(fn):
 #==================================================================
 
   fileout.close()
+  exit()
 
 #==================================================================
 # End processing of current PF

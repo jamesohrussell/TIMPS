@@ -152,13 +152,13 @@ def addvars():
 
 # Subset (for certain range of dates) 
 addvars.ssdat = False
-addvars.date1 = "20150501"
-addvars.date2 = "20150701"
+addvars.date1 = "20150101"
+addvars.date2 = "20150102"
 addvars.ssobs = False
 addvars.obid1 = "1000000"
 addvars.obid2 = "1000200"
 addvars.sslst = True
-addvars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/scripts/fn_ug_ocean_2015.txt"
+addvars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/UG_file_lists/fn_ug_all_80_2015.txt"
 
 # Number of processes for parrallelization
 # Parallization benchmarks (time for running 10 days of tracking)
@@ -173,7 +173,7 @@ addvars.addmaxrr          = False# Maximum rain rate
 addvars.addmeanrr         = False# Mean rain rate
 addvars.addmedianrr       = False# Median rain rate
 addvars.addstddevrr       = False# Standard deviation of the rain rates
-addvars.addskewrr         = True # Skewness of the rain rates
+addvars.addskewrr         = False# Skewness of the rain rates
 addvars.addpieces         = False# Number of pieces 
 addvars.addarea           = False# Area of the PF
 addvars.addvrr            = False# Volumetric rain rate
@@ -190,7 +190,7 @@ addvars.addfragmentationc = False# As above for convective pixels
 addvars.adddispersion     = False# Dispersion shape parameter 
                                  #  (Zick et al. 2016)
 addvars.adddispersionc    = False# As above for convective pixels
-addvars.addaxesshape      = False# Array of variables based on 
+addvars.addaxesshape      = True # Array of variables based on 
                                  #  the major and minor axes from 
                                  #  eigenvalue/vectors
 addvars.addaxesshapec     = False# As above for convective pixels
@@ -247,7 +247,7 @@ addERA5vars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/U
 
 # Number of processes for parrallelization
 addERA5vars.serialorparallel = 2
-addERA5vars.njobs = 30
+addERA5vars.njobs = 20
 
 # Type of area or mean
 addERA5vars.addctarea = False # Area centered on TIPS
@@ -277,8 +277,9 @@ addERA5vars.addMC84 = False # ERA5 800-400 hPa moisture convergence
 
 # Kinematic variables desired
 addERA5vars.addSR18 = False # ERA5 1000-850 hPa shear magnitude
-addERA5vars.addSR17 = True  # ERA5 1000-700 hPa shear magnitude
+addERA5vars.addSR17 = False # ERA5 1000-700 hPa shear magnitude
 addERA5vars.addSR84 = False # ERA5 800-400 hPa shear magnitude
+addERA5vars.addSR82 = True  # ERA5 800-200 hPa shear magnitude
 addERA5vars.addSR65 = False # ERA5 650-500 hPa shear magnitude
 addERA5vars.addSR14 = False # ERA5 1000-400 hPa shear magnitude
 addERA5vars.addCV18 = False # ERA5 1000-850 hPa convergence
@@ -306,6 +307,7 @@ addERA5vars.fileMC84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_d
 addERA5vars.fileSR18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-850hPa.anomaly_"
 addERA5vars.fileSR17id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-700hPa.anomaly_"
 addERA5vars.fileSR84id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-400hPa.anomaly_"
+addERA5vars.fileSR82id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-200hPa.anomaly_"
 addERA5vars.fileSR65id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_650-500hPa.anomaly_"
 addERA5vars.fileSR14id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-400hPa.anomaly_"
 addERA5vars.fileCV18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.CONV_1000-850hPamean.anomaly_"
