@@ -326,12 +326,7 @@ def driver_processFiTobs(o):
     centrallat[t]  = np.mean(lat1)
     
     # Calculated differently for periodic boundaries in lon
-    xiibar = np.cos(np.radians(lon1))
-    zetaibar = np.sin(np.radians(lon1))
-
-    # Unweighted central lon
-    centrallon[t] = np.degrees(np.pi+
-     np.arctan2(-np.mean(zetaibar),-np.mean(xiibar)))
+    centrallon[t] = sfns.periodic_cmass_earth(lonsc)
 
     # Calculate weighted (by rainfall) centroid
     sr = sum(rain1)

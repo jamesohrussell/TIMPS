@@ -54,8 +54,8 @@ if anl.ssdat:
    for x in range(0,(end-start).days))
   filen = []
   for dateobj in datearr:
-    filen.append(f'{gnl.datadirTIMPS}{dateobj.strftime("%m")}/\
-{gnl.fileidTIMPS}*_{dateobj.strftime("%Y%m%d")}*.nc')
+    filen.append(f'{gnl.datadirTIPS}{dateobj.strftime("%m")}/\
+{gnl.fileidTIPS}*_{dateobj.strftime("%Y%m%d")}*.nc')
 
   # Reads directory and filenames
   print("Getting directory and filenames")
@@ -72,8 +72,8 @@ elif anl.ssobs:
   filen = []
   for j in range(1,13):
     for i in range(len(obids)): 
-      filen.append(f'{gnl.datadirTIMPS}{str(j).zfill(2)}/\
-{gnl.fileidTIMPS}{str(obids[i])}*')
+      filen.append(f'{gnl.datadirTIPS}{str(j).zfill(2)}/\
+{gnl.fileidTIPS}{str(obids[i])}*')
 
   # Reads directory and filenames
   print("Getting directory and filenames")
@@ -98,9 +98,10 @@ else:
   print("Generating list of files")
   filenamesrun = []
   for i in range(1,13):
-    print(f'{gnl.datadirTIMPS}{str(i).zfill(2)}/{gnl.fileidTIMPS}*')
     filenamesrun = filenamesrun+sorted(glob.glob(
-     f'{gnl.datadirTIMPS}{str(i).zfill(2)}/{gnl.fileidTIMPS}*'))
+     f'{gnl.datadirTIPS}{str(i).zfill(2)}/{gnl.fileidTIPS}*'))
+
+filenamesrun = filenamesrun[0:1]
 
 #==================================================================
 # Define function
@@ -195,7 +196,6 @@ def driver_addvars(fn):
     axlen[:,:]  = np.nan
     axang       = np.zeros((len(datakeys),2))
     axang[:,:]  = np.nan
-    goodness    = [np.nan]*len(datakeys)
   if anl.addaxesshapec or anl.addpiecesc:
     center_c      = np.zeros((len(datakeys),2))
     center_c[:,:] = np.nan
@@ -205,7 +205,6 @@ def driver_addvars(fn):
     axlen_c[:,:]  = np.nan
     axang_c       = np.zeros((len(datakeys),2))
     axang_c[:,:]  = np.nan
-    goodness_c    = [np.nan]*len(datakeys)
   if anl.addasymmetry: 
     asymmetry_lp = [np.nan]*len(datakeys)
   if anl.addasymmetryc: 
@@ -232,6 +231,8 @@ def driver_addvars(fn):
 
   c = 0
   for k in datakeys:
+
+    print(k)
 
     # If first time read, create dictionary
     if c==0:
@@ -463,110 +464,425 @@ def driver_addvars(fn):
 # Start shape code
 #==================================================================
 
-    if anl.addaxesshape or \
+    if anl.addperimeter or \
+       anl.addasymmetry or \
+       anl.addfragmentation or \
+       anl.addaxesshape or \
+       anl.adddispersion or \
        anl.addpieces:
 
       # Generate dataframe for object
       df = mfns.create_2d_dataframe(lonsnzk,latsnzk,
-       anl.dx,anl.dy,instrainnzk)
+                                   anl.dx,anl.dy,instrainnzk)
+
+      # Find and label all contiguous areas within object
+      labels, numL = sfns.label_wdiags(df)
       ny = [float(i) for i in df.index]
       nx = [float(i) for i in df.columns]
-      xg, yg = np.meshgrid(nx,ny)
+      df1 = pd.DataFrame(labels,[str(i) for i in ny],
+                                [str(i) for i in nx])
 
       # assign number of pieces to pieces
       if anl.addpieces:
-        numL = sfns.label_wdiags(df)[1]
         pieces[c] = numL
-            
-#==================================================================
-# Add major/minor axes shape
-#==================================================================
-        
+
       # Only calculate if there are enough points
       if len(latsnzk)>float(anl.minshapesize):
 
         # Fragmentation prepwork
-        if anl.addaxesshape:
+        if anl.addfragmentation or \
+           anl.addaxesshape:
+
+          # Predefine solidity array
+          solid = [0.]*numL
           
-          # Calculate axes and goodness
-          axang1,axlen1,goodness1 = \
+          # Define points in the grid
+          print(np.shape(nx))
+          print(np.shape(ny))
+          xg, yg = np.meshgrid(nx,ny)
+          print(np.shape(xg))
+          print(np.shape(yg))
+          print(np.shape(df.values))
+
+          points = [[round(float(x),2) for x in y] 
+           for y in np.vstack((xg.flatten(),yg.flatten())).T]
+
+
+        # Loop over all separate pieces
+        areas    = [0.]*numL
+        centersx = [0.]*numL
+        centersy = [0.]*numL
+        for i in range(1,numL+1):
+        
+          # Line 2: Identify pairs of indices for current piece
+          # Line 1: Convert all pairs to floats
+          indpairs = [(round(float(z[1]),2),round(float(z[0]),2))
+           for z in df1[df1==i].stack().index.tolist()]
+
+          # Calculate area of current piece
+          areas[i-1] = efns.calc_area([x for x, y in indpairs],
+                                      [y for x, y in indpairs],
+                                                  anl.dx,anl.dy)
+            
+#==================================================================
+# Calculate solidity of pieces (for fragmentation)
+#==================================================================
+
+          if anl.addfragmentation or \
+             anl.addaxesshape:
+
+            # Define the corners of the pixels
+            cornersf = sfns.find_corners(indpairs,
+                                      anl.dx,anl.dy)
+
+            # Fit a convex hull to the data points
+            hull = ConvexHull(cornersf)
+            verts = [(v[0],v[1]) for v in 
+                     hull.points[hull.vertices]]
+
+            # Find points in shape
+            indpairsCH = sfns.points_in_shape(verts,points)
+
+            # Calculate ratio of object area to shape area
+            solid[i-1] = areas[i-1]/efns.calc_area(
+             [x[0] for x in indpairsCH],
+             [x[1] for x in indpairsCH],anl.dx,anl.dy)
+
+#==================================================================
+# Calculate distance from centroid for all pieces (for dispersion)
+#==================================================================
+
+          if (anl.adddispersion or anl.addaxesshape) \
+             and numL>1:
+
+            # Define the centroids of the pieces
+            centersx[i-1] = np.mean([x for x,y in indpairs])
+            centersy[i-1] = np.mean([y for x,y in indpairs])
+
+        # Calculate dispersion
+        if (anl.adddispersion or anl.addaxesshape) \
+          and numL>1:
+
+          # Calculate distance to center
+          dists = np.zeros([numL,numL])
+          for i in range(0,numL):
+            for j in range(0,numL):
+              dists[i-1,j-1] = efns.calc_distance(centersx[i-1],
+               centersy[i-1],centersx[j-1],centersy[j-1])
+          dists = np.ma.array(dists,mask=np.where(dists==0,1,0))
+          mdists = np.amin(dists,axis=0)
+
+          areafac = [a/sum(areas) for a in areas]
+          distfac = [d/(4*np.sqrt(sum(areas)/math.pi)) \
+           for d in mdists]
+          dispersion[c] = sum([a*b for a,b in 
+                               list(zip(areafac,distfac))])
+
+        elif (anl.adddispersion or anl.addaxesshape) \
+          and numL==1: dispersion[c]=0
+
+#==================================================================
+# Perimeter and asymmetry prepwork
+#==================================================================
+
+        if anl.addperimeter or \
+           anl.addasymmetry:
+
+          # Find largest piece and all corner coordinates
+          largelabel  = areas.index(max(areas))+1
+          indpairslrg = [(round(float(z[1]),2),round(float(z[0]),2))
+             for z in df1[df1==largelabel].stack().index.tolist()]
+          corners = sfns.find_corners(indpairslrg,anl.dx,anl.dy)
+
+          # Find largest piece and all coordinates
+          lonslatslrg = [[x for x, y in corners],
+                         [y for x, y in corners]]
+
+#==================================================================
+# Add perimeter - only for largest piece
+# Uses alpha shapes to define the concave hull with alpha=10 
+#==================================================================
+
+        if anl.addperimeter:
+        
+          # Define the perimeter coordinates
+          import alphashape
+          hull = alphashape.alphashape(corners, 10)
+          hull_pts = hull.exterior.coords.xy
+
+          # Calculate perimeter by summing lengths of all edges
+          # Divide by 1000 to get result in km
+          perimeter_lp[c] = sum([efns.calc_distance(
+                               hull_pts[0][i],hull_pts[1][i],
+                               hull_pts[0][i+1],hull_pts[1][i+1])
+                  for i in range(0,len(hull_pts[0])-1)])/1000
+
+#==================================================================
+# Add asymmetry
+#==================================================================
+
+        if anl.addasymmetry:
+
+          # Fit a convex hull to the data points
+          hull = ConvexHull(corners)
+          verts = [(v[0],v[1]) for v in 
+                     hull.points[hull.vertices]]  
+
+          # Calculate perimeter
+          verts.append(verts[0])
+          perim = sum([efns.calc_distance(verts[v][0] ,verts[v][1],
+                                       verts[v+1][0],verts[v+1][1]) 
+                        for v in range(0,len(verts)-1)])
+
+          # Define Asymmetry
+          asymmetry_lp[c] = (4*np.pi*areas[largelabel-1])/\
+                                (perim**2)
+
+#==================================================================
+# Add fragmentation
+#==================================================================
+
+        if anl.addfragmentation or anl.addaxesshape:
+
+          # Calculate metrics related to fragmentation
+          connectivity[c]  = 1.-(numL-1.)/(numL+np.log10(
+           efns.calc_area(lonsnzk,latsnzk,anl.dx,anl.dy)))
+          solidity[c] = np.mean(solid)
+          fragmentation[c] = 1. - (solidity[c]*connectivity[c])
+     
+#==================================================================
+# Add major/minor axes shape
+#==================================================================
+
+        if anl.addaxesshape:
+        
+          axang1,axlen1,goodness = \
            sfns.fit_ellipse_svd_earth(lonsnzk,latsnzk,
            [dataclon[c],dataclat[c]],goodness=True,
            dx=anl.dx,dy=anl.dy)
 
-          # Only continue if fit is good
-          if goodness1>anl.minshapegood:
+          print(f"goodness of basic fit: \
+{round(goodness,3)}>{anl.minshapegood}")
+          if goodness>anl.minshapegood:
+            print("Basic fit: good")
             
-            # Assign data
-            goodness[c] = goodness1
+            # If good fit assign data
             axang[c,:] = axang1
             axlen[c,:] = axlen1
             ellipticity[c] = 1-(axlen[c,1]/axlen[c,0])
 
-     #       # Plotting for test
-     #       pfns.plot_pixel_axes_earth(xg,yg,df.values,
-     #        center=[dataclon[c],dataclat[c]],
-     #        axdir=axang[c,:],axlen=axlen[c,:])
-     #else:
-     #   print("Basic fit: bad")
-     #   # Plotting for test
-     #   pfns.plot_pixel_axes_earth(xg,yg,df.values)
+            # Plotting for test
+            pfns.plot_pixel_axes_earth(xg,yg,df.values,
+             center=[dataclon[c],dataclat[c]],
+             axdir=axang[c,:],axlen=axlen[c,:])
+
+      else:
+        print("Basic fit: bad")
+
+        # Plotting for test
+        pfns.plot_pixel_axes_earth(xg,yg,df.values)
 
 #==================================================================
 # Convective shape prepwork
 #==================================================================
 
-    if anl.addaxesshapec or \
+    if anl.addasymmetryc or \
+       anl.addfragmentationc or \
+       anl.addaxesshapec or \
+       anl.adddispersionc or \
        anl.addpiecesc:
 
       # Find convective locations
       lonsc = lons[k][instrain[k]>anl.convrainthold]
       latsc = lats[k][instrain[k]>anl.convrainthold]
+      rainc = instrain[k][instrain[k]>anl.convrainthold]
 
-      # Only if enough convective pixels
       if len(latsc)>float(anl.minshapesizec):
 
         # Define center of convection
         center_c[c,:] = [efns.periodic_cmass(lonsc),
          np.nanmean(latsc)]
 
+        # Generate dataframe for object
+        dfc = mfns.create_2d_dataframe(lonsc,latsc,
+         anl.dx,anl.dy,rainc)
+
+        # Find and label all contiguous areas within object
+        labelsc, numLc = sfns.label_wdiags(dfc)
+        nyc = [float(i) for i in dfc.index]
+        nxc = [float(i) for i in dfc.columns]
+        dfc1 = pd.DataFrame(labelsc,[str(i) for i in nyc],
+                                    [str(i) for i in nxc])
+
         # assign number of pieces to pieces
         if anl.addpiecesc:
           pieces_c[c] = numLc
+
+        # Fragmentation prepwork
+        if anl.addfragmentationc or \
+           anl.addaxesshapec:
+
+          # Predefine solidity array
+          solidc = [0.]*numLc
           
+          # Define points in the grid
+          xgc, ygc = np.meshgrid(nxc,nyc)
+          pointsc = [[round(float(x),2) for x in y] 
+           for y in np.vstack((xgc.flatten(),ygc.flatten())).T]
+
+        # Loop over all separate pieces
+        areasc = [0.]*numLc
+        centersxc = [0.]*numLc
+        centersyc = [0.]*numLc
+        for i in range(1,numLc+1):
+        
+          # Line 2: Identify pairs of indices for current piece
+          # Line 1: Convert all pairs to floats
+          indpairsc = [(round(float(z[1]),2),round(float(z[0]),2))
+           for z in dfc1[dfc1==i].stack().index.tolist()]
+
+          # Calculate area of current piece
+          areasc[i-1] = efns.calc_area([x for x, y in indpairsc],
+                                       [y for x, y in indpairsc],
+                                                     anl.dx,anl.dy)
+           
+#==================================================================
+# Calculate solidity of pieces (for fragmentation)
+#==================================================================
+
+          if anl.addfragmentationc or \
+             anl.addaxesshapec:
+
+            # Define the corners of the pixels
+            cornersfc = sfns.find_corners(indpairsc,
+                                         anl.dx,anl.dy)
+
+            # Fit a convex hull to the data points
+            hullc  = ConvexHull(cornersfc)
+            vertsc = [(v[0],v[1]) for v in 
+                     hullc.points[hullc.vertices]]
+
+            # Find points in shape
+            indpairsCHc = sfns.points_in_shape(vertsc,pointsc)
+
+            # Calculate ratio of object area to shape area
+            solidc[i-1] = areasc[i-1]/efns.calc_area(
+             [x[0] for x in indpairsCHc],
+             [x[1] for x in indpairsCHc],anl.dx,anl.dy)
+
+#==================================================================
+# Calculate distance from centroid for all pieces (for dispersion)
+#==================================================================
+
+          if (anl.adddispersionc or \
+              anl.addaxesshapec) and numLc>1:
+
+            # Define the centroids of the pieces
+            centersxc[i-1] = np.mean([x for x,y in indpairsc])
+            centersyc[i-1] = np.mean([y for x,y in indpairsc])
+
+        # Calculate dispersion
+        if (anl.adddispersionc or \
+            anl.addaxesshapec) and numLc>1:
+
+          # Calculate distance to center
+          distsc = np.zeros([numLc,numLc])
+          for i in range(0,numLc):
+            for j in range(0,numLc): 
+              distsc[i-1,j-1] = efns.calc_distance(centersxc[i-1],
+               centersyc[i-1],centersxc[j-1],centersyc[j-1])
+          distsc = np.ma.array(distsc,mask=np.where(distsc==0,1,0))
+          mdistsc = np.amin(distsc,axis=0)
+
+          areafacc = [a/sum(areasc) for a in areasc]
+          distfacc = [d/(4*np.sqrt(sum(areasc)/math.pi)) \
+           for d in mdistsc]
+          dispersion_c[c] = sum([a*b for a,b in 
+                               list(zip(areafacc,distfacc))])
+
+        elif (anl.adddispersionc or \
+              anl.addaxesshapec) and numLc==1:
+          dispersion_c[c]=0
+
+#==================================================================
+# Perimeter and asymmetry prepwork
+#==================================================================
+
+        if anl.addasymmetryc:
+
+          # Find largest piece and all corner coordinates
+          largelabelc  = areasc.index(max(areasc))+1
+          indpairslrgc = [(round(float(z[1]),2),
+                           round(float(z[0]),2))
+          for z in dfc1[dfc1==largelabelc].stack().index.tolist()]
+          cornersc = sfns.find_corners(indpairslrgc,anl.dx,anl.dy)
+
+          # Find largest piece and all coordinates
+          lonslatslrgc = [[x for x, y in cornersc],
+                          [y for x, y in cornersc]]
+
+          # Fit a convex hull to the data points
+          hullc = ConvexHull(cornersc)
+          vertsc = [(v[0],v[1]) for v in 
+                     hullc.points[hullc.vertices]]
+
+          # Calculate perimeter
+          vertsc.append(vertsc[0])
+          perimc = sum([efns.calc_distance(
+           vertsc[v][0],vertsc[v][1],
+           vertsc[v+1][0],vertsc[v+1][1]) 
+           for v in range(0,len(vertsc)-1)])
+
+          # Define Asymmetry
+          asymmetry_lp_c[c] = (4*np.pi*areasc[largelabelc-1])/\
+                                (perimc**2)
+
+#==================================================================
+# Add fragmentation
+#==================================================================
+
+        if anl.addfragmentationc or \
+           anl.addaxesshapec:
+
+          # Calculate metrics related to fragmentation
+          connectivity_c[c]  = 1.-(numLc-1.)/(numLc+np.log10(
+           efns.calc_area(lonsc,latsc,anl.dx,anl.dy)))
+          solidity_c[c] = np.mean(solidc)
+          fragmentation_c[c] = 1.-(solidity_c[c]*connectivity_c[c])
+     
 #==================================================================
 # Add major/minor axes shape
 #==================================================================
 
         if anl.addaxesshapec:
             
-          # Calculate axes and goodness of fit
           axangc1,axlenc1,goodnessc = \
            sfns.fit_ellipse_svd_earth(lonsc,latsc,center_c[c,:],
            goodness=True,dx=anl.dx,dy=anl.dy)
 
-          # Only continue if fit is good
+          print(f"goodness of convective fit: \
+{round(goodnessc,3)}>{anl.minshapegoodc}")
           if goodnessc>anl.minshapegoodc:
+            print("Convective fit: good")
 
-            # Assign data
-            goodness_c[c] = goodnessc
+            # If good fit assign data
             axang_c[c,:] = axangc1
             axlen_c[c,:] = axlenc1
             ellipticity_c[c] = 1-(axlen_c[c,1]/axlen_c[c,0])
 
-          #  # Plotting for test
-          #  pfns.plot_pixel_axes_earth(xg,yg,df.values,
-          #   center=center_c[c,:],
-          #   axdir=axang_c[c,:],axlen=axlen_c[c,:])
-          #
-          #else:
-          #  print("Convective fit: bad ")
-          #
-          #  # Plotting for test
-          #  pfns.plot_pixel_axes_earth(xg,yg,df.values)
+            # Plotting for test
+            pfns.plot_pixel_axes_earth(xg,yg,df.values,
+             center=center_c[c,:],
+             axdir=axang_c[c,:],axlen=axlen_c[c,:])
 
-      #else: 
-      #  print("Not enough convective pixels for a fit")
+          else:
+            print("Convective fit: bad ")
+
+            # Plotting for test
+            pfns.plot_pixel_axes_earth(xg,yg,df.values)
+
+      else: 
+        print("Not enough convective pixels for a fit")
 
 #==================================================================
 # Add land surface information
@@ -823,71 +1139,135 @@ def driver_addvars(fn):
      format1,fileout,is_conv_rain)
 
 #==================================================================
+# Write perimeter to file
+#==================================================================
+
+  if anl.addperimeter:
+
+    description = "Perimeter of largest piece within the PF. Calculated using alphashapes."
+    mfns.write_var("perimeter_lp","Perimeter",description,
+     "time",np.float64,"m",fileout,perimeter_lp)
+
+#==================================================================
+# Write asymmetry to file
+#==================================================================
+
+  if anl.addasymmetry:
+
+    description = "Asymmetry factor for largest piece within PF. 0 = symmetrical (circle). 1 = Highly asymmetrical, non-circular."
+    mfns.write_var("asymmetry_lp","Asymmetry factor",description,
+     "time",np.float64,"",fileout,asymmetry_lp)
+
+#==================================================================
+# Write asymmetry to file
+#==================================================================
+
+  if anl.addasymmetryc:
+
+    description = "Asymmetry factor for largest convective piece within PF. 0 = symmetrical (circle). 1 = Highly asymmetrical, non-circular."
+    mfns.write_var("asymmetry_lp_c",
+     "Asymmetry factor for convective pixels",description,"time",
+     np.float64,"",fileout,asymmetry_lp_c)
+
+#==================================================================
+# Write fragmentation to file
+#==================================================================
+
+  if anl.addfragmentation:
+
+    description = "Fragmentation factor. 0 = One solid piece. 1 = multiple highly fragmented pieces"
+    mfns.write_var("fragmentation","Fragmentation factor",
+     description,"time",np.float64,"",fileout,fragmentation)
+
+#==================================================================
+# Write fragmentation for convective pixels to file
+#==================================================================
+
+  if anl.addfragmentationc:
+
+    description = "Fragmentation factor. for convective pixels. 0 = One solid piece. 1 = multiple highly fragmented pieces"
+    mfns.write_var("fragmentation_c",
+     "Convective fragmentation factor",description,"time",
+     np.float64,"",fileout,fragmentation_c)
+
+#==================================================================
+# Write dispersion to file
+#==================================================================
+
+  if anl.adddispersion:
+
+    description = "Dispersion factor (0-inf). 0 = One piece (no dispersion). 1 = pieces are by a weighted average more than the radius of a circle equivalent to the area of the system away from the center (highly dispersed)."
+    mfns.write_var("dispersion","Dispersion factor",
+     description,"time",np.float64,"",fileout,dispersion)
+
+#==================================================================
+# Write dispersion for convective pixels to file
+#==================================================================
+
+  if anl.adddispersionc:
+
+    description = "Dispersion factor (0-inf) for convective pixels. 0 = One piece (no dispersion). 1 = pieces are by a weighted average more than the radius of a circle equivalent to the area of the system away from the center (highly dispersed)."
+    mfns.write_var("dispersion_c","Convective dispersion factor",
+     description,"time",np.float64,"",fileout,dispersion_c)
+
+#==================================================================
 # Write ellipticity to file
 #==================================================================
 
-  if anl.addaxesshape:
+#  if anl.addaxesshape:
 
-    description = "Ellipticity factor. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
-    mfns.write_var("ellipticity","Ellipticity factor",
-      description,"time",np.float64,"",fileout,ellipticity)
+#    description = "Ellipticity factor for PF. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
+#    mfns.write_var("ellipticity","Ellipticity factor",
+#      description,"time",np.float64,"",fileout,ellipticity)
 
 #==================================================================
 # Write length of axes
 #==================================================================
 
-    description = "Length of major axis"
-    mfns.write_var("mjrax_length","Major axis length",
-     description,"time",np.float64,"m",fileout,axlen[:,0])
+#    description = "Length of major axis"
+#    mfns.write_var("mjrax_length","Major axis length",
+#     description,"time",np.float64,"m",fileout,axlen[:,0])
 
-    description = "Length of minor axis"
-    mfns.write_var("mnrax_length","Minor axis length",
-     description,"time",np.float64,"m",fileout,axlen[:,1])
+#    description = "Length of minor axis"
+#    mfns.write_var("mnrax_length","Minor axis length",
+#     description,"time",np.float64,"m",fileout,axlen[:,1])
 
 #==================================================================
 # Write angle major axis makes from north
 #==================================================================
 
-    description = "Angle major axis makes with northward vector"
-    mfns.write_var("mjrax_angle","Major axis angle",
-     description,"time",np.float64,"degrees",fileout,axang[:,0])
-
-    description = "Angle minor axis makes with northward vector"
-    mfns.write_var("mnrax_angle","Minor axis angle",
-     description,"time",np.float64,"degrees",fileout,axang[:,1])
-
-#==================================================================
-# Write goodness of axes fit for convection
-#==================================================================
-
-    description = "Goodness of axes fit to all pixels"
-    mfns.write_var("goodness","Axes goodness",
-     description,"time",np.float64,"",fileout,goodness)
+#    description = "Angle major axis makes with northward vector"
+#    mfns.write_var("mjrax_angle","Major axis angle",
+#     description,"time",np.float64,"degrees",fileout,axang[:,0])
+#
+#    description = "Angle minor axis makes with northward vector"
+#    mfns.write_var("mnrax_angle","Minor axis angle",
+#     description,"time",np.float64,"degrees",fileout,axang[:,1])
 
 #==================================================================
-# Write ellipticity for convection
+# Write ellipticity to file
 #==================================================================
 
-  if anl.addaxesshapec:
-
-    description = "Ellipticity factor for convective pixels. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
-    mfns.write_var("ellipticity_c","Convective ellipticity factor",
-      description,"time",np.float64,"",fileout,ellipticity_c)
-
-#==================================================================
-# Write length of axes for convection
-#==================================================================
-
-    description = "Length of major axis for convective pixels"
-    mfns.write_var("mjrax_length_c","Convective major axis length",
-     description,"time",np.float64,"m",fileout,axlen_c[:,0])
-
-    description = "Length of minor axis for convective pixels"
-    mfns.write_var("mnrax_length_c","Convective minor axis length",
-     description,"time",np.float64,"m",fileout,axlen_c[:,1])
+#  if anl.addaxesshapec:
+#
+#    description = "Ellipticity factor for convective pixels. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
+#    mfns.write_var("ellipticity_c","Convective ellipticity factor",
+#      description,"time",np.float64,"",fileout,ellipticity_c)
 
 #==================================================================
-# Write angle major axis makes from north for convection
+# Write length of axes
+#==================================================================
+
+#    description = "Length of major axis for convective pixels"
+#    mfns.write_var("mjrax_length_c","Convective major axis length",
+#     description,"time",np.float64,"m",fileout,axlen_c[:,0])
+#
+#    description = "Length of minor axis for convective pixels"
+#    mfns.write_var("mnrax_length_c","Convective minor axis length",
+#     description,"time",np.float64,"m",fileout,axlen_c[:,1])
+
+#==================================================================
+# Write angle major axis makes from north
 #==================================================================
 
     description = "Angle major axis for convective pixels makes with northward vector"
@@ -897,14 +1277,6 @@ def driver_addvars(fn):
     description = "Angle minor axis for convective pixels makes with northward vector"
     mfns.write_var("mnrax_angle_c","Convective minor axis angle",
      description,"time",np.float64,"degrees",fileout,axang_c[:,1])
-
-#==================================================================
-# Write goodness of axes fit for convection
-#==================================================================
-
-    description = "Goodness of axes fit to convective pixels"
-    mfns.write_var("goodness_c","Convective axes goodness",
-     description,"time",np.float64,"",fileout,goodness_c)
 
 #==================================================================
 # Write land information to file

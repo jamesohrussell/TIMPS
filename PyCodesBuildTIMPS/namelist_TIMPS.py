@@ -12,7 +12,7 @@
 #
 # Namelist must be in same directory as python scripts
 #
-# James Russell 2020
+# James Russell 2021
 #==================================================================
 
 # Import Python libraries (don't change)
@@ -48,9 +48,9 @@ general.fileidFiToutT = "4Dobject_tree.txt"
 general.datadirtrkout = \
 "/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/Tracking_2015/"
 general.fileidtrkout  = "Tracking_"
-general.datadirTIPS   = \
+general.datadirTIMPS   = \
 "/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/TIMPS_2015/"
-general.fileidTIPS = "TIMPS_"
+general.fileidTIMPS = "TIMPS_"
 
 # Date and time range
 general.starttime = "20141225"
@@ -165,8 +165,8 @@ addvars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/UG_fi
 # 52 = 356s
 # 32 = 395s
 # 16 = 133s
-addvars.serialorparallel = 1
-addvars.njobs = 10
+addvars.serialorparallel = 2
+addvars.njobs = 20
 
 # Variables desired
 addvars.addmaxrr          = False# Maximum rain rate
@@ -193,7 +193,7 @@ addvars.adddispersionc    = False# As above for convective pixels
 addvars.addaxesshape      = True # Array of variables based on 
                                  #  the major and minor axes from 
                                  #  eigenvalue/vectors
-addvars.addaxesshapec     = False# As above for convective pixels
+addvars.addaxesshapec     = True # As above for convective pixels
 addvars.addperimeter      = False# Distance around perimeter of 
                                  #  shape (alpha-shape method)
 addvars.addconvrain       = False# Flags indicating whether rain 
@@ -218,14 +218,14 @@ addvars.fileTCid  = "IBTrACS.ALL.v04r00.nc"
 
 # Convective rain rate threshold (mm/hr)
 addvars.convrainthold = 10
-  
+
 # Shape metric indexes
-addvars.minshapesize  = 30  # Minimum number of pixels for PF shape
-addvars.minshapefrag  = 0.3 # Minimum fragmentation for PF shape
-addvars.minshapedisp  = 0.5 # Minimum dispersion for PF shape
-addvars.minshapesizec = 15  # Minimum number of pixels for PF shape 
-addvars.minshapefragc = 0.5 # Minimum fragmentation for convective shape
-addvars.minshapedispc = 0.8 # Minimum dispersion for convective shape
+addvars.minshapesize  = 30  # Minimum number of pixels for axes
+addvars.minshapegood  = 0.8 # Minimum goodness of fit for axes
+addvars.minshapesizec = 15  # Minimum number of pixels for 
+                            #  convective axes
+addvars.minshapegoodc = 0.55 # Minimum goodness of fit for  
+                            #  convective axes
 
 #==================================================================
 # Namelist for add_ERA5_vars
@@ -242,7 +242,7 @@ addERA5vars.date2 = "20180810"
 addERA5vars.ssobs = False
 addERA5vars.obid1 = "103231"
 addERA5vars.obid2 = "103233"
-addERA5vars.sslst = True
+addERA5vars.sslst = False
 addERA5vars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/UG_file_lists/fn_ug_all_80_2015.txt"
 
 # Number of processes for parrallelization
