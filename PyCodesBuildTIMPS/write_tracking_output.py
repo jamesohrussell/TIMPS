@@ -29,6 +29,7 @@ warnings.filterwarnings("ignore")
 # Import namelist
 from namelist_TIMPS import general as gnl
 from namelist_TIMPS import create as cnl
+from namelist_TIMPS import process as pnl
 
 #=====================================================================
 # Initialize timer
@@ -57,6 +58,8 @@ sdate = pd.to_datetime(startdate1)
 edate = pd.to_datetime(enddate1)
 dates = pd.date_range(sdate,edate,freq='30min')[:-1]
 
+asdate = f"{pnl.date1[:8]}-S{pnl.date1[8:12]}"
+
 # Fit output
 Outputfiles = sorted(glob.glob(f'{gnl.datadirFiTout}\
 {gnl.fileidFiTout1}*.nc'))
@@ -70,6 +73,16 @@ for i in range(len(dates)):
 {date.year}{str(int(date.month)).zfill(2)}\
 {str(int(date.day)).zfill(2)}-S{str(int(date.hour)).zfill(2)}\
 {str(int(date.minute)).zfill(2)}00-*')[0])
+
+# Remove all files before actual start date
+for i in range(len(IMERGfiles)):
+  if asdate in IMERGfiles[i]:
+    firsttimeind = i
+    break
+Inputfiles = Inputfiles[i:]
+Outputfiles= Outputfiles[i:]
+IMERGfiles = IMERGfiles[i:]
+dates      = dates[i:]
 
 # Get correct latitude and longitude data
 latN    = infile0.latN
@@ -134,8 +147,11 @@ def loop(k):
 # Write all data
 
   # Creating netcdf file to write to
-  fileandpath = f'{gnl.datadirtrkout}{gnl.fileidtrkout}{str(infilenow.time)}_{str(Inputfiles[k])[len(gnl.datadirFiTin)+len(gnl.fileidFiTin):len(gnl.datadirFiTin)+len(gnl.fileidFiTin)+5]}.nc'
-  #print(f"Creating file: {fileandpath}")
+  currdir = f'{gnl.datadirtrkout}{str(date.year).zfill(4)}{str(date.month).zfill(2)}/'
+  try: os.mkdir(currdir)
+  except: print("Directory already present")
+  fileandpath = f'{currdir}{gnl.fileidtrkout}{str(infilenow.time)}_{str(Inputfiles[k])[len(gnl.datadirFiTin)+len(gnl.fileidFiTin):len(gnl.datadirFiTin)+len(gnl.fileidFiTin)+5]}.nc'
+  print(f"Creating file: {fileandpath}")
   fileout = Dataset(fileandpath,'w',format='NETCDF4_CLASSIC')
 
   # Global Attributes
@@ -205,10 +221,8 @@ def loop(k):
   Precipitation[:] = pcp
   SystemID[:] = tracks
 
-# Close all files
-  IMERGnow.close()
-  infilenow.close()
-  outfilenow.close()
+  # Close all files
+  fileout.close()
 
 #=====================================================================
 # End function

@@ -32,7 +32,7 @@ def read_FiT_txt(dirandfile):
   f.close()
 
 #==========================================================
-# Function to read text file
+# Function to do the rest
 #==========================================================
 
 def driver_plotIMERG(i):

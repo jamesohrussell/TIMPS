@@ -22,12 +22,12 @@
 
 # Inputs
 datadir="/uufs/chpc.utah.edu/common/home/u0816744/zips2/TIMPS/"
-infiledir="FiTin_2015/"
-outfiledir="FiTout_2015/"
-Trkfiledir="Tracking_2015/"
-TIMPSfiledir="TIMPS_2015/"
-pycodedir="/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/scripts_2015/"
-trcodedir="/uufs/chpc.utah.edu/common/home/u0816744/TIPS_git/exe_for_tracking_2020_v3/"
+infiledir="processing_data_and_scripts/FiTin_2012/"
+outfiledir="processing_data_and_scripts/FiTout_2012/"
+Trkfiledir="processing_data_and_scripts/Tracking_2012/"
+TIMPSfiledir="TIMPS_files/2012/"
+pycodedir="/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/processing_data_and_scripts/scripts_2012/"
+trcodedir="/uufs/chpc.utah.edu/common/home/u0816744/TIPS_git/exe_for_tracking_2020/"
 
 # Make required directories (should line up with those in python namelist)
 echo "Making directories for output"
@@ -62,6 +62,13 @@ wait
 echo "Processing FiT objects into TIPS"
 python -u "${pycodedir}process_FiTobs_from_trackfiles.py" \
 > proc.log 2>&1 &
+wait
+
+# Python: Process FiT objects into individual files, each describing 
+#  one precipitation system.
+echo "Adding SystemID_MCS to tracking output"
+python -u "${pycodedir}add_MCSonly_to_tracking_output.py" \
+> addMCS.log 2>&1 &
 wait
 
 # Add variables quantifying precipitation systems

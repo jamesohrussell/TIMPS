@@ -30,7 +30,7 @@ from namelist_TIMPS import process as pnl
 # Load custom libraries
 sys.path.insert(0,gnl.fnsdir)
 import misc_functions as mfns
-import shape_functions as sfns
+import earth_functions as efns
 
 #==================================================================
 # Initialize timer
@@ -50,8 +50,11 @@ mxdomx = datasetFin.dimensions["x"].size-1
 datasetFin.close()
 
 # Reads directory and filenames
-filenames = sorted(glob.glob(f'{gnl.datadirtrkout}{gnl.fileidtrkout}*.nc'))
-lentrkstr = len(gnl.datadirtrkout)+len(gnl.fileidtrkout)
+filenames = sorted(glob.glob(f'{gnl.datadirtrkout}/*/\
+{gnl.fileidtrkout}*.nc'))
+if len(filenames)==0: raise ValueError(
+ "No tracking files found. Incorrect file path possible.")
+lentrkstr = len(gnl.datadirtrkout)+7+len(gnl.fileidtrkout)
 
 # Find id of first and last time
 #!! Change this code for different directory structure !!#
@@ -63,6 +66,9 @@ if pnl.subsetdts:
     if f'{f[lentrkstr:lentrkstr+12]}'==pnl.date2: 
       timeidend = i
       break
+  filenums = [f[-8:-3] for f in filenames]
+  timeidstart = int(filenums[timeidstart])
+  timeidend = int(filenums[timeidend])
 
 # Read text file
 print("Reading FiT text file")
@@ -210,6 +216,20 @@ if pnl.subsetdts:
   obidmxy = {i: obidmxy[i] for i in objs}
   obidmny = {i: obidmny[i] for i in objs}
 
+print("Remove all objects with first time during spinup")
+# Find indices of objects starting before spinup
+indspin = np.where(np.array(list(obidft.values()))>=int(filenames[0][-8:-3]))[0]
+
+# Keep only those objects that are larger
+objs = [objs[i] for i in indspin]
+obidft = {i: obidft[i] for i in objs}
+obidlt = {i: obidlt[i] for i in objs}
+obnt = [obnt[i] for i in indspin]
+obidmxx = {i: obidmxx[i] for i in objs}
+obidmnx = {i: obidmnx[i] for i in objs}
+obidmxy = {i: obidmxy[i] for i in objs}
+obidmny = {i: obidmny[i] for i in objs}
+
 print(f'Removed {str(len(obidtm.keys())-len(objs))}\
  of {str(len(obidtm.keys()))} objects. Processing\
  {len(objs)} objects.')
@@ -233,6 +253,8 @@ sincedate = dt.datetime.strptime(pnl.reftime,
 
 def driver_processFiTobs(o):
   "o corresponds to the object in objs"
+
+  warnings.filterwarnings("ignore")
 
 #==================================================================
 # Initialize function variables
@@ -269,7 +291,7 @@ def driver_processFiTobs(o):
     lonnow = lon[obidmnx[objs[o]][t]:obidmxx[objs[o]][t]+1]
 
     # Open file and read map of object ids
-    trkfilename = glob.glob(f'{gnl.datadirtrkout}\
+    trkfilename = glob.glob(f'{gnl.datadirtrkout}*/\
 {gnl.fileidtrkout}*_{str(times[t]).zfill(5)}.nc')[0]
     timenow    = trkfilename[lentrkstr:lentrkstr+12]
     datasettrk = Dataset(trkfilename)
@@ -326,16 +348,14 @@ def driver_processFiTobs(o):
     centrallat[t]  = np.mean(lat1)
     
     # Calculated differently for periodic boundaries in lon
-    centrallon[t] = sfns.periodic_cmass_earth(lonsc)
+    centrallon[t] = efns.periodic_cmass(lon1)
 
     # Calculate weighted (by rainfall) centroid
     sr = sum(rain1)
     if sr!=0:
       rw = [mfns.divzero(r,sr) for r in rain1]
       wgtcentlat[t] = np.average(lat1,weights=rw)
-      wgtcentlon[t] = np.degrees(np.pi+
-         np.arctan2(-np.average(zetaibar,weights=rw),
-                    -np.average(xiibar,weights=rw)))
+      wgtcentlon[t] = efns.periodic_cmass_weighted(lon1,rw)
 
     # Calculate time in hours since reftime
     currentdate = dt.datetime.strptime(timenow,"%Y%m%d%H%M")
@@ -346,6 +366,29 @@ def driver_processFiTobs(o):
     lats[str(datetime[t])] = lat1
     lons[str(datetime[t])] = lon1
     instrain[str(datetime[t])] = rain1
+
+  # If no precipitation value passes the threshold, ignore
+  if pnl.subsetmrn:
+    passrthold = False
+    for val in instrain.values():
+      if np.amax(val)>gnl.convrainthold:
+        passrthold = True
+        continue
+    if not passrthold:
+      print("System does not reach minimum rain threshold")
+      return
+
+  # If no time passes the minimum size, ignore
+  if pnl.subsetsz:
+    passsthold = False
+    for val in instrain.values():
+      val = np.array(val)
+      if len(val[val>0])>pnl.nsz:
+        passsthold = True
+        continue
+    if not passsthold:
+      print("System does not reach minimum size")
+      return
 
   # For PF, if all rain rates at all times are actually zero
   #  move onto the next PF
@@ -375,6 +418,12 @@ def driver_processFiTobs(o):
     lons.pop(str(datetime[i]))
     instrain.pop(str(datetime[i]))
 
+  # If not enough times
+  if pnl.subsettm:
+    if len(instrain)<pnl.nt:
+      print("System does not reach minimum # times")
+      return
+
   # Delete the indices in the lists
   delind.reverse()
   datetime = [i for j, i in enumerate(datetime) 
@@ -397,14 +446,17 @@ def driver_processFiTobs(o):
 #==================================================================
 # Write NetCDF file for object
 
-  # Creating netcdf file to write to
-  filename = f'{gnl.fileidTIPS}{str(objs[o]).zfill(7)}_\
-{str(datetime[0])}_\
+  # Creating netcdf file
+  datadir = f'{gnl.datadirTIMPS}{str(datetime[0])[4:6].zfill(2)}/'
+  try: os.mkdir(datadir)
+  except: print("Directory already exists")
+  filename = f'{gnl.fileidTIMPS}{str(objs[o]).zfill(7)}_\
+{str(datetime[0]).zfill(4)}_\
 {str(int(round(centrallat[0]))).zfill(2)}_\
 {str(int(round(centrallon[0]))).zfill(2)}.nc'
 
-  print(f'Creating file: {gnl.datadirTIPS}{filename}')
-  fileout = Dataset(f'{gnl.datadirTIPS}{filename}',
+  print(f'Creating file: {datadir}{filename}')
+  fileout = Dataset(f'{datadir}{filename}',
    'w',format='NETCDF4')
 
   # Global Attributes
@@ -420,34 +472,30 @@ def driver_processFiTobs(o):
 
   # Create variables in file
   mfns.write_var("time","Time","","time",np.float64,
-   f'hours since {pnl.reftime}',fileout,time1,
-   f'{gnl.datadirTIPS}{filename}')
+   f'hours since {pnl.reftime}',fileout,time1)
 
   mfns.write_var("datetime","Date and time","","time",
-   np.int64,"YYYYMMDDhhmm",fileout,datetime,
-   f'{gnl.datadirTIPS}{filename}')
+   np.int64,"YYYYMMDDhhmm",fileout,datetime)
 
   mfns.write_var("centrallat","Central latitude",
    "Latitude of PF centroid","time",np.float64,
-   "degreesNorth",fileout,centrallat,
-   f'{gnl.datadirTIPS}{filename}')
+   "degreesNorth",fileout,centrallat)
 
   mfns.write_var("centrallon","Central longitude",
    "Longitude of PF centroid","time",np.float64,
-   "degreesEast",fileout,centrallon,
-   f'{gnl.datadirTIPS}{filename}')
+   "degreesEast",fileout,centrallon)
 
   description = \
    "Latitude of PF centroid weighted by rainfall"
   mfns.write_var("centlatwgt","Weighted Central Latitude",
-   description,"time",np.float64,"degreesNorth",fileout,
-   wgtcentlat,f'{gnl.datadirTIPS}{filename}')
+   description,"time",np.float64,"degreesNorth",
+   fileout,wgtcentlat)
 
   description = \
    "Longitude of PF centroid weighted by rainfall"
   mfns.write_var("centlonwgt","Weighted Central Longitude",
-   description,"time",np.float64,"degreesEast",fileout,
-   wgtcentlon,f'{gnl.datadirTIPS}{filename}')
+   description,"time",np.float64,"degreesEast",
+   fileout,wgtcentlon)
 
   format1 = "Data is in attribute and value pairs of the\
  subgroup data. Attributes correspond to the date and time\
@@ -457,18 +505,18 @@ def driver_processFiTobs(o):
   mfns.write_group("lats","Latitudes",
    "Latitudes of IMERG grid cell centers for PF",
    "DegreesNorth",format1,fileout,
-   lats,f'{gnl.datadirTIPS}{filename}')
+   lats,f'{gnl.datadirTIMPS}{filename}')
 
   mfns.write_group("lons","Longitudes",
    "Longitudes of IMERG grid cell centers for PF",
    "DegreesEast",format1,fileout,
-   lons,f'{gnl.datadirTIPS}{filename}')
+   lons,f'{gnl.datadirTIMPS}{filename}')
 
   description = "Instantaneous rain rates at IMERG grid\
 cells corresponding to all latitude and longitude values in PF."
   mfns.write_group("instrain","Instantaneous rain rate",
                  description,"mm/hr",format1,fileout,
-                 instrain,f'{gnl.datadirTIPS}{filename}')
+                 instrain,f'{gnl.datadirTIMPS}{filename}')
   # Close file
   fileout.close()
 

@@ -38,23 +38,23 @@ general.datanc4   = False
 
 # Directory and filenames
 general.datadirFiTin  = \
-"/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/processing_data_and_scripts/FiTin_2015/"
+"/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/processing_data_and_scripts/FiTin_2012/"
 general.fileidFiTin   = "IMERG_FiT_tholds_"
 general.datadirFiTout = \
-"/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/processing_data_and_scripts/FiTout_2015/"
+"/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/processing_data_and_scripts/FiTout_2012/"
 general.fileidFiTout1 = "IMERG_tracked_"
 general.fileidFiTout2 = "_4Dobjects.nc"
 general.fileidFiToutT = "4Dobject_tree.txt"
 general.datadirtrkout = \
-"/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/Tracking_2015/"
+"/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/processing_data_and_scripts/Tracking_2012/"
 general.fileidtrkout  = "Tracking_"
 general.datadirTIMPS   = \
-"/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/TIMPS_2015/"
+"/uufs/chpc.utah.edu/common/home/zipser-group2/TIMPS/TIMPS_files/2012/"
 general.fileidTIMPS = "TIMPS_"
 
 # Date and time range
-general.starttime = "20141225"
-general.endtime   = "20160115" # Actual last date is day before
+general.starttime = "20111225" # Needs a spin-up period (i.e. 7 days)
+general.endtime   = "20130115" # Actual last date is day before
 
 # Split distance: number of pixels centers of two objects that 
 #  were formerly one can be apart before splitting
@@ -63,9 +63,12 @@ general.splitdist = 20
 # Is domain periodic in zonal direction
 general.domperiodicx = True
 
+# Convective rain rate threshold (mm/hr)
+general.convrainthold = 10
+
 # Parallelization for writing tracking output
 general.wtserialorparallel = 2 # serial=1 parallel=2
-general.wtnjobs = 10
+general.wtnjobs = 4
 
 #==================================================================
 # Namelist for create_FiT_input_files
@@ -79,7 +82,7 @@ def create():
 # Threshold type (1 = multiple fixed; 2 = normalized; 
 #  3 = contiguous area)
 create.tholdtype = 2
-# Thresholds. Required for tholdtype=1,2. 
+# Thresholds. Required for tholdtype=1,2.
 create.tholds = [0.11,0.33]
 # Min precip threshold. Required for tholdtype=2,3.
 create.minthold = 1.
@@ -120,15 +123,16 @@ def process():
 
 # Only process a set of objects
 process.subsetobs = False
-process.ob1       = 400209 # First obid
-process.ob2       = 5000000 # Last obid
-process.subsetsz  = False
+process.ob1       = 240427 # First obid
+process.ob2       = 240430 # Last obid
+process.subsetsz  = True
 process.nsz       = 30     # Minimum no of pixels (30 advised)
-process.subsettm  = False
+process.subsettm  = True
 process.nt        = 12     # Minimum number of times
-process.subsetdts = False
-process.date1     = "201501010000" #YYYYMMDDhhmm
-process.date2     = "201512312330"
+process.subsetmrn = True   # Minimum rain threshold (set in general with convective rain threshold)
+process.subsetdts = True
+process.date1     = "201201010000" #YYYYMMDDhhmm
+process.date2     = "201212312330"
 
 # Specify reference time in format YYYY-MM-DD hh:mm:ss
 process.reftime = "1900-01-01 00:00:00"
@@ -152,35 +156,52 @@ def addvars():
 
 # Subset (for certain range of dates) 
 addvars.ssdat = False
-addvars.date1 = "20150101"
-addvars.date2 = "20150102"
+addvars.date1 = "20120101"
+addvars.date2 = "20130131"
 addvars.ssobs = False
 addvars.obid1 = "1000000"
 addvars.obid2 = "1000200"
-addvars.sslst = True
-addvars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/UG_file_lists/fn_ug_all_80_2015.txt"
+addvars.sslst = False
+addvars.lstfn = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/james/data/UG_file_lists/fn_ug_all_80_2012.txt"
 
 # Number of processes for parrallelization
-# Parallization benchmarks (time for running 10 days of tracking)
-# 52 = 356s
-# 32 = 395s
-# 16 = 133s
-addvars.serialorparallel = 2
-addvars.njobs = 20
+addvars.serialorparallel = 1
+addvars.njobs = 8
 
 # Variables desired
-addvars.addmaxrr          = False# Maximum rain rate
-addvars.addmeanrr         = False# Mean rain rate
-addvars.addmedianrr       = False# Median rain rate
-addvars.addstddevrr       = False# Standard deviation of the rain rates
-addvars.addskewrr         = False# Skewness of the rain rates
-addvars.addpieces         = False# Number of pieces 
-addvars.addarea           = False# Area of the PF
-addvars.addvrr            = False# Volumetric rain rate
-addvars.addpropagation    = False# Propagation characteristics
-addvars.addTCinfo         = False# Flags indicating proximity to TC center
-addvars.addlandinfo       = False# Flags indicating locations over land
-addvars.addlocaltime      = False# Local solar time of the PF
+addvars.addlocaltime      = True# Local solar time of the PF
+addvars.addmaxrr          = True# Maximum rain rate
+addvars.addmeanrr         = True# Mean of non-zero rain rates
+addvars.addmeanrr1mmhr    = True# Mean of >1mm/hr rain rates
+addvars.addmeanrr10mmhr   = True# Mean of >10mm/hr rain rates
+addvars.addmedianrr       = True# Median non-zero rain rate
+addvars.addmedianrr1mmhr  = True# Median of >1mm/hr rain rates
+addvars.addmedianrr10mmhr = True# Median of >10mm/hr rain rates
+addvars.addstddevrr       = True# Standard deviation of non-zero rain rates
+addvars.addstddevrr1mmhr  = True# Standard deviation of >1mm/hr rain rates
+addvars.addstddevrr10mmhr = True# Standard deviation of >10mm/hr rain rates
+addvars.addskewrr         = True# Skewness of non-zero rain rates
+addvars.addskewrr1mmhr    = True# Skewness of >1mm/hr rain rates
+addvars.addskewrr10mmhr   = True# Skewness of >10mm/hr rain rates
+addvars.addpieces         = True# Number of pieces non-zero rain rates
+addvars.addpieces1mmhr    = True# Number of pieces >1mm/hr rain rates
+addvars.addpieces10mmhr   = True# Number of pieces >10mm/hr rain rates
+addvars.addarea           = True# Area of non-zero rain rates
+addvars.addarea1mmhr      = True# Area of >1mm/hr rain rates
+addvars.addarea10mmhr     = True# Area of >10mm/hr rain rates
+addvars.addvrr            = True# Volumetric of non-zero rain rates
+addvars.addvrr1mmhr       = True# Volumetric of >1mm/hr rain rates
+addvars.addvrr10mmhr      = True# Volumetric of >10mm/hr rain rates
+addvars.addpropagation    = True# Propagation characteristics
+addvars.addlandinfo       = True# Flags indicating locations over land
+addvars.addTCinfo         = True# Flags indicating proximity to TC center
+
+addvars.addaxesshape      = False# Array of variables based on 
+                                 #  the major and minor axes from 
+                                 #  eigenvalue/vectors
+addvars.addaxesshape1mmhr = False# As above for >1mm/hr pixels
+addvars.addaxesshape1mmhr = False# As above for >1mm/hr pixels
+addvars.addaxesshape10mmhr= False# As above for >10mm/hr pixels
 addvars.addasymmetry      = False# Asymmetry shape parameter 
                                  #  (Zick et al. 2016)
 addvars.addasymmetryc     = False# As above for convective pixels
@@ -190,19 +211,9 @@ addvars.addfragmentationc = False# As above for convective pixels
 addvars.adddispersion     = False# Dispersion shape parameter 
                                  #  (Zick et al. 2016)
 addvars.adddispersionc    = False# As above for convective pixels
-addvars.addaxesshape      = True # Array of variables based on 
-                                 #  the major and minor axes from 
-                                 #  eigenvalue/vectors
-addvars.addaxesshapec     = True # As above for convective pixels
+
 addvars.addperimeter      = False# Distance around perimeter of 
                                  #  shape (alpha-shape method)
-addvars.addconvrain       = False# Flags indicating whether rain 
-                                 #  is convective
-addvars.addconvarea       = False# Area of the convective region 
-                                 #  (addconvrain must also be True)
-addvars.addconvvrr        = False# Volume of convective rainfall 
-                                 #  (addconvrain must also be True)
-addvars.addpiecesc        = False# As above but for convective rain pixels
 
 # Inputs for specific variables
   
@@ -216,16 +227,11 @@ addvars.dy = 0.1
 addvars.dataTCdir = "/uufs/chpc.utah.edu/common/home/varble-group2/IBTrACS/"
 addvars.fileTCid  = "IBTrACS.ALL.v04r00.nc"
 
-# Convective rain rate threshold (mm/hr)
-addvars.convrainthold = 10
-
 # Shape metric indexes
-addvars.minshapesize  = 30  # Minimum number of pixels for axes
-addvars.minshapegood  = 0.8 # Minimum goodness of fit for axes
-addvars.minshapesizec = 15  # Minimum number of pixels for 
-                            #  convective axes
-addvars.minshapegoodc = 0.55 # Minimum goodness of fit for  
-                            #  convective axes
+addvars.minshapesize       = 30  # Minimum number of pixels for axes
+addvars.minshapegood       = 0.8 # Minimum goodness of fit for axes
+addvars.minshapesize10mmhr = 15  # Minimum number of pixels for >10mm/hr axes
+addvars.minshapegood10mmhr = 0.55 # Minimum goodness of fit for >10mm/hr axes
 
 #==================================================================
 # Namelist for add_ERA5_vars
@@ -236,9 +242,9 @@ def addERA5vars():
 #==================================================================
 
 # Subset (for certain range of dates) 
-addERA5vars.ssdat = False
-addERA5vars.date1 = "20180801"
-addERA5vars.date2 = "20180810"
+addERA5vars.ssdat = True
+addERA5vars.date1 = "20150801"
+addERA5vars.date2 = "20150810"
 addERA5vars.ssobs = False
 addERA5vars.obid1 = "103231"
 addERA5vars.obid2 = "103233"
@@ -276,12 +282,13 @@ addERA5vars.addMC18 = False # ERA5 1000-850 hPa moisture convergence
 addERA5vars.addMC84 = False # ERA5 800-400 hPa moisture convergence
 
 # Kinematic variables desired
-addERA5vars.addSR18 = False # ERA5 1000-850 hPa shear magnitude
-addERA5vars.addSR17 = False # ERA5 1000-700 hPa shear magnitude
-addERA5vars.addSR84 = False # ERA5 800-400 hPa shear magnitude
-addERA5vars.addSR82 = True  # ERA5 800-200 hPa shear magnitude
-addERA5vars.addSR65 = False # ERA5 650-500 hPa shear magnitude
-addERA5vars.addSR14 = False # ERA5 1000-400 hPa shear magnitude
+addERA5vars.addMS18 = False # ERA5 1000-850 hPa shear magnitude
+addERA5vars.addMS17 = False # ERA5 1000-700 hPa shear magnitude
+addERA5vars.addDS17 = False # ERA5 1000-700 hPa shear direction
+addERA5vars.addMS84 = False # ERA5 800-400 hPa shear magnitude
+addERA5vars.addMS82 = False # ERA5 800-200 hPa shear magnitude
+addERA5vars.addMS65 = False # ERA5 650-500 hPa shear magnitude
+addERA5vars.addMS14 = False # ERA5 1000-400 hPa shear magnitude
 addERA5vars.addCV18 = False # ERA5 1000-850 hPa convergence
 addERA5vars.addCV31 = False # ERA5 300-100 hPa convergence
 addERA5vars.addVE18 = False # ERA5 1000-850 hPa vertical motion
@@ -304,12 +311,13 @@ addERA5vars.fileMA18id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_d
 addERA5vars.fileMA84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MADV_800-400hPamean.anomaly_"
 addERA5vars.fileMC18id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MCONV_1000-850hPamean.anomaly_"
 addERA5vars.fileMC84id  = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.MCONV_800-400hPamean.anomaly_"
-addERA5vars.fileSR18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-850hPa.anomaly_"
-addERA5vars.fileSR17id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-700hPa.anomaly_"
-addERA5vars.fileSR84id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-400hPa.anomaly_"
-addERA5vars.fileSR82id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-200hPa.anomaly_"
-addERA5vars.fileSR65id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_650-500hPa.anomaly_"
-addERA5vars.fileSR14id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-400hPa.anomaly_"
+addERA5vars.fileMS18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-850hPa.anomaly_"
+addERA5vars.fileMS17id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-700hPa.anomaly_"
+addERA5vars.fileDS17id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.DSHR_1000-700hPa."
+addERA5vars.fileMS84id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-400hPa.anomaly_"
+addERA5vars.fileMS82id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_800-200hPa.anomaly_"
+addERA5vars.fileMS65id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_650-500hPa.anomaly_"
+addERA5vars.fileMS14id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/shear/ERA5.MSHR_1000-400hPa.anomaly_"
 addERA5vars.fileCV18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.CONV_1000-850hPamean.anomaly_"
 addERA5vars.fileCV31id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/convergence/ERA5.CONV_300-100hPamean.anomaly_"
 addERA5vars.fileVE18id = "/uufs/chpc.utah.edu/common/home/u0816744/zips2/ERA5_derived/vertmotion/ERA5.VERT_1000-850hPamean.anomaly_"

@@ -35,7 +35,7 @@ warnings.filterwarnings("ignore")
 startnow = tm.time()
 
 #==================================================================
-# Function to pull and process data
+# Functions to pull and process data
 #==================================================================
 
 def create_var(varname,varfname,files,timestr,anl,TCRW,loni,lati):
@@ -79,6 +79,41 @@ def create_var(varname,varfname,files,timestr,anl,TCRW,loni,lati):
 
   return(var_mean_nr,varanom_mean_nr,varanomn_mean_nr)
 
+def create_var_direction(varname,varfname,files,timestr,
+  anl,TCRW,loni,lati):
+
+  # Find file and time indices
+  fh,timi,times,ctime = E5fns.get_E5_ss_2D_fiti(
+                       files[varname],timestr)
+
+  # Get an area
+  var = E5fns.get_E5_ss_2D_var(
+   fh,varfname,timi,loni,lati,times,ctime)
+  var_nr = np.where(TCRW>0.001,np.nan,var)
+  varnan = var_nr.flatten()
+
+  #print("start")
+  if np.isnan(varnan).sum()/len(varnan)<anl.avgmissfrac:
+    #var = list(np.array([int(x) for x in varnan if ~np.isnan(x)]))
+    #print(var)
+    var_mean_nr,var_var_nr = mfns.mean_var_angle(
+     varnan,calc_var=True)
+    var_mean_nr = np.asscalar(var_mean_nr)
+    #print(f"var:{var_var_nr}")
+    if var_var_nr>.3:
+      var_mean_nr = np.nan
+  else:
+    var_mean_nr = np.nan
+
+  #print(f"mean:{var_mean_nr}")
+  #print("end")
+
+  # Close file
+  for fii in fh:
+    fii.close()
+
+  return(var_mean_nr)
+
 #==================================================================
 # Function to write data
 #==================================================================
@@ -99,6 +134,13 @@ def write_data(lname,sname,fileg,var,vara,varan,units):
        f"ERA5 Mean {lname} Normalized Anomaly (Rain cells removed)",
        description,("tE5"),np.float64,"",fileg,varan)
 
+def write_data_direction(lname,sname,fileg,var,units):
+
+    description = f"{lname} from the ERA5 dataset averaged over a 5x5 degree area, centered on the precipitation system centroid, and areas with substantial rain water removed. Exact latitude and longitude coordinates are in the attributes of the groups lonsE5 and latsE5."
+    mfns.write_var(f"{sname}_mean_nr",
+     f"ERA5 Mean {lname} (Rain cells removed)",
+     description,("tE5"),np.float64,units,fileg,var)
+
 #==================================================================
 # Generate list of TIMPS files to process
 #==================================================================
@@ -116,8 +158,8 @@ if anl.ssdat:
    for x in range(0,(end-start).days))
   filen = []
   for dateobj in datearr:
-    filen.extend(f'{gnl.datadirTIPS}{dateobj.strftime("%m")}/\
-{gnl.fileidTIPS}*_{dateobj.strftime("%Y%m%d")}*.nc')
+    filen.extend(f'{gnl.datadirTIMPS}{dateobj.strftime("%m")}/\
+{gnl.fileidTIMPS}*_{dateobj.strftime("%Y%m%d")}*.nc')
 
   # Reads directory and filenames
   print("Getting directory and filenames")
@@ -134,8 +176,8 @@ elif anl.ssobs:
   filen = []
   for j in range(1,13):
     for i in range(len(obids)): 
-      filen.extend(f'{gnl.datadirTIPS}{str(j).zfill(2)}/\
-{gnl.fileidTIPS}{str(obids[i])}*')
+      filen.extend(f'{gnl.datadirTIMPS}{str(j).zfill(2)}/\
+{gnl.fileidTIMPS}{str(obids[i])}*')
 
   # Reads directory and filenames
   print("Getting directory and filenames")
@@ -161,7 +203,7 @@ else:
   filenamesrun = []
   for i in range(1,13):
     filenamesrun.extend(sorted(glob.glob(
-     f'{gnl.datadirTIPS}{str(i).zfill(2)}/{gnl.fileidTIPS}*')))
+     f'{gnl.datadirTIMPS}{str(i).zfill(2)}/{gnl.fileidTIMPS}*')))
 
 #==================================================================
 # Define function
@@ -241,18 +283,20 @@ def driver_addvars(fn):
     anl.fileMC84id,timestrs[0],timestrs[-1])
 
   # Kinematic variables
-  if anl.addSR18: files["SR18"] = E5fns.get_E5_ss_files(
-    anl.fileSR18id,timestrs[0],timestrs[-1])
-  if anl.addSR17: files["SR17"] = E5fns.get_E5_ss_files(
-    anl.fileSR18id,timestrs[0],timestrs[-1])
-  if anl.addSR84: files["SR84"] = E5fns.get_E5_ss_files(
-    anl.fileSR84id,timestrs[0],timestrs[-1])
-  if anl.addSR82: files["SR82"] = E5fns.get_E5_ss_files(
-    anl.fileSR82id,timestrs[0],timestrs[-1])
-  if anl.addSR65: files["SR65"] = E5fns.get_E5_ss_files(
-    anl.fileSR65id,timestrs[0],timestrs[-1])
-  if anl.addSR14: files["SR14"] = E5fns.get_E5_ss_files(
-    anl.fileSR14id,timestrs[0],timestrs[-1])
+  if anl.addMS18: files["MS18"] = E5fns.get_E5_ss_files(
+    anl.fileMS18id,timestrs[0],timestrs[-1])
+  if anl.addMS17: files["MS17"] = E5fns.get_E5_ss_files(
+    anl.fileMS18id,timestrs[0],timestrs[-1])
+  if anl.addDS17: files["DS17"] = E5fns.get_E5_ss_files(
+    anl.fileDS17id,timestrs[0],timestrs[-1])
+  if anl.addMS84: files["MS84"] = E5fns.get_E5_ss_files(
+    anl.fileMS84id,timestrs[0],timestrs[-1])
+  if anl.addMS82: files["MS82"] = E5fns.get_E5_ss_files(
+    anl.fileMS82id,timestrs[0],timestrs[-1])
+  if anl.addMS65: files["MS65"] = E5fns.get_E5_ss_files(
+    anl.fileMS65id,timestrs[0],timestrs[-1])
+  if anl.addMS14: files["MS14"] = E5fns.get_E5_ss_files(
+    anl.fileMS14id,timestrs[0],timestrs[-1])
   if anl.addCV18: files["CV18"] = E5fns.get_E5_ss_files(
     anl.fileCV18id,timestrs[0],timestrs[-1])
   if anl.addCV31: files["CV31"] = E5fns.get_E5_ss_files(
@@ -383,59 +427,63 @@ def driver_addvars(fn):
 
       # Shear
 
-      if anl.addSR18:
+      if anl.addMS18:
 
         if anl.addfull:
-          SR18_mean_nr = [np.nan]*len(timestrs)
+          MS18_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR18anom_mean_nr = [np.nan]*len(timestrs)
+          MS18anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR18anomn_mean_nr = [np.nan]*len(timestrs)
+          MS18anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSR17:
+      if anl.addMS17:
 
         if anl.addfull:
-          SR17_mean_nr = [np.nan]*len(timestrs)
+          MS17_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR17anom_mean_nr = [np.nan]*len(timestrs)
+          MS17anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR17anomn_mean_nr = [np.nan]*len(timestrs)
+          MS17anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSR84:
+      if anl.addDS17:
+
+        DS17_mean_nr = [np.nan]*len(timestrs)
+
+      if anl.addMS84:
 
         if anl.addfull:
-          SR84_mean_nr = [np.nan]*len(timestrs)
+          MS84_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR84anom_mean_nr = [np.nan]*len(timestrs)
+          MS84anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR84anomn_mean_nr = [np.nan]*len(timestrs)
+          MS84anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSR82:
+      if anl.addMS82:
 
         if anl.addfull:
-          SR82_mean_nr = [np.nan]*len(timestrs)
+          MS82_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR82anom_mean_nr = [np.nan]*len(timestrs)
+          MS82anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR82anomn_mean_nr = [np.nan]*len(timestrs)
+          MS82anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSR65:
+      if anl.addMS65:
 
         if anl.addfull:
-          SR65_mean_nr = [np.nan]*len(timestrs)
+          MS65_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR65anom_mean_nr = [np.nan]*len(timestrs)
+          MS65anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR65anomn_mean_nr = [np.nan]*len(timestrs)
+          MS65anomn_mean_nr = [np.nan]*len(timestrs)
 
-      if anl.addSR14:
+      if anl.addMS14:
 
         if anl.addfull:
-          SR14_mean_nr = [np.nan]*len(timestrs)
+          MS14_mean_nr = [np.nan]*len(timestrs)
         if anl.addanom:
-          SR14anom_mean_nr = [np.nan]*len(timestrs)
+          MS14anom_mean_nr = [np.nan]*len(timestrs)
         if anl.addanomn:
-          SR14anomn_mean_nr = [np.nan]*len(timestrs)
+          MS14anomn_mean_nr = [np.nan]*len(timestrs)
 
       # Convergence/divergence
 
@@ -547,34 +595,39 @@ def driver_addvars(fn):
        loni,lati)
 
     # Shear
-    if anl.addSR18:
-      SR18_mean_nr[c],SR18anom_mean_nr[c],SR18anomn_mean_nr[c] = \
-       create_var("SR18","MSHR",files,timestrs[c],anl,TCRW,
+    if anl.addMS18:
+      MS18_mean_nr[c],MS18anom_mean_nr[c],MS18anomn_mean_nr[c] = \
+       create_var("MS18","MSHR",files,timestrs[c],anl,TCRW,
        loni,lati)
 
-    if anl.addSR17:
-      SR17_mean_nr[c],SR17anom_mean_nr[c],SR17anomn_mean_nr[c] = \
-       create_var("SR17","MSHR",files,timestrs[c],anl,TCRW,
+    if anl.addMS17:
+      MS17_mean_nr[c],MS17anom_mean_nr[c],MS17anomn_mean_nr[c] = \
+       create_var("MS17","MSHR",files,timestrs[c],anl,TCRW,
        loni,lati)
 
-    if anl.addSR84:
-      SR84_mean_nr[c],SR84anom_mean_nr[c],SR84anomn_mean_nr[c] = \
-       create_var("SR84","MSHR",files,timestrs[c],anl,TCRW,
+    if anl.addDS17:
+      DS17_mean_nr[c] = \
+       create_var_direction("DS17","DSHR",files,timestrs[c],anl,TCRW,
        loni,lati)
 
-    if anl.addSR82:
-      SR82_mean_nr[c],SR82anom_mean_nr[c],SR82anomn_mean_nr[c] = \
-       create_var("SR82","MSHR",files,timestrs[c],anl,TCRW,
+    if anl.addMS84:
+      MS84_mean_nr[c],MS84anom_mean_nr[c],MS84anomn_mean_nr[c] = \
+       create_var("MS84","MSHR",files,timestrs[c],anl,TCRW,
        loni,lati)
 
-    if anl.addSR65:
-      SR65_mean_nr[c],SR65anom_mean_nr[c],SR65anomn_mean_nr[c] = \
-       create_var("SR65","MSHR",files,timestrs[c],anl,TCRW,
+    if anl.addMS82:
+      MS82_mean_nr[c],MS82anom_mean_nr[c],MS82anomn_mean_nr[c] = \
+       create_var("MS82","MSHR",files,timestrs[c],anl,TCRW,
        loni,lati)
 
-    if anl.addSR14:
-      SR14_mean_nr[c],SR14anom_mean_nr[c],SR14anomn_mean_nr[c] = \
-       create_var("SR14","MSHR",files,timestrs[c],anl,TCRW,
+    if anl.addMS65:
+      MS65_mean_nr[c],MS65anom_mean_nr[c],MS65anomn_mean_nr[c] = \
+       create_var("MS65","MSHR",files,timestrs[c],anl,TCRW,
+       loni,lati)
+
+    if anl.addMS14:
+      MS14_mean_nr[c],MS14anom_mean_nr[c],MS14anomn_mean_nr[c] = \
+       create_var("MS14","MSHR",files,timestrs[c],anl,TCRW,
        loni,lati)
 
     # Convergence
@@ -605,6 +658,8 @@ def driver_addvars(fn):
       
     # Advance counter
     c = c + 1
+
+  print(DS17_mean_nr)
 
   fd.close()
 
@@ -686,35 +741,40 @@ def driver_addvars(fn):
      MC84anomn_mean_nr,"g kg**-1 hr**-1")
 
   # Shear
-  if anl.addSR18:
+  if anl.addMS18:
     write_data("Shear magnitude (1000-850hPa average, ~0-1.5km)",
-     "MSHR18",E5group,SR18_mean_nr,SR18anom_mean_nr,
-     SR18anomn_mean_nr,"m s**-1")
+     "MSHR18",E5group,MS18_mean_nr,MS18anom_mean_nr,
+     MS18anomn_mean_nr,"m s**-1")
 
-  if anl.addSR17:
+  if anl.addMS17:
     write_data("Shear magnitude (1000-700hPa average, ~0-3km)",
-     "MSHR17",E5group,SR17_mean_nr,SR17anom_mean_nr,
-     SR17anomn_mean_nr,"m s**-1")
+     "MSHR17",E5group,MS17_mean_nr,MS17anom_mean_nr,
+     MS17anomn_mean_nr,"m s**-1")
 
-  if anl.addSR84:
+  if anl.addDS17:
+    write_data_direction(
+     "Shear direction (1000-700hPa average, ~0-3km)",
+     "DSHR17",E5group,DS17_mean_nr,"m s**-1")
+
+  if anl.addMS84:
     write_data("Shear magnitude (800-400hPa average, ~2-8km)",
-     "MSHR84",E5group,SR84_mean_nr,SR84anom_mean_nr,
-     SR84anomn_mean_nr,"m s**-1")
+     "MSHR84",E5group,MS84_mean_nr,MS84anom_mean_nr,
+     MS84anomn_mean_nr,"m s**-1")
 
-  if anl.addSR82:
+  if anl.addMS82:
     write_data("Shear magnitude (800-200hPa average, ~2-12km)",
-     "MSHR82",E5group,SR82_mean_nr,SR82anom_mean_nr,
-     SR82anomn_mean_nr,"m s**-1")
+     "MSHR82",E5group,MS82_mean_nr,MS82anom_mean_nr,
+     MS82anomn_mean_nr,"m s**-1")
 
-  if anl.addSR65:
+  if anl.addMS65:
     write_data("Shear magnitude (650-500hPa average, ~4-6km)",
-     "MSHR65",E5group,SR65_mean_nr,SR65anom_mean_nr,
-     SR65anomn_mean_nr,"m s**-1")
+     "MSHR65",E5group,MS65_mean_nr,MS65anom_mean_nr,
+     MS65anomn_mean_nr,"m s**-1")
 
-  if anl.addSR14:
+  if anl.addMS14:
     write_data("Shear magnitude (1000-400hPa average, ~0-8km)",
-     "MSHR14",E5group,SR14_mean_nr,SR14anom_mean_nr,
-     SR14anomn_mean_nr,"m s**-1")
+     "MSHR14",E5group,MS14_mean_nr,MS14anom_mean_nr,
+     MS14anomn_mean_nr,"m s**-1")
 
   # Convergence
   if anl.addCV18:

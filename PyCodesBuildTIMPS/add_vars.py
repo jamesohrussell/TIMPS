@@ -18,6 +18,8 @@ from scipy.spatial import ConvexHull
 import sys
 import math
 import scipy.stats as stats
+import warnings
+warnings.filterwarnings("ignore") 
 
 # Import namelist
 from namelist_TIMPS import general as gnl
@@ -73,8 +75,8 @@ elif anl.ssobs:
   for j in range(1,13):
     for i in range(len(obids)): 
       filen.append(f'{gnl.datadirTIMPS}{str(j).zfill(2)}/\
-{gnl.fileidTIMPS}{str(obids[i])}*')
-
+{gnl.fileidTIMPS}{str(obids[i]).zfill(7)}*')
+ 
   # Reads directory and filenames
   print("Getting directory and filenames")
   filenamesrun = []
@@ -112,6 +114,8 @@ def driver_addvars(fn):
   fn corresponds to the line number in filenames_av.txt.
   """
 
+  warnings.filterwarnings("ignore") 
+
 #==================================================================
 # Begin script
 #==================================================================
@@ -140,20 +144,47 @@ def driver_addvars(fn):
 #==================================================================
 
   # Rain rates
-  if anl.addmaxrr: maxrainrate  = [np.nan]*len(datakeys)
-  if anl.addmeanrr: meanrainrate = [np.nan]*len(datakeys)
-  if anl.addmedianrr: medianrainrate = [np.nan]*len(datakeys)
+  if anl.addmaxrr: maxrainrate  = [0]*len(datakeys)
+  if anl.addmeanrr: meanrainrate = [0]*len(datakeys)
+  if anl.addmedianrr: medianrainrate = [0]*len(datakeys)
   if anl.addstddevrr: stddevrainrate = [np.nan]*len(datakeys)
   if anl.addskewrr: skewrainrate = [np.nan]*len(datakeys)
 
+  if anl.addmeanrr1mmhr: 
+   meanrainrate1mmhr = [0]*len(datakeys)
+  if anl.addmedianrr1mmhr: 
+   medianrainrate1mmhr = [0]*len(datakeys)
+  if anl.addstddevrr1mmhr: 
+   stddevrainrate1mmhr = [np.nan]*len(datakeys)
+  if anl.addskewrr1mmhr: 
+   skewrainrate1mmhr = [np.nan]*len(datakeys)
+
+  if anl.addmeanrr10mmhr: 
+   meanrainrate10mmhr = [0]*len(datakeys)
+  if anl.addmedianrr10mmhr: 
+   medianrainrate10mmhr = [0]*len(datakeys)
+  if anl.addstddevrr10mmhr: 
+   stddevrainrate10mmhr = [np.nan]*len(datakeys)
+  if anl.addskewrr10mmhr: 
+   skewrainrate10mmhr = [np.nan]*len(datakeys)
+
   # Pieces
-  if anl.addpieces: pieces = [18446744073709551614]*len(datakeys)
-  if anl.addpiecesc: 
-   pieces_c = [18446744073709551614]*len(datakeys)
+  if anl.addpieces: 
+   pieces = [18446744073709551614]*len(datakeys)
+  if anl.addpieces1mmhr: 
+   pieces1mmhr = [18446744073709551614]*len(datakeys)
+  if anl.addpieces10mmhr: 
+   pieces10mmhr = [18446744073709551614]*len(datakeys)
 
   # Area and VRR
-  if anl.addarea: area = [np.nan]*len(datakeys)
-  if anl.addvrr: volrainrate = [np.nan]*len(datakeys)
+  if anl.addarea: area = [0]*len(datakeys)
+  if anl.addvrr: volrainrate = [0]*len(datakeys)
+
+  if anl.addarea1mmhr: area1mmhr = [0]*len(datakeys)
+  if anl.addvrr1mmhr: volrainrate1mmhr = [0]*len(datakeys)
+
+  if anl.addarea10mmhr: area10mmhr = [0]*len(datakeys)
+  if anl.addvrr10mmhr: volrainrate10mmhr = [0]*len(datakeys)
 
   # Propagation
   if anl.addpropagation:
@@ -182,12 +213,6 @@ def driver_addvars(fn):
     cPF_over_land = [18446744073709551614]*len(datakeys)
     lPF_over_land = {}
 
-  # Convective variables
-  if anl.addconvrain: is_conv_rain = {}
-  if anl.addconvarea: 
-    convarea = [np.nan]*len(datakeys)
-  if anl.addconvvrr: convvrr = [np.nan]*len(datakeys)
-
   # Shape variables
   if anl.addaxesshape:
     ellipticity = [np.nan]*len(datakeys)
@@ -196,35 +221,22 @@ def driver_addvars(fn):
     axang       = np.zeros((len(datakeys),2))
     axang[:,:]  = np.nan
     goodness    = [np.nan]*len(datakeys)
-  if anl.addaxesshapec or anl.addpiecesc:
-    center_c      = np.zeros((len(datakeys),2))
-    center_c[:,:] = np.nan
-  if anl.addaxesshapec:
-    ellipticity_c = [np.nan]*len(datakeys)
-    axlen_c       = np.zeros((len(datakeys),2))
-    axlen_c[:,:]  = np.nan
-    axang_c       = np.zeros((len(datakeys),2))
-    axang_c[:,:]  = np.nan
-    goodness_c    = [np.nan]*len(datakeys)
-  if anl.addasymmetry: 
-    asymmetry_lp = [np.nan]*len(datakeys)
-  if anl.addasymmetryc: 
-    asymmetry_lp_c = [np.nan]*len(datakeys)
-  if anl.addfragmentation or anl.addaxesshape:
-    fragmentation  = [np.nan]*len(datakeys)
-    solidity       = [np.nan]*len(datakeys)
-    connectivity   = [np.nan]*len(datakeys)
-  if anl.addfragmentationc or anl.addaxesshapec:
-    fragmentation_c  = [np.nan]*len(datakeys)
-    solidity_c       = [np.nan]*len(datakeys)
-    connectivity_c   = [np.nan]*len(datakeys)
-  if anl.adddispersion or anl.addaxesshape:
-    dispersion = [np.nan]*len(datakeys)
-  if anl.adddispersionc or anl.addaxesshapec:
-    dispersion_c = [np.nan]*len(datakeys)
 
-  # Perimeter
-  if anl.addperimeter: perimeter_lp = [np.nan]*len(datakeys)
+  if anl.addaxesshape1mmhr:
+    ellipticity_1mmhr = [np.nan]*len(datakeys)
+    axlen_1mmhr       = np.zeros((len(datakeys),2))
+    axlen_1mmhr[:,:]  = np.nan
+    axang_1mmhr       = np.zeros((len(datakeys),2))
+    axang_1mmhr[:,:]  = np.nan
+    goodness_1mmhr    = [np.nan]*len(datakeys)
+
+  if anl.addaxesshape10mmhr:
+    ellipticity_10mmhr = [np.nan]*len(datakeys)
+    axlen_10mmhr       = np.zeros((len(datakeys),2))
+    axlen_10mmhr[:,:]  = np.nan
+    axang_10mmhr       = np.zeros((len(datakeys),2))
+    axang_10mmhr[:,:]  = np.nan
+    goodness_10mmhr    = [np.nan]*len(datakeys)
 
 #==================================================================
 # Begin loop over times
@@ -250,93 +262,175 @@ def driver_addvars(fn):
     lonsnzk = lons[k][instrain[k]>0]
     instrainnzk = instrain[k][instrain[k]>0]
 
+    # Get locations of all pixels with nonzero precipitation
+    lats1mmhr = lats[k][instrain[k]>1]
+    lons1mmhr = lons[k][instrain[k]>1]
+    instrain1mmhr = instrain[k][instrain[k]>1]
+
+    # Get locations of all pixels with nonzero precipitation
+    lats10mmhr = lats[k][instrain[k]>10]
+    lons10mmhr = lons[k][instrain[k]>10]
+    instrain10mmhr = instrain[k][instrain[k]>10]
+
 #==================================================================
 # Calculate maximum rain rate
 #==================================================================
 
     if anl.addmaxrr:
-
-      # Calculate maximum rain rate in PF
       maxrainrate[c] = np.amax(instrainnzk)
 
 #==================================================================
 # Calculate mean rain rate
 #==================================================================
 
-    if anl.addmeanrr:
-
-      # Calculate mean rain rates but exclude pixels with 
-      #  no rain
+    # Calculate mean rain rates but exclude pixels with no rain
+    if anl.addmeanrr and len(instrainnzk)>0:
       meanrainrate[c]   = np.mean(instrainnzk)
+
+    # Calculate mean rain rates but exclude pixels with <1mm/hr
+    if anl.addmeanrr1mmhr and len(instrain1mmhr)>0:
+      meanrainrate1mmhr[c]   = np.mean(instrain1mmhr)
+
+    # Calculate mean rain rates but exclude pixels with <10mm/hr
+    if anl.addmeanrr10mmhr and len(instrain10mmhr)>0:
+      meanrainrate10mmhr[c]   = np.mean(instrain10mmhr)
 
 #==================================================================
 # Calculate median rain rate
 #==================================================================
 
-    if anl.addmedianrr:
-
-      # Calculate median rain rates but exclude pixels with 
-      #  no rain
+    # Calculate median rain rates but exclude pixels with no rain
+    if anl.addmedianrr and len(instrainnzk)>0:
       medianrainrate[c] = np.median(instrainnzk)
 
+    # Calculate median rain rates but exclude pixels with <1mm/hr
+    if anl.addmedianrr1mmhr and len(instrain1mmhr)>0:
+      medianrainrate1mmhr[c] = np.median(instrain1mmhr)
+
+    # Calculate median rain rates but exclude pixels with <1mm/hr
+    if anl.addmedianrr10mmhr and len(instrain10mmhr)>0:
+      medianrainrate10mmhr[c] = np.median(instrain10mmhr)
+
 #==================================================================
 # Calculate standard deviation of rain rate
 #==================================================================
 
-    if anl.addstddevrr:
-      # Calculate standard deviation of rain rates but 
-      #  exclude pixels with no rain
+    # Calculate standard deviation of rain rates but exclude 
+    # pixels with no rain
+    if anl.addstddevrr and len(instrainnzk)>0:
       stddevrainrate[c] = np.std(instrainnzk)
 
+    # Calculate standard deviation of rain rates but exclude 
+    # pixels with <1mm/hr
+    if anl.addstddevrr1mmhr and len(instrain1mmhr)>0:
+      stddevrainrate1mmhr[c] = np.std(instrain1mmhr)
+
+    # Calculate standard deviation of rain rates but exclude 
+    # pixels with <10mm/hr
+    if anl.addstddevrr10mmhr and len(instrain10mmhr)>0:
+      stddevrainrate10mmhr[c] = np.std(instrain10mmhr)
+
 #==================================================================
 # Calculate standard deviation of rain rate
 #==================================================================
 
-    if anl.addskewrr:
-      # Calculate standard deviation of rain rates but 
-      #  exclude pixels with no rain
+    # Calculate standard deviation of rain rates but exclude 
+    # pixels with no rain
+    if anl.addskewrr and len(instrainnzk)>0:
       skewrainrate[c] = stats.skew(instrainnzk)
+
+    # Calculate standard deviation of rain rates but exclude 
+    # pixels with no rain
+    if anl.addskewrr1mmhr and len(instrain1mmhr)>0:
+      skewrainrate1mmhr[c] = stats.skew(instrain1mmhr)
+
+    # Calculate standard deviation of rain rates but exclude 
+    # pixels with no rain
+    if anl.addskewrr10mmhr and len(instrain10mmhr)>0:
+      skewrainrate10mmhr[c] = stats.skew(instrain10mmhr)
 
 #==================================================================
 # Add area 
 #==================================================================
 
-    if anl.addarea and not anl.addvrr:
-
-      # Calculate area
+    # Calculate area of non zero pixels
+    if anl.addarea and not anl.addvrr and \
+       len(instrainnzk)>0:
       ar = efns.calc_area(lonsnzk,latsnzk,
         float(anl.dx),float(anl.dy))
-
-      # Convert to units of km**2 
       area[c] = ar/1000000
+
+    # Calculate area of >1mm/hr pixels
+    if anl.addarea1mmhr and not anl.addvrr1mmhr and \
+       len(instrain1mmhr)>0:
+      ar1mmhr = efns.calc_area(lons1mmhr,lats1mmhr,
+        float(anl.dx),float(anl.dy))
+      area1mmhr[c] = ar1mmhr/1000000
+
+    # Calculate area of >1mm/hr pixels
+    if anl.addarea10mmhr and not anl.addvrr10mmhr and \
+       len(instrain10mmhr)>0:
+      ar10mmhr = efns.calc_area(lons10mmhr,lats10mmhr,
+        float(anl.dx),float(anl.dy))
+      area10mmhr[c] = ar10mmhr/1000000
 
 #==================================================================
 # Add area and volumetric rain rate information
 #==================================================================
 
-    if anl.addarea and anl.addvrr:
-
-      # Calculate area and volumetric rain rate
+    # Calculate area and volumetric rain rate of non-zero pixels
+    if anl.addarea and anl.addvrr and \
+       len(instrainnzk)>0:
       ar,vrr = efns.calc_area_and_volrainrate(
         lonsnzk,latsnzk,instrainnzk,float(anl.dx),float(anl.dy))
-
-      # Convert units of km**2 and mm hr**-1 km**2
       area[c] = ar/1000000
       volrainrate[c] = vrr/1000000
+
+    # Calculate area and volumetric rain rate of >1mm/hr pixels
+    if anl.addarea1mmhr and anl.addvrr1mmhr and \
+       len(instrain1mmhr)>0:
+      ar1mmhr,vrr1mmhr = efns.calc_area_and_volrainrate(
+        lons1mmhr,lats1mmhr,instrain1mmhr,
+        float(anl.dx),float(anl.dy))
+      area1mmhr[c] = ar1mmhr/1000000
+      volrainrate1mmhr[c] = vrr1mmhr/1000000
+
+    # Calculate area and volumetric rain rate of >1mm/hr pixels
+    if anl.addarea10mmhr and anl.addvrr10mmhr and \
+       len(instrain10mmhr)>0:
+      ar10mmhr,vrr10mmhr = efns.calc_area_and_volrainrate(
+        lons10mmhr,lats10mmhr,instrain10mmhr,
+        float(anl.dx),float(anl.dy))
+      area10mmhr[c] = ar10mmhr/1000000
+      volrainrate10mmhr[c] = vrr10mmhr/1000000
 
 #==================================================================
 # Add only volumetric rain rate information
 #==================================================================
 
-    if anl.addvrr and not anl.addarea:
-
-      # Calculate volumetric rain rate
+    # Calculate volumetric rain rate of non-zero pixels
+    if anl.addvrr and not anl.addarea and \
+       len(instrainnzk)>0:
       vrr = efns.calc_area_and_volrainrate(
         lonsnzk,latsnzk,instrainnzk,
         float(anl.dx),float(anl.dy))[1]
+      volrainrate[c] = vrr/1000000
 
-      # Convert to units of mm hr**-1 km**2
-      volrainrate[c] = vrr/(1000*2)
+    # Calculate volumetric rain rate of >1mm/hr pixels
+    if anl.addvrr1mmhr and not anl.addarea1mmhr and \
+       len(instrain1mmhr)>0:
+      vrr1mmhr = efns.calc_area_and_volrainrate(
+        lons1mmhr,lats1mmhr,instrain1mmhr,
+        float(anl.dx),float(anl.dy))[1]
+      volrainrate1mmhr[c] = vrr1mmhr/1000000
+
+    # Calculate volumetric rain rate of >10mm/hr pixels
+    if anl.addvrr10mmhr and not anl.addarea10mmhr and \
+       len(instrain10mmhr)>0:
+      vrr10mmhr = efns.calc_area_and_volrainrate(
+        lons10mmhr,lats10mmhr,instrain10mmhr,
+        float(anl.dx),float(anl.dy))[1]
+      volrainrate10mmhr[c] = vrr10mmhr/1000000
 
 #==================================================================
 # Add local solar time
@@ -399,72 +493,11 @@ def driver_addvars(fn):
             str(datadtim[c+1]*100),datacwlon[c+1],datacwlat[c+1])
 
 #==================================================================
-# Add convective rain flag
-#==================================================================
-
-    if anl.addconvrain:
-
-      is_conv_rain[k] = np.where(instrain[k]>anl.convrainthold,1,0)
-
-#==================================================================
-# Add convective rain area
-#==================================================================
-  
-    if anl.addconvarea and not anl.addconvvrr:
-      # Calculate area
-      if len(instrain[k][instrain[k]>anl.convrainthold])>0:
-        arc = efns.calc_area(
-                    lons[k][instrain[k]>anl.convrainthold],
-                    lats[k][instrain[k]>anl.convrainthold],
-                    float(anl.dx),float(anl.dy))
-      else: arc=0
-
-      # Convert units of km**2 and mm hr**-1 km**2
-      convarea[c] = arc/1000000
-
-#==================================================================
-# Add convective rain volumetric rain rate
-#==================================================================
-  
-    if anl.addconvvrr and not anl.addconvarea:
-      # Calculate area and volumetric rain rate
-      if len(instrain[k][instrain[k]>anl.convrainthold])>0:
-        vrrc = efns.calc_area_and_volrainrate(
-                    lons[k][instrain[k]>anl.convrainthold],
-                    lats[k][instrain[k]>anl.convrainthold],
-                    instrain[k][instrain[k]>anl.convrainthold],
-                    float(anl.dx),float(anl.dy))[1]
-      else: vrrc=0
-
-      # Convert units of km**2 and mm hr**-1 km**2
-      convvrr[c] = vrrc/1000000
-
-#==================================================================
-# Add convective rain area and volumetric rain rate
-#==================================================================
-
-    if anl.addconvarea and anl.addconvvrr:
-      # Calculate area and volumetric rain rate
-      if len(instrain[k][instrain[k]>anl.convrainthold])>0:
-        arc,vrrc = efns.calc_area_and_volrainrate(
-                    lons[k][instrain[k]>anl.convrainthold],
-                    lats[k][instrain[k]>anl.convrainthold],
-                    instrain[k][instrain[k]>anl.convrainthold],
-                    float(anl.dx),float(anl.dy))
-      else:
-        arc=0
-        vrrc=0
-
-      # Convert units of km**2 and mm hr**-1 km**2
-      convarea[c] = arc/1000000
-      convvrr[c] = vrrc/1000000
-
-#==================================================================
 # Start shape code
 #==================================================================
 
-    if anl.addaxesshape or \
-       anl.addpieces:
+    if (anl.addaxesshape or anl.addpieces) and \
+       len(instrainnzk)>0:
 
       # Generate dataframe for object
       df = mfns.create_2d_dataframe(lonsnzk,latsnzk,
@@ -503,70 +536,95 @@ def driver_addvars(fn):
             axlen[c,:] = axlen1
             ellipticity[c] = 1-(axlen[c,1]/axlen[c,0])
 
-     #       # Plotting for test
-     #       pfns.plot_pixel_axes_earth(xg,yg,df.values,
-     #        center=[dataclon[c],dataclat[c]],
-     #        axdir=axang[c,:],axlen=axlen[c,:])
-     #else:
-     #   print("Basic fit: bad")
-     #   # Plotting for test
-     #   pfns.plot_pixel_axes_earth(xg,yg,df.values)
-
 #==================================================================
-# Convective shape prepwork
+# Start shape code
 #==================================================================
 
-    if anl.addaxesshapec or \
-       anl.addpiecesc:
+    if anl.addaxesshape1mmhr or anl.addpieces1mmhr and \
+       len(instrain1mmhr)>0:
 
-      # Find convective locations
-      lonsc = lons[k][instrain[k]>anl.convrainthold]
-      latsc = lats[k][instrain[k]>anl.convrainthold]
+      # Generate dataframe for object
+      df = mfns.create_2d_dataframe(lons1mmhr,lats1mmhr,
+       anl.dx,anl.dy,instrain1mmhr)
+      ny = [float(i) for i in df.index]
+      nx = [float(i) for i in df.columns]
+      xg, yg = np.meshgrid(nx,ny)
 
-      # Only if enough convective pixels
-      if len(latsc)>float(anl.minshapesizec):
-
-        # Define center of convection
-        center_c[c,:] = [efns.periodic_cmass(lonsc),
-         np.nanmean(latsc)]
-
-        # assign number of pieces to pieces
-        if anl.addpiecesc:
-          pieces_c[c] = numLc
-          
+      # assign number of pieces to pieces
+      if anl.addpieces1mmhr:
+        numL = sfns.label_wdiags(df)[1]
+        pieces1mmhr[c] = numL
+            
 #==================================================================
 # Add major/minor axes shape
 #==================================================================
+        
+      # Only calculate if there are enough points
+      if len(lats1mmhr)>float(anl.minshapesize):
 
-        if anl.addaxesshapec:
-            
-          # Calculate axes and goodness of fit
-          axangc1,axlenc1,goodnessc = \
-           sfns.fit_ellipse_svd_earth(lonsc,latsc,center_c[c,:],
-           goodness=True,dx=anl.dx,dy=anl.dy)
+        # Fragmentation prepwork
+        if anl.addaxesshape1mmhr:
+          
+          # Calculate axes and goodness
+          axang1,axlen1,goodness1 = \
+           sfns.fit_ellipse_svd_earth(lons1mmhr,lats1mmhr,
+           [dataclon[c],dataclat[c]],goodness=True,
+           dx=anl.dx,dy=anl.dy)
 
           # Only continue if fit is good
-          if goodnessc>anl.minshapegoodc:
-
+          if goodness1>anl.minshapegood1mmhr:
+            
             # Assign data
-            goodness_c[c] = goodnessc
-            axang_c[c,:] = axangc1
-            axlen_c[c,:] = axlenc1
-            ellipticity_c[c] = 1-(axlen_c[c,1]/axlen_c[c,0])
+            goodness_1mmhr[c] = goodness1
+            axang_1mmhr[c,:] = axang1
+            axlen_1mmhr[c,:] = axlen1
+            ellipticity_1mmhr[c] = 1-(
+             axlen_1mmhr[c,1]/axlen_1mmhr[c,0])
 
-          #  # Plotting for test
-          #  pfns.plot_pixel_axes_earth(xg,yg,df.values,
-          #   center=center_c[c,:],
-          #   axdir=axang_c[c,:],axlen=axlen_c[c,:])
-          #
-          #else:
-          #  print("Convective fit: bad ")
-          #
-          #  # Plotting for test
-          #  pfns.plot_pixel_axes_earth(xg,yg,df.values)
+#==================================================================
+# Start shape code
+#==================================================================
 
-      #else: 
-      #  print("Not enough convective pixels for a fit")
+    if anl.addaxesshape10mmhr or anl.addpieces10mmhr and \
+       len(instrain10mmhr)>0:
+
+      # Generate dataframe for object
+      df = mfns.create_2d_dataframe(lons10mmhr,lats10mmhr,
+       anl.dx,anl.dy,instrain10mmhr)
+      ny = [float(i) for i in df.index]
+      nx = [float(i) for i in df.columns]
+      xg, yg = np.meshgrid(nx,ny)
+
+      # assign number of pieces to pieces
+      if anl.addpieces10mmhr:
+        numL = sfns.label_wdiags(df)[1]
+        pieces10mmhr[c] = numL
+            
+#==================================================================
+# Add major/minor axes shape
+#==================================================================
+        
+      # Only calculate if there are enough points
+      if len(lats10mmhr)>float(anl.minshapesize10mmhr):
+
+        # Fragmentation prepwork
+        if anl.addaxesshape10mmhr:
+          
+          # Calculate axes and goodness
+          axang1,axlen1,goodness1 = \
+           sfns.fit_ellipse_svd_earth(lons10mmhr,lats10mmhr,
+           [dataclon[c],dataclat[c]],goodness=True,
+           dx=anl.dx,dy=anl.dy)
+
+          # Only continue if fit is good
+          if goodness1>anl.minshapegood10mmhr:
+            
+            # Assign data
+            goodness_10mmhr[c] = goodness1
+            axang_10mmhr[c,:] = axang1
+            axlen_10mmhr[c,:] = axlen1
+            ellipticity_10mmhr[c] = 1-(
+             axlen_10mmhr[c,1]/axlen_10mmhr[c,0])
 
 #==================================================================
 # Add land surface information
@@ -679,7 +737,7 @@ def driver_addvars(fn):
 
     localsolartime = [int(i) for i in localsolartime]
     description = "Calculated as the UTC time plus an offset based on the longitude. The offset is calculated by multiplying the longitude by 24/360. Note: This is not the actual local time. This should typically only be used to calculate times for the diurnal cycle."
-    mfns.write_var("localsolartime","Local solar time",
+    mfns.write_var("LST","Local solar time",
       description,"time",np.int64,"",fileout,localsolartime)
 
 #==================================================================
@@ -687,9 +745,8 @@ def driver_addvars(fn):
 #==================================================================
 
   if anl.addmaxrr:
-
-    description = "Maximum rain rate within PF"
-    mfns.write_var("maxrainrate","Max rain rate",description,
+    description = "Maximum rain rate of TIMPS"
+    mfns.write_var("maxrr","Max rain rate",description,
      "time",np.float64,"mm/hr",fileout,maxrainrate)
 
 #==================================================================
@@ -697,42 +754,86 @@ def driver_addvars(fn):
 #==================================================================
 
   if anl.addmeanrr:
-
-    description = "Mean rain rate within PF excluding pixels with zero rain rate"
-    mfns.write_var("meanrainrate","Mean rain rate",description,
+    description = "Mean rain rate of non-zero pixels"
+    mfns.write_var("meanrr","Mean rain rate",description,
      "time",np.float64,"mm/hr",fileout,meanrainrate)
+
+  if anl.addmeanrr1mmhr:
+    description = "Mean rain rate of >1mm/hr pixels"
+    mfns.write_var("meanrr1","Mean rain rate (>1mm/hr)",
+     description,"time",np.float64,"mm/hr",fileout,
+     meanrainrate1mmhr)
+
+  if anl.addmeanrr10mmhr:
+    description = "Mean rain rate of >10mm/hr pixels"
+    mfns.write_var("meanrr10",
+     "Mean rain rate (>10mm/hr)",description,"time",np.float64,
+     "mm/hr",fileout,meanrainrate10mmhr)
 
 #==================================================================
 # Write median rain rate to file
 #==================================================================
 
   if anl.addmedianrr:
+    description = "Median rain rate of non-zero pixels"
+    mfns.write_var("medrr","Median rain rate",
+     description,"time",np.float64,"mm/hr",fileout,medianrainrate)
 
-    description = "Median rain rate within PF excluding pixels with zero rain rate"
-    mfns.write_var("medianrainrate","Median rain rate",description,
-     "time",np.float64,"mm/hr",fileout,medianrainrate)
+  if anl.addmedianrr1mmhr:
+    description = "Median rain rate of >1mm/hr pixels"
+    mfns.write_var("medrr1",
+     "Median rain rate (>1mm/hr)",description,"time",
+     np.float64,"mm/hr",fileout,medianrainrate1mmhr)
+
+  if anl.addmedianrr10mmhr:
+    description = "Median rain rate of >10mm/hr pixels"
+    mfns.write_var("medrr10",
+     "Median rain rate (>10mm/hr)",description,"time",
+     np.float64,"mm/hr",fileout,medianrainrate10mmhr)
 
 #==================================================================
 # Write standard deviation rate to file
 #==================================================================
 
   if anl.addstddevrr:
+    description = "Standard deviation of non-zero rain rates"
+    mfns.write_var("sdevrr",
+     "Standard deviation of rain rates",description,
+     "time",np.float64,"mm/hr",fileout,stddevrainrate)
 
-    description = "Standard deviation of rain rates within PF excluding pixels with zero rain rate"
-    mfns.write_var("stddevrainrate",
-     "Standard deviation of rain rates",description,"time",
-      np.float64,"mm/hr",fileout,stddevrainrate)
+  if anl.addstddevrr1mmhr:
+    description = "Standard deviation of >1mm/hr rain rates"
+    mfns.write_var("sdevrr1",
+     "Standard deviation of rain rates (>1mm/hr)",description,
+     "time",np.float64,"mm/hr",fileout,stddevrainrate1mmhr)
+
+  if anl.addstddevrr10mmhr:
+    description = "Standard deviation of >10mm/hr rain rates"
+    mfns.write_var("sdevrr10",
+     "Standard deviation of rain rates (>10mm/hr)",description,
+     "time",np.float64,"mm/hr",fileout,stddevrainrate10mmhr)
 
 #==================================================================
 # Write standard deviation rate to file
 #==================================================================
 
   if anl.addskewrr:
-
-    description = "Skewness of rain rates within PF excluding pixels with zero rain rate"
-    mfns.write_var("skewrainrate",
+    description = "Skewness of non-zero rain rates"
+    mfns.write_var("skewrr",
      "Skewness of rain rates",description,"time",
       np.float64,"",fileout,skewrainrate)
+
+  if anl.addskewrr1mmhr:
+    description = "Skewness of >1mm/hr rain rates"
+    mfns.write_var("skewrr1",
+     "Skewness of rain rates (>1mm/hr)",description,"time",
+      np.float64,"",fileout,skewrainrate1mmhr)
+
+  if anl.addskewrr10mmhr:
+    description = "Skewness of >10mm/hr rain rates"
+    mfns.write_var("skewrr10",
+     "Skewness of rain rates (>10mm/hr)",description,"time",
+      np.float64,"",fileout,skewrainrate10mmhr)
 
 #==================================================================
 # Write pieces to file
@@ -740,40 +841,62 @@ def driver_addvars(fn):
 
   if anl.addpieces:
 
-    description = "Number of disconnected pieces making up the precipitation system"
+    description = "Number of disconnected pieces making up the TIMPS"
     mfns.write_var("pieces","Pieces",description,"time",'u8',
      "",fileout,pieces)
 
-#==================================================================
-# Write convective pieces to file
-#==================================================================
-
-  if anl.addpiecesc:
+  if anl.addpieces1mmhr:
 
     description = "Number of disconnected pieces making up the convective component of the system"
-    mfns.write_var("pieces_c","Convective pieces",description,
-     "time",'u8',"",fileout,pieces_c)
+    mfns.write_var("pieces1","Pieces (>1mm/hr)",
+     description,"time",'u8',"",fileout,pieces1mmhr)
+
+  if anl.addpieces10mmhr:
+
+    description = "Number of disconnected pieces making up the convective component of the system"
+    mfns.write_var("pieces10","Pieces (>10mm/hr)",
+     description,"time",'u8',"",fileout,pieces10mmhr)
 
 #==================================================================
 # Write area to file
 #==================================================================
 
   if anl.addarea:
+    description = "Area of non-zero pixels"
+    mfns.write_var("area","Area",description,
+     "time",np.float64,"km^2",fileout,area)
 
-    description = "Area within PF excluding pixels with zero rain rate"
-    mfns.write_var("area","Area",description,"time",np.float64,
-     "km^2",fileout,area)
+  if anl.addarea1mmhr:
+    description = "Area of >1mm/hr pixels"
+    mfns.write_var("area1","Area (>1mm/hr)",description,
+     "time",np.float64,"km^2",fileout,area1mmhr)
+
+  if anl.addarea10mmhr:
+    description = "Area of >10mm/hr pixels"
+    mfns.write_var("area10","Area (>10mm/hr)",description,
+     "time",np.float64,"km^2",fileout,area10mmhr)
 
 #==================================================================
 # Write volumetric rain rate to file
 #==================================================================
 
   if anl.addvrr:
-
-    description = "Volumetric rain rate within PF excluding pixels with zero rain rate"
-    mfns.write_var("volrainrate","Volumetric rain rate",
+    description = "Volumetric rain rate of non-zero pixels"
+    mfns.write_var("vrr","Volumetric rain rate",
      description,"time",np.float64,"mm hr^-1 km^2",fileout,
      volrainrate)
+
+  if anl.addvrr1mmhr:
+    description = "Volumetric rain rate of >1mm/hr pixels"
+    mfns.write_var("vrr1",
+     "Volumetric rain rate (>1mmhr)",description,"time",
+     np.float64,"mm hr^-1 km^2",fileout,volrainrate1mmhr)
+
+  if anl.addvrr10mmhr:
+    description = "Volumetric rain rate of >10mm/hr pixels"
+    mfns.write_var("vrr10",
+     "Volumetric rain rate (>10mmhr)",description,"time",
+     np.float64,"mm hr^-1 km^2",fileout,volrainrate10mmhr)
 
 #==================================================================
 # Write propagation to file
@@ -798,128 +921,124 @@ def driver_addvars(fn):
      description,"time",np.float64,"degrees",fileout,propdirw)
 
 #==================================================================
-# Write convective information to file
-#==================================================================
-
-  if anl.addconvrain or anl.addconvarea or \
-    anl.addconvvrr:
-    fileout.conv_rain_threshold = anl.convrainthold
- 
-  if anl.addconvarea:
-    description = "Area of locations with rain rates greater than convective rain rate threshold"
-    mfns.write_var("area_c","Convective area",
-     description,"time",np.float64,"",fileout,convarea)
-
-  if anl.addconvvrr:
-    description = "Volumetric rain rate of locations with rain rates greater than convective rain rate threshold"
-    mfns.write_var("vrr_c","Convective volumetric rain rate",
-    description,"time",np.float64,"",fileout,convvrr)
-
-  if anl.addconvrain:
-    format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
-    description = "Binary indicating if a PF location has a convective rain rate (1 = convective, 0 = not convective)"
-    mfns.write_group("is_conv_rain",
-     "Location has a convective rain rate",description,"",
-     format1,fileout,is_conv_rain)
-
-#==================================================================
-# Write ellipticity to file
+# Write axes parameters for >1mm/hr pixels
 #==================================================================
 
   if anl.addaxesshape:
 
-    description = "Ellipticity factor. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
-    mfns.write_var("ellipticity","Ellipticity factor",
-      description,"time",np.float64,"",fileout,ellipticity)
+    description = "Ellipticity factor for non-zero pixels. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
+    mfns.write_var("ell",
+     "Ellipticity factor",description,"time",
+     np.float64,"",fileout,ellipticity)
 
-#==================================================================
-# Write length of axes
-#==================================================================
+    description = "Length of major axis for non-zero pixels"
+    mfns.write_var("mjraxlen",
+     "Major axis length",description,"time",
+     np.float64,"m",fileout,axlen[:,0])
 
-    description = "Length of major axis"
-    mfns.write_var("mjrax_length","Major axis length",
-     description,"time",np.float64,"m",fileout,axlen[:,0])
+    description = "Length of minor axis for non-zero pixels"
+    mfns.write_var("mnraxlen",
+     "Minor axis length",description,"time",
+     np.float64,"m",fileout,axlen[:,1])
 
-    description = "Length of minor axis"
-    mfns.write_var("mnrax_length","Minor axis length",
-     description,"time",np.float64,"m",fileout,axlen[:,1])
+    description = "Angle major axis for non-zero makes with northward vector"
+    mfns.write_var("mjraxang",
+     "Major axis angle",description,"time",
+     np.float64,"degrees",fileout,axang[:,0])
 
-#==================================================================
-# Write angle major axis makes from north
-#==================================================================
+    description = "Angle minor axis for non-zero pixels makes with northward vector"
+    mfns.write_var("mnraxangle",
+     "Minor axis angle",description,"time",
+     np.float64,"degrees",fileout,axang[:,1])
 
-    description = "Angle major axis makes with northward vector"
-    mfns.write_var("mjrax_angle","Major axis angle",
-     description,"time",np.float64,"degrees",fileout,axang[:,0])
-
-    description = "Angle minor axis makes with northward vector"
-    mfns.write_var("mnrax_angle","Minor axis angle",
-     description,"time",np.float64,"degrees",fileout,axang[:,1])
-
-#==================================================================
-# Write goodness of axes fit for convection
-#==================================================================
-
-    description = "Goodness of axes fit to all pixels"
-    mfns.write_var("goodness","Axes goodness",
+    description = "Goodness of axes fit to non-zero pixels"
+    mfns.write_var("goodax","Axes goodness",
      description,"time",np.float64,"",fileout,goodness)
 
 #==================================================================
-# Write ellipticity for convection
+# Write axes parameters for >1mm/hr pixels
 #==================================================================
 
-  if anl.addaxesshapec:
+  if anl.addaxesshape1mmhr:
 
-    description = "Ellipticity factor for convective pixels. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
-    mfns.write_var("ellipticity_c","Convective ellipticity factor",
-      description,"time",np.float64,"",fileout,ellipticity_c)
+    description = "Ellipticity factor for >1mm/hr pixels. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
+    mfns.write_var("ell1",
+     "Ellipticity factor (>1mm/hr)",description,"time",
+     np.float64,"",fileout,ellipticity1mmhr)
+
+    description = "Length of major axis for >1mm/hr pixels"
+    mfns.write_var("mjraxlen1",
+     "Major axis length (>1mm/hr)",description,"time",
+     np.float64,"m",fileout,axlen1mmhr[:,0])
+
+    description = "Length of minor axis for >1mm/hr pixels"
+    mfns.write_var("mnraxlen1",
+     "Minor axis length (>1mm/hr)",description,"time",
+     np.float64,"m",fileout,axlen1mmhr[:,1])
+
+    description = "Angle major axis for >1mm/hr makes with northward vector"
+    mfns.write_var("mjraxang1",
+     "Major axis angle (>1mm/hr)",description,"time",
+     np.float64,"degrees",fileout,axang1mmhr[:,0])
+
+    description = "Angle minor axis for >1mm/hr pixels makes with northward vector"
+    mfns.write_var("mnraxangle1",
+     "Minor axis angle (>1mm/hr)",description,"time",
+     np.float64,"degrees",fileout,axang1mmhr[:,1])
+
+    description = "Goodness of axes fit to >1mm/hr pixels"
+    mfns.write_var("goodax1","Axes goodness (>1mm/hr)",
+     description,"time",np.float64,"",fileout,goodness1mmhr)
 
 #==================================================================
-# Write length of axes for convection
+# Write axes parameters for >10mm/hr pixels
 #==================================================================
 
-    description = "Length of major axis for convective pixels"
-    mfns.write_var("mjrax_length_c","Convective major axis length",
-     description,"time",np.float64,"m",fileout,axlen_c[:,0])
+  if anl.addaxesshape10mmhr:
 
-    description = "Length of minor axis for convective pixels"
-    mfns.write_var("mnrax_length_c","Convective minor axis length",
-     description,"time",np.float64,"m",fileout,axlen_c[:,1])
+    description = "Ellipticity factor for >10mm/hr pixels. Calculated as 1-(major axis length/minor axis length). 1 = highly elliptical. 0 = spherical."
+    mfns.write_var("ell10",
+     "Ellipticity factor (>10mm/hr)",description,"time",
+     np.float64,"",fileout,ellipticity10mmhr)
 
-#==================================================================
-# Write angle major axis makes from north for convection
-#==================================================================
+    description = "Length of major axis for >10mm/hr pixels"
+    mfns.write_var("mjraxlen10",
+     "Major axis length (>10mm/hr)",description,"time",
+     np.float64,"m",fileout,axlen10mmhr[:,0])
 
-    description = "Angle major axis for convective pixels makes with northward vector"
-    mfns.write_var("mjrax_angle_c","Convective major axis angle",
-     description,"time",np.float64,"degrees",fileout,axang_c[:,0])
+    description = "Length of minor axis for >10mm/hr pixels"
+    mfns.write_var("mnraxlen10",
+     "Minor axis length (>10mm/hr)",description,"time",
+     np.float64,"m",fileout,axlen10mmhr[:,1])
 
-    description = "Angle minor axis for convective pixels makes with northward vector"
-    mfns.write_var("mnrax_angle_c","Convective minor axis angle",
-     description,"time",np.float64,"degrees",fileout,axang_c[:,1])
+    description = "Angle major axis for >10mm/hr makes with northward vector"
+    mfns.write_var("mjraxang10",
+     "Major axis angle (>10mm/hr)",description,"time",
+     np.float64,"degrees",fileout,axang10mmhr[:,0])
 
-#==================================================================
-# Write goodness of axes fit for convection
-#==================================================================
+    description = "Angle minor axis for >10mm/hr pixels makes with northward vector"
+    mfns.write_var("mnraxangle10",
+     "Minor axis angle (>10mm/hr)",description,"time",
+     np.float64,"degrees",fileout,axang10mmhr[:,1])
 
-    description = "Goodness of axes fit to convective pixels"
-    mfns.write_var("goodness_c","Convective axes goodness",
-     description,"time",np.float64,"",fileout,goodness_c)
+    description = "Goodness of axes fit to >10mm/hr pixels"
+    mfns.write_var("goodax10","Axes goodness (>10mm/hr)",
+     description,"time",np.float64,"",fileout,goodness10mmhr)
 
 #==================================================================
 # Write land information to file
 #==================================================================
 
   if anl.addlandinfo:
-    description = "1 if center of PF is over land. 0 if not."
-    mfns.write_var("cPF_over_land","Center of PF over land",
+    description = "1 if center of TIMPS is over land. 0 if not."
+    mfns.write_var("cent_over_land","Center of TIMPS over land",
       description,"time",'u8',"",fileout,cPF_over_land)
 
     format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
-    description = "Binary indicating if a PF location is over land (1 = over land, 0 = not over land)"
-    mfns.write_group("lPF_over_land",
+    description = "Binary indicating if a TIMPS location is over land (1 = over land, 0 = not over land)"
+    mfns.write_group("loc_over_land",
       "Location over land",description,"",
-      format1,fileout,lPF_over_land)
+      format1,fileout,lPF_over_land,f)
 
 #==================================================================
 # Write TC information to file
@@ -929,52 +1048,53 @@ def driver_addvars(fn):
     
     if writeTCdata: 
 
-    # If any part of PF IS within TC radius set TC attribute as True and write
-    #  other variables describing which parts of PF are within TC radius 
+    # If any part of TIMPS IS within TC radius set TC attribute 
+    #  as True and write other variables describing which parts of
+    #  TIMPS are within TC radius 
       fileout.within_TC = "True"
 
-      # Write cPF_in_TC
-      description = "If PF center is within a maximum radius of TC center this is 1, if not, this is 0."
-      mfns.write_var("cPF_in_TC",
-        "Proximity of PF center to TC",description,"time",
+      # Write cent_in_TC
+      description = "If TIMPS center is within a maximum radius of TC center this is 1, if not, this is 0."
+      mfns.write_var("cent_in_TC",
+        "Proximity of TIMPS center to TC",description,"time",
         'u8',"",fileout,cPF_in_TC)
 
-      # Write dist_cPF_cTC
-      description = "Calculated as the geodesic distance of the PF center to TC center"
-      mfns.write_var("dist_cPF_cTC",
-        "Distance of PF center to TC center",description,
+      # Write dist_cent_cTC
+      description = "Calculated as the geodesic distance of the TIMPS center to TC center"
+      mfns.write_var("dist_cent_cTC",
+        "Distance of TIMPS center to TC center",description,
         "time",np.float64,"km",fileout,dist_cPF_cTC)
 
       # Write TCradius
       description = "Calculated by finding the largest radius of a TC from IBtracs and doubling."
-      mfns.write_var("TCrad_cPF","Radius of TC",
+      mfns.write_var("TCrad_cent","Radius of TC",
         description,"time",np.float64,"km",fileout,TCrad_cPF)
 
-      # Write list of TCname_cPF as an attribute of PF file
-      fileout.TCname_cPF = TCname_cPF
+      # Write list of TCname_cent as an attribute of TIMPS file
+      fileout.TCname_cent = TCname_cPF
      
-      # Create or open a group for lPF_in_TC
+      # Create or open a group for loc_in_TC
       format1 = "Data is in attribute and value pairs of the subgroup data. Attributes correspond to the date and time in YYYYMMDDhhmm format. Values of those attributes are lists of the data at that time. Data here corresponds to the location set by the equivalent attribute and value pairs in the lats and lons group."
-      description = "Binary indicating if a PF location is within a TC (1 = within TCradius, 0 = not within TC radius)"
-      mfns.write_group("lPF_in_TC","Location within TC",
-        description,"",format1,fileout,lPF_in_TC)
+      description = "Binary indicating if a TIMPS location is within a TC (1 = within TCradius, 0 = not within TC radius)"
+      mfns.write_group("loc_in_TC","Location within TC",
+        description,"",format1,fileout,lPF_in_TC,f)
 
-      # Create or open a group for dist_lPF_cTC
-      description = "Calculated as geodesic distance to TC center from PF location"
-      mfns.write_group("dist_lPF_cTC",
-        "Distance to TC center from PF location",description,
-        "km",format1,fileout,dist_lPF_cTC)
+      # Create or open a group for dist_loc_cTC
+      description = "Calculated as geodesic distance to TC center from TIMPS location"
+      mfns.write_group("dist_loc_cTC",
+        "Distance to TC center from TIMPS location",description,
+        "km",format1,fileout,dist_lPF_cTC,f)
 
-      # Create or open a group for TCname_lPF
+      # Create or open a group for TCname_loc
       description = "Name of TC if given location is within TC"
-      mfns.write_group("TCname_lPF",
+      mfns.write_group("TCname_loc",
         "Name of TC if given location is within TC",
-        description,"",format1,fileout,TCname_lPF)
+        description,"",format1,fileout,TCname_lPF,f)
 
-      # Create or open a group for TCrad_lPF
+      # Create or open a group for TCrad_loc
       description = "Calculated by finding the largest radius of a TC from IBtracs and doubling."
-      mfns.write_group("TCrad_lPF","Radius of TC",
-        description,"",format1,fileout,TCrad_lPF)
+      mfns.write_group("TCrad_loc","Radius of TC",
+        description,"",format1,fileout,TCrad_lPF,f)
 
     else:
     # If not, just set TC attribute as False
@@ -987,20 +1107,20 @@ def driver_addvars(fn):
   fileout.close()
 
 #==================================================================
-# End processing of current PF
+# End processing of current TIMPS
 #==================================================================
 
 #==================================================================
-# Loop over IPF files in parrallel
+# Loop over TIMPS files in parrallel
 #==================================================================
 
 if anl.serialorparallel==1:
   print("Begin serial loop over objects")
   for fn in range(len(filenamesrun)): driver_addvars(fn)
 
-# Parrallel loop over PFs
+# Parrallel loop over TIMPS
 if anl.serialorparallel==2:
-  print("Begin parrallel loop over IPFs")
+  print("Begin parrallel loop over TIMPS")
   Parallel(n_jobs=anl.njobs)(delayed(driver_addvars)(fn) \
     for fn in range(len(filenamesrun)))
 

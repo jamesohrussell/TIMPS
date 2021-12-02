@@ -70,17 +70,27 @@ for dateobj in datearr:
 # Reads directory and filenames
 n = 0
 for f in filen:
+  filestoadd = glob.glob(f)
+
+  # All half hourly files must be present to continue
+  # Ensures the time-series is continuous
+  if not len(filestoadd)==48:
+    if len(filestoadd)<48:
+      raise ValueError(f"Missing files for {f}")
+    else:
+      raise ValueError(f"Too many files for {f}")
+
+  # Adds new files to list
   if n==0:
-    filenames = glob.glob(f)
+    filenames = filestoadd
   else:
-    filenames = filenames+glob.glob(f)
+    filenames = filenames+filestoadd
   n=n+1
 
 if len(filenames)==0:
-  print("No IMERG files found. Perhaps the IMERG \
+  raise ValueError("No IMERG files found. Perhaps the IMERG \
 directory or fileid is incorrect. Please check the \
 namelist and try again.")
-  exit()
 
 #==========================================================
 # Define function to run
